@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import { treeDatazy } from "./dataManager";
 interface FamilyTreeNode {
   id: string;             // Unique identifier for each node
   name: string;           // Display name of the person
@@ -8,6 +9,7 @@ interface FamilyTreeNode {
   father: string | null;        // ID of the father
   children: FamilyTreeNode[]; // Array of child nodes
 }
+
 const width = 1960;
 const height = 1800;
 const NODE_RADIUS = 40; // Change this to scale node size
@@ -20,7 +22,7 @@ const svg = d3.select("body").append("svg")
   .attr("width", width)
   .attr("height", height)
   .append("g")
-  .attr("transform", "translate(550,250)");
+  .attr("transform", "translate(1350,250)");
 const data: FamilyTreeNode = {
   name: "Muhammedsaid",
   id: "root",
@@ -123,7 +125,9 @@ const data: FamilyTreeNode = {
     }
   ]
 };
-const root = d3.hierarchy(data);
+// const root = d3.hierarchy(data);
+const root = d3.hierarchy(treeDatazy);
+console.log("first root", root)
 const treeData = treeLayout(root);
 const nodes = treeData.descendants();
 const links = treeData.links();
@@ -216,9 +220,62 @@ function drawNodes() {
         },
         ${d.y})`);
 
+node.append("circle")
+  .attr("r", NODE_RADIUS) // Dynamically scale node size
+  .attr("fill", d => {
+    if (d.data.gender === "male") {
+      return "#0F0"; // Green for male
+    } else if (d.data.gender === "female") {
+      return "#F0F"; // Purple for female
+    } else {
+      return "#AAA"; // Default color for unknown gender
+    }
+  });
+node.append("circle")
+  .attr("r", NODE_RADIUS) // Dynamically scale node size
+  .attr("fill", d => {
+    if (d.data.gender === "male") {
+      return "#0F0"; // Green for male
+    } else if (d.data.gender === "female") {
+      return "#F0F"; // Purple for female
+    } else {
+      return "#AAA"; // Default color for unknown gender
+    }
+  });
+node.append("circle")
+  .attr("r", NODE_RADIUS) // Dynamically scale node size
+  .attr("fill", d => {
+    if (d.data.gender === "male") {
+      return "#0F0"; // Green for male
+    } else if (d.data.gender === "female") {
+      return "#F0F"; // Purple for female
+    } else {
+      return "#AAA"; // Default color for unknown gender
+    }
+  });
+node.append("circle")
+  .attr("r", NODE_RADIUS) // Dynamically scale node size
+  .attr("fill", d => {
+    if (d.data.gender === "male") {
+      return "#0F0"; // Green for male
+    } else if (d.data.gender === "female") {
+      return "#F0F"; // Purple for female
+    } else {
+      return "#AAA"; // Default color for unknown gender
+    }
+  });
   node.append("circle")
-    .attr("r", NODE_RADIUS) // Dynamically scale node size
-    .attr("fill", "#999");
+  .attr("r", NODE_RADIUS) // Dynamically scale node size
+  .attr("fill", d => {
+    if (d.data.gender === "MALE") {
+      return "#0F0"; // Green for male
+    } else if (d.data.gender === "FEMALE") {
+      return "#F0F"; // Purple for female
+    } else {
+      return "#AAA"; // Default color for unknown gender
+    }
+  });
+
 
   node.append("text")
     .attr("dy",
@@ -231,6 +288,7 @@ function drawNodes() {
 drawMarriageLines()
 drawParentChildLine()
 drawNodes()
+
 
 const flatData = [
   {
@@ -396,11 +454,18 @@ function buildAncestorsHierarchy(flatData, startNodeId) {
   }
 }
 
+
+
 // Convert the list to a tree
-// const treeDataz = buildDescendantsHiararchy(flatData, 6);
-const treeDataz = buildAncestorsHierarchy(flatData, 4);
+// const treeDataz = customBuildDescendantsHiararchy(customFlatData, 6);
+// const treeDataz = customBuildAncestorsHierarchy(customFlatData, 7);
 
 // Now pass it to d3.hierarchy()
-// const rootx = d3.hierarchy(treeDataz);
-console.log("rt", treeDataz);
+// const treeDataz = buildAncestorsHierarchy(flatData, 4);
+const rootx = d3.hierarchy(treeDatazy);
+console.log("rt", rootx);
+
+// const children = getChildren(customFlatData, 6)
+
+// console.log("ch",children)
 

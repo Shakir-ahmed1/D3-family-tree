@@ -32,3 +32,28 @@ export interface CustomFlatData {
     familyNodes: FamilyNode[];
     parents: Parent[];
 }
+
+export interface Relations {
+    spouses: number[],
+    children: number[],
+    father?: number;
+    mother?: number;
+  }
+  export interface CustomStructure {
+    id: number;
+    name: string;
+    gender: string;
+    // imageUrl: string;
+    rels: Relations;
+  }
+  export interface DrawableNode {
+    id: number,
+    name: string;
+    gender: string;
+    father?: number;
+    mother?: number;
+    target?: number;
+    spouses?: number[];
+    type: 'spouse' | 'child' | 'root';
+    children?: DrawableNode[]
+  }

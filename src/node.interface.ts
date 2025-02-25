@@ -38,15 +38,15 @@ export interface Relations {
     children: number[],
     father?: number;
     mother?: number;
-  }
-  export interface CustomStructure {
+}
+export interface CustomStructure {
     id: number;
     name: string;
     gender: string;
     // imageUrl: string;
     rels: Relations;
-  }
-  export interface DrawableNode {
+}
+export interface DrawableNode {
     id: number,
     name: string;
     gender: string;
@@ -56,4 +56,11 @@ export interface Relations {
     spouses?: number[];
     type: 'spouse' | 'child' | 'root';
     children?: DrawableNode[]
-  }
+}
+export interface temporaryData {
+    id: number;
+    type: 'spouse' | 'child';
+    target?: number;
+    father?: number;
+    mother?: number;
+}

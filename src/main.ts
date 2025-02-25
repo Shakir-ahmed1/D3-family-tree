@@ -1,205 +1,189 @@
-import * as d3 from "d3";
-import { DrawableNode, treeDatazy } from "./dataManager";
+import { ND } from "./dataManager";
+import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
 
-export class FamilyTreeDrawer {
-  private width = 1960;
-  private height = 1800;
-  private NODE_RADIUS = 40; // Change this to scale node size
-  private verticalSpacing = this.NODE_RADIUS * 3; // Space between generations
-  private horizontalSpacing = this.NODE_RADIUS * 3; // Space between siblings/spouses
-  private descTreeLayout = d3.tree<DrawableNode>().nodeSize([this.horizontalSpacing, this.verticalSpacing]);
-  private descRoot: d3.HierarchyNode<DrawableNode>;
-  private descTreeData: d3.HierarchyPointNode<DrawableNode>;
-  private descNodes: d3.HierarchyNode<DrawableNode>[];
+// const middle = 4;
+// export const ancestorsData = ND.customBuildAncestorsHierarchy(middle, undefined);
+// export const descendantsData = ND.customBuildDescendantsHiararchy(middle);
 
-  private anceTreeLayout = d3.tree<DrawableNode>().nodeSize([this.horizontalSpacing, this.verticalSpacing]);
-  private anceRoot: d3.HierarchyNode<DrawableNode>;
-  private anceTreeData: d3.HierarchyPointNode<DrawableNode>;
-  private anceNodes: d3.HierarchyNode<DrawableNode>[];
+// const drawer = new FamilyTreeDrawer(descendantsData, ancestorsData, middle);
 
 
-  // private root =  d3.hierarchy({});
-  private svg = d3.select("body").append("svg")
-    .attr("width", this.width)
-    .attr("height", this.height)
-    .append("g")
-    .attr("transform", "translate(1350,250)");
-  constructor(desc: DrawableNode, ance: DrawableNode) {
-    this.descRoot = d3.hierarchy<DrawableNode>(desc);
-    this.descTreeData = this.descTreeLayout(this.descRoot);
-    this.descNodes = this.descTreeData.descendants();
-    this.drawDescMarriageLines(this.descNodes)
-    this.drawDescParentChildLine(this.descNodes)
-    this.drawDescNodes(this.descNodes)
 
-    // this.anceRoot = d3.hierarchy<DrawableNode>(ance);
-    // this.anceTreeData = this.anceTreeLayout(this.anceRoot);
-    // this.anceNodes = this.anceTreeData.descendants();
-    // this.drawMarriageLines(this.anceNodes)
-    // this.drawParentChildLine(this.anceNodes)
-    // this.drawNodes(this.anceNodes)
-  }
-
-
-  // const root = d3.hierarchy(data);
-  // Draw marriage lines based on 'target' property
-
-  drawDescMarriageLines(nodes: d3.HierarchyNode<DrawableNode>[]) {
-
-    nodes.forEach(d => {
-      // console.log("dddddddddd", d)
-      if (d.data.type === "spouse" && d.data.target) {
-        const spouse = nodes.find(n => n.data.id === d.data.target);
-        if (spouse) {
-          this.svg.append("line")
-            .attr("x1", d.x ?? 0)
-            .attr("y1", d.y ?? 0)
-            .attr("x2", spouse.x ?? 0)
-            .attr("y2", spouse.y ?? 0)
-            .attr("stroke", "#000")
-            .attr("stroke-width", 2);
-          // Store midpoint of marriage line for children connections
-          d.marriageMidpoint = {
-            x: ((d.x ?? 0) + (spouse.x ?? 0)) / 2,
-            y: d.y
-          };
-          spouse.marriageMidpoint = d.marriageMidpoint;
+import { requestActions } from './relations-structure'
+let fetchedNodesArray: any = null; // To store the fetched data
+let nodesData: any = null;
+// Function to fetch NODESARRAY from the provided API
+async function fetchNodesArray(apiUrl: string, bearerToken: string) {
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${bearerToken}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
-      }
-    });
-  }
-  // Draw child-parent connections
-  drawDescParentChildLine(nodes: d3.HierarchyNode<DrawableNode>[]) {
-
-    nodes.forEach(d => {
-
-
-
-      if (d.data.type === "child") {
-
-        // Draw connect child with both parents
-        if (d.data.mother && d.data.father) {
-          const mother = nodes.find(n => n.data.id === d.data.mother);
-          const father = nodes.find(n => n.data.id === d.data.father);
-          if (mother && father && mother.marriageMidpoint) {
-            this.svg.append("path")
-              .attr("class", "child-link")
-              .attr("fill", "none")
-              .attr("stroke", "#ccc")
-              .attr("stroke-width", 1.5)
-              .attr("d",
-                `M${mother.marriageMidpoint.x}, ${mother.marriageMidpoint.y}
-          V${(mother.marriageMidpoint.y + d.y) / 2}
-          H${d.x}
-          V${d.y}`);
-          }
-        }
-        // Draw to connect achild with 1 known parent
-        else if (d.data.mother || d.data.father) {
-          let pr;
-          if (d.data.father) pr = nodes.find(n => n.data.id === d.data.father);
-          if (d.data.mother) pr = nodes.find(n => n.data.id === d.data.mother);
-
-          this.svg.append("path")
-            .attr("class", "child-link")
-            .attr("fill", "none")
-            .attr("stroke", "#ccc")
-            .attr("stroke-width", 1.5)
-            .attr("d",
-              `M${pr.x},${pr.y + this.NODE_RADIUS / 2}
-          V${(pr.y + d.y) / 2}
-          H${d.x}
-          V${d.y - this.NODE_RADIUS / 2}`);
-
-        }
-      }
-
-    });
-  }
-  // Draw nodes
-
-
-  drawDescNodes(nodes: d3.HierarchyNode<DrawableNode>[]) {
-
-    const node = this.svg.selectAll("g.node")
-      .data(nodes.filter(d => d.data.type !== 'root'))
-      .enter().append("g")
-      .attr("class",
-        "node")
-      .attr("transform",
-        d => `translate(${d.x
-          },
-        ${d.y})`);
-
-    node.append("circle")
-      .attr("r", this.NODE_RADIUS) // Dynamically scale node size
-      .attr("fill", d => {
-        if (d.data.gender === "male") {
-          return "#0F0"; // Green for male
-        } else if (d.data.gender === "female") {
-          return "#F0F"; // Purple for female
-        } else {
-          return "#AAA"; // Default color for unknown gender
-        }
-      });
-    node.append("circle")
-      .attr("r", this.NODE_RADIUS) // Dynamically scale node size
-      .attr("fill", d => {
-        if (d.data.gender === "male") {
-          return "#0F0"; // Green for male
-        } else if (d.data.gender === "female") {
-          return "#F0F"; // Purple for female
-        } else {
-          return "#AAA"; // Default color for unknown gender
-        }
-      });
-    node.append("circle")
-      .attr("r", this.NODE_RADIUS) // Dynamically scale node size
-      .attr("fill", d => {
-        if (d.data.gender === "male") {
-          return "#0F0"; // Green for male
-        } else if (d.data.gender === "female") {
-          return "#F0F"; // Purple for female
-        } else {
-          return "#AAA"; // Default color for unknown gender
-        }
-      });
-    node.append("circle")
-      .attr("r", this.NODE_RADIUS) // Dynamically scale node size
-      .attr("fill", d => {
-        if (d.data.gender === "male") {
-          return "#0F0"; // Green for male
-        } else if (d.data.gender === "female") {
-          return "#F0F"; // Purple for female
-        } else {
-          return "#AAA"; // Default color for unknown gender
-        }
-      });
-    node.append("circle")
-      .attr("r", this.NODE_RADIUS) // Dynamically scale node size
-      .attr("fill", d => {
-        if (d.data.gender === "MALE") {
-          return "#0F0"; // Green for male
-        } else if (d.data.gender === "FEMALE") {
-          return "#F0F"; // Purple for female
-        } else {
-          return "#AAA"; // Default color for unknown gender
-        }
-      });
-
-
-    node.append("text")
-      .attr("dy",
-        -10)
-      .attr("text-anchor",
-        "middle")
-      .text(d => d.data.name);
-
-  }
-
-
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching nodes array:', error);
+        alert('Failed to fetch data. Check console for details.');
+        return null;
+    }
 }
 
+// Function to clear the container
+function clearContainer(containerId: string) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = ''; // Clear the container's content
+    }
+}
+
+// Function to draw the family tree
+// function renderFamilyTree(na: any, selfNodeId: number, oldNodeData) {
+//     const containerId = 'treeContainer';
+//     const nodesArray = structuredClone(na)
+//     // console.log('fetched data', na)
+//     // Clear the existing content in the container
+//     clearContainer(containerId);
+
+//     const drawingData = processRelations(nodesArray, selfNodeId);
+
+//     // Customize nodes with labels and styles
+//     drawingData.nodes.forEach((item) => {
+//         item.label = item.data['first name'];
+//         item.gender = item.data.gender === 'F' ? 'female' : 'male';
+//         item.color = item.gender + '-color';
+//         return item;
+//     });
+
+//     // Draw the family tree in the specified container
+//     return drawFamilyTree({ containerId, ...drawingData, oldNodeData });
+// }
+
+// Event listener for the API fetch form
+const apiForm = document.getElementById('apiForm') as HTMLFormElement;
+apiForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    // Get API URL and Bearer Token values
+    const apiUrl = (document.getElementById('apiUrl') as HTMLInputElement).value;
+    const bearerToken = (document.getElementById('bearerToken') as HTMLInputElement).value;
+
+    // Fetch the nodes array
+    const nodesArray = await fetchNodesArray(apiUrl, bearerToken);
+    // Store the fetched data globally
+    if (nodesArray) {
+        fetchedNodesArray = nodesArray;
+        alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
+    }
+});
+
+// Event listener for the Self Node ID form
+const viewChangeForm = document.getElementById('viewChangeForm') as HTMLFormElement;
+viewChangeForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    if (!fetchedNodesArray) {
+        alert('Please fetch data from the API first.');
+        return;
+    }
+
+    // Get Self Node ID value
+    const selfNodeIdInput = (document.getElementById('selfNodeId') as HTMLInputElement).value;
+    const selfNodeId = parseInt(selfNodeIdInput, 10);
+
+    if (isNaN(selfNodeId)) {
+        alert('Please enter a valid Self Node ID (number).');
+        return;
+    }
+clearContainer('treeContainer')
+    // Use the already fetched data to draw the tree
+    // const middle = 4;
+    // console.log(selfNodeId, fetchedNodesArray)
+    // if (!fetchNodesArray.familyNodes) {
+    //     throw new Error('fetching wrong data type')
+    // }
+    ND.setData(fetchedNodesArray)
+    const ancestorsData = ND.customBuildAncestorsHierarchy(selfNodeId, undefined);
+    const descendantsData = ND.customBuildDescendantsHiararchy(selfNodeId);
+    const drawer = new FamilyTreeDrawer(descendantsData, ancestorsData, selfNodeId);
+
+    const ancestorsData2 = ND.customBuildAncestorsHierarchy(2, undefined);
+    const descendantsData2 = ND.customBuildDescendantsHiararchy(2);
+    drawer.updateTreeData(descendantsData2,ancestorsData2, 2)
+    
+    
+});
 
 
-const drawer = new FamilyTreeDrawer(treeDatazy, treeDatazy);
+// Function to populate the request body field based on selected action
+function populateRequestBody(actionTitle: string) {
+    const action = requestActions.find((item) => item.actionTitle === actionTitle);
+    if (action) {
+        const requestBodyField = document.getElementById('requestBody') as HTMLTextAreaElement;
+        requestBodyField.value = action.requestBody.trim();
+    }
+}
+
+// Function to make a POST request
+async function makePostRequest(uri: string, requestBody: any) {
+    try {
+        const response = await fetch(`http://localhost:3000${uri}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        console.log('POST Response:', responseData);
+        alert('Node added successfully.');
+    } catch (error) {
+        console.error('Error making POST request:', error);
+        alert('Failed to add the node. Check console for details.');
+    }
+}
+
+// Event listener for the action selection dropdown
+const actionSelect = document.getElementById('actionSelect') as HTMLSelectElement;
+actionSelect.addEventListener('change', (event) => {
+    const selectedAction = (event.target as HTMLSelectElement).value;
+    populateRequestBody(selectedAction);
+});
+
+// Event listener for the form submission
+const addNodeForm = document.getElementById('addNodeForm') as HTMLFormElement;
+addNodeForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const selectedAction = (document.getElementById('actionSelect') as HTMLSelectElement).value;
+    const action = requestActions.find((item) => item.actionTitle === selectedAction);
+
+    if (!action) {
+        alert('Invalid action selected.');
+        return;
+    }
+
+    const requestBodyField = document.getElementById('requestBody') as HTMLTextAreaElement;
+    let requestBody;
+    try {
+        requestBody = JSON.parse(requestBodyField.value);
+    } catch (error) {
+        alert('Invalid JSON in request body.');
+        return;
+    }
+
+    const familyTreeId = 1; // Replace with your dynamic familyTreeId if needed
+    const uri = action.uri.replace('},{familyTreeId}', familyTreeId.toString());
+
+    await makePostRequest(uri, requestBody);
+});

@@ -1,805 +1,17 @@
 import * as d3 from 'd3';
-import { CustomFlatData, DrawableNode, FamilyNode, HrDataChild, HrDataParent, Parent } from "./node.interface";
-
-
+import { CustomFlatData, DrawableNode, FamilyNode, HrDataChild, HrDataParent, Parent, temporaryData } from "./node.interface";
 
 export class NodeData {
+  setData(fetchedNodesArray: any) {
+    this.data = fetchedNodesArray
+  }
   constructor() {
 
   }
-  // private data: CustomFlatData = {
-  //     familyNodes: [],
-  //     parents: []
-  // }
+
   private data: CustomFlatData = {
-    "parents": [
-      {
-        "id": 1,
-        "isSecondary": false,
-        "createdAt": "2025-02-21T06:05:27.599Z",
-        "updatedAt": "2025-02-21T06:05:27.599Z",
-        "startedAt": null,
-        "devorcedAt": null,
-        "type": "MAIN",
-        "femaleNode": {
-          "id": 1,
-          "isSecondary": false
-        },
-        "maleNode": {
-          "id": 2,
-          "isSecondary": false
-        }
-      },
-      {
-        "id": 2,
-        "isSecondary": false,
-        "createdAt": "2025-02-21T06:05:27.646Z",
-        "updatedAt": "2025-02-21T06:05:27.646Z",
-        "startedAt": null,
-        "devorcedAt": null,
-        "type": "MAIN",
-        "femaleNode": {
-          "id": 3,
-          "isSecondary": false
-        },
-        "maleNode": {
-          "id": 7,
-          "isSecondary": false
-        }
-      },
-      {
-        "id": 3,
-        "isSecondary": false,
-        "createdAt": "2025-02-21T06:05:27.671Z",
-        "updatedAt": "2025-02-21T06:05:27.671Z",
-        "startedAt": null,
-        "devorcedAt": null,
-        "type": "MAIN",
-        "femaleNode": null,
-        "maleNode": {
-          "id": 6,
-          "isSecondary": false
-        }
-      },
-      {
-        "id": 4,
-        "isSecondary": false,
-        "createdAt": "2025-02-21T16:24:53.275Z",
-        "updatedAt": "2025-02-21T16:24:53.275Z",
-        "startedAt": null,
-        "devorcedAt": null,
-        "type": "UNKNOWN",
-        "femaleNode": null,
-        "maleNode": {
-          "id": 8,
-          "isSecondary": false
-        }
-      },
-      {
-        "id": 5,
-        "isSecondary": false,
-        "createdAt": "2025-02-21T16:24:58.430Z",
-        "updatedAt": "2025-02-21T16:24:58.430Z",
-        "startedAt": null,
-        "devorcedAt": null,
-        "type": "UNKNOWN",
-        "femaleNode": null,
-        "maleNode": {
-          "id": 8,
-          "isSecondary": false
-        }
-      },
-      {
-        "id": 6,
-        "isSecondary": false,
-        "createdAt": "2025-02-21T16:24:58.928Z",
-        "updatedAt": "2025-02-21T16:24:58.928Z",
-        "startedAt": null,
-        "devorcedAt": null,
-        "type": "UNKNOWN",
-        "femaleNode": null,
-        "maleNode": {
-          "id": 8,
-          "isSecondary": false
-        }
-      },
-      {
-        "id": 7,
-        "isSecondary": false,
-        "createdAt": "2025-02-21T16:38:15.285Z",
-        "updatedAt": "2025-02-21T16:38:15.285Z",
-        "startedAt": null,
-        "devorcedAt": null,
-        "type": "UNKNOWN",
-        "femaleNode": {
-          "id": 23,
-          "isSecondary": false
-        },
-        "maleNode": {
-          "id": 2,
-          "isSecondary": false
-        }
-      },
-      {
-        "id": 8,
-        "isSecondary": false,
-        "createdAt": "2025-02-21T16:38:19.685Z",
-        "updatedAt": "2025-02-21T16:38:19.685Z",
-        "startedAt": null,
-        "devorcedAt": null,
-        "type": "UNKNOWN",
-        "femaleNode": {
-          "id": 24,
-          "isSecondary": false
-        },
-        "maleNode": {
-          "id": 2,
-          "isSecondary": false
-        }
-      }
-    ],
-    "familyNodes": [
-      {
-        "id": 1,
-        "generatedName": "",
-        "name": "Foree",
-        "title": null,
-        "phone": null,
-        "address": null,
-        "gender": "FEMALE",
-        "nickName": null,
-        "birthDate": null,
-        "deathDate": null,
-        "createdAt": "2025-02-21T06:05:27.494Z",
-        "updatedAt": "2025-02-21T06:05:27.494Z",
-        "isSecondary": false,
-        "isFounder": true,
-        "parentRelationship": null,
-        "ownedBy": null
-      },
-      {
-        "id": 2,
-        "generatedName": "",
-        "name": "Prurururu",
-        "title": null,
-        "phone": null,
-        "address": null,
-        "gender": "MALE",
-        "nickName": null,
-        "birthDate": null,
-        "deathDate": null,
-        "createdAt": "2025-02-21T06:05:27.518Z",
-        "updatedAt": "2025-02-21T06:05:27.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 3,
-          "maleNode": {
-            "id": 6,
-            "name": "Zoro"
-          },
-          "femaleNode": null
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 3,
-        "generatedName": "",
-        "name": "Hyuu",
-        "title": null,
-        "phone": null,
-        "address": null,
-        "gender": "FEMALE",
-        "nickName": null,
-        "birthDate": null,
-        "deathDate": null,
-        "createdAt": "2025-02-21T06:05:27.545Z",
-        "updatedAt": "2025-02-21T06:05:27.545Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": null,
-        "ownedBy": null
-      },
-      {
-        "id": 4,
-        "generatedName": "",
-        "name": "Nami",
-        "title": null,
-        "phone": null,
-        "address": null,
-        "gender": "FEMALE",
-        "nickName": null,
-        "birthDate": null,
-        "deathDate": null,
-        "createdAt": "2025-02-21T06:05:27.558Z",
-        "updatedAt": "2025-02-21T06:05:27.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 2,
-          "maleNode": {
-            "id": 7,
-            "name": "Name Surname"
-          },
-          "femaleNode": {
-            "id": 3,
-            "name": "Hyuu"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 5,
-        "generatedName": "",
-        "name": "Chopeor",
-        "title": null,
-        "phone": null,
-        "address": null,
-        "gender": "MALE",
-        "nickName": null,
-        "birthDate": null,
-        "deathDate": null,
-        "createdAt": "2025-02-21T06:05:27.568Z",
-        "updatedAt": "2025-02-21T06:05:27.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 2,
-          "maleNode": {
-            "id": 7,
-            "name": "Name Surname"
-          },
-          "femaleNode": {
-            "id": 3,
-            "name": "Hyuu"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 6,
-        "generatedName": "",
-        "name": "Zoro",
-        "title": null,
-        "phone": null,
-        "address": null,
-        "gender": "MALE",
-        "nickName": null,
-        "birthDate": null,
-        "deathDate": null,
-        "createdAt": "2025-02-21T06:05:27.583Z",
-        "updatedAt": "2025-02-21T06:05:27.583Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": null,
-        "ownedBy": null
-      },
-      {
-        "id": 7,
-        "generatedName": "",
-        "name": "Name Surname",
-        "title": null,
-        "phone": null,
-        "address": null,
-        "gender": "MALE",
-        "nickName": null,
-        "birthDate": "1970-01-01T00:00:00.000Z",
-        "deathDate": null,
-        "createdAt": "2025-02-21T06:05:27.462Z",
-        "updatedAt": "2025-02-21T06:05:27.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 8,
-        "generatedName": "",
-        "name": "Pru's brother",
-        "title": null,
-        "phone": null,
-        "address": null,
-        "gender": "MALE",
-        "nickName": null,
-        "birthDate": null,
-        "deathDate": null,
-        "createdAt": "2025-02-21T06:05:27.532Z",
-        "updatedAt": "2025-02-21T06:05:27.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 3,
-          "maleNode": {
-            "id": 6,
-            "name": "Zoro"
-          },
-          "femaleNode": null
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 9,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:24:07.261Z",
-        "updatedAt": "2025-02-21T16:24:07.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 3,
-          "maleNode": {
-            "id": 6,
-            "name": "Zoro"
-          },
-          "femaleNode": null
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 10,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:24:53.277Z",
-        "updatedAt": "2025-02-21T16:24:53.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 4,
-          "maleNode": {
-            "id": 8,
-            "name": "Pru's brother"
-          },
-          "femaleNode": null
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 11,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:24:58.432Z",
-        "updatedAt": "2025-02-21T16:24:58.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 5,
-          "maleNode": {
-            "id": 8,
-            "name": "Pru's brother"
-          },
-          "femaleNode": null
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 12,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:24:58.930Z",
-        "updatedAt": "2025-02-21T16:24:58.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 6,
-          "maleNode": {
-            "id": 8,
-            "name": "Pru's brother"
-          },
-          "femaleNode": null
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 13,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:48.699Z",
-        "updatedAt": "2025-02-21T16:36:48.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 14,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:53.862Z",
-        "updatedAt": "2025-02-21T16:36:53.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 15,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:54.506Z",
-        "updatedAt": "2025-02-21T16:36:54.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 16,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:55.097Z",
-        "updatedAt": "2025-02-21T16:36:55.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 17,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:55.593Z",
-        "updatedAt": "2025-02-21T16:36:55.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 18,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:56.089Z",
-        "updatedAt": "2025-02-21T16:36:56.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 19,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:56.497Z",
-        "updatedAt": "2025-02-21T16:36:56.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 20,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:56.937Z",
-        "updatedAt": "2025-02-21T16:36:56.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 21,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:57.351Z",
-        "updatedAt": "2025-02-21T16:36:57.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 22,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:36:57.729Z",
-        "updatedAt": "2025-02-21T16:36:57.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 1,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 1,
-            "name": "Foree"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 23,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "FEMALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:38:15.279Z",
-        "updatedAt": "2025-02-21T16:38:15.279Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": null,
-        "ownedBy": null
-      },
-      {
-        "id": 24,
-        "generatedName": "",
-        "name": "John Doe",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "FEMALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-21T16:38:19.670Z",
-        "updatedAt": "2025-02-21T16:38:19.670Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": null,
-        "ownedBy": null
-      },
-      {
-        "id": 25,
-        "generatedName": "",
-        "name": "Pruru 2 wifeson",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-22T04:31:27.148Z",
-        "updatedAt": "2025-02-22T04:31:27.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 7,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 23,
-            "name": "John Doe"
-          }
-        },
-        "ownedBy": null
-      },
-      {
-        "id": 26,
-        "generatedName": "",
-        "name": "Pruru 2 wifeson",
-        "title": "Dr.",
-        "phone": "123-456-7890",
-        "address": "123 Main Street",
-        "gender": "MALE",
-        "nickName": "Johnny",
-        "birthDate": "1990-01-01T00:00:00.000Z",
-        "deathDate": "2090-01-01T00:00:00.000Z",
-        "createdAt": "2025-02-22T04:31:28.504Z",
-        "updatedAt": "2025-02-22T04:31:28.000Z",
-        "isSecondary": false,
-        "isFounder": false,
-        "parentRelationship": {
-          "id": 7,
-          "maleNode": {
-            "id": 2,
-            "name": "Prurururu"
-          },
-          "femaleNode": {
-            "id": 23,
-            "name": "John Doe"
-          }
-        },
-        "ownedBy": null
-      }
-    ]
+    familyNodes: [],
+    parents: []
   }
   getNode(id: number): FamilyNode {
     const foundNode = this.data.familyNodes.find(item => id === item.id)
@@ -823,47 +35,56 @@ export class NodeData {
   }
   getSpouses(familyNode: FamilyNode): number[] {
     const foundParentHood = this.data.parents.filter(item => {
-      console.log(item)
       if (familyNode.gender === "MALE" && item.maleNode) {
         return item.maleNode.id === familyNode.id
       } else if (familyNode.gender === "FEMALE" && item.femaleNode) {
         return item.femaleNode.id === familyNode.id
       }
     })
-    return foundParentHood.map(item => {
+    const result = foundParentHood.map(item => {
       if (familyNode.gender === "MALE" && item.femaleNode) {
         return item.femaleNode.id
       } else if (familyNode.gender === "FEMALE" && item.maleNode) {
         return item.maleNode.id
       }
     }).filter((item): item is number => item !== undefined)
+    return result
+
   }
-  getChildrenByParents(selfNodeId: number, spouseNodeId: number): DrawableNode[] {
+
+
+  // returns all children and thier spouses as temporary storage
+  getChildrenByParents(selfNodeId: number, spouseNodeId: number | undefined): temporaryData[] {
     const selfNode = this.getNode(selfNodeId)
     let spouseNode;
-    try {
+    if (spouseNodeId) {
       spouseNode = this.getNode(spouseNodeId)
-    } catch (e) {
+    } else {
       spouseNode = undefined;
     }
+    let parentHood
+    if (!spouseNodeId) {
+      parentHood = this.data.parents.find(item => {
+        if (selfNode.gender === "MALE" && item.maleNode?.id === selfNode.id && !item.femaleNode) {
+          return true
+        } else if (selfNode.gender === "FEMALE" && item.femaleNode?.id === selfNode.id && !item.femaleNode) {
+          return true
+        } else {
+          return false
+        }
+      })
 
-    const parentHood = this.data.parents.find(item => {
-      if (selfNode.gender === "MALE" && item.maleNode) {
-        if (item.maleNode.id === selfNode.id) {
-          if (spouseNode?.id === item?.femaleNode?.id) {
-            return true
-          }
+    } else {
+      parentHood = this.data.parents.find(item => {
+        if (selfNode.gender === "MALE" && item.maleNode && item.maleNode.id === selfNode.id && item.femaleNode && spouseNode && item.femaleNode.id === spouseNode?.id) {
+          return true
+        } else if (selfNode.gender === "FEMALE" && item.femaleNode && item.femaleNode.id === selfNode.id && item.maleNode && spouseNode && item.maleNode.id === spouseNode?.id) {
+          return true
         }
-      } else if (selfNode.gender === "FEMALE" && item.femaleNode) {
-        if (item.femaleNode.id === selfNode.id) {
-          if (spouseNode?.id === item?.maleNode?.id) {
-            return true
-          }
-        }
-      }
-    })
-    const allChildren: DrawableNode[] = []
-    let father: number, mother: number;
+      })
+    }
+    const allChildren: temporaryData[] = []
+    let father: undefined | number, mother: undefined | number;
     if (parentHood) {
       if (selfNode.gender === 'MALE') {
         father = selfNode.id;
@@ -875,29 +96,91 @@ export class NodeData {
     }
     const foundChildren = this.data.familyNodes.filter(item => {
 
-      if (item.parentRelationship?.id === parentHood?.id) {
+      if (parentHood && item.parentRelationship?.id === parentHood?.id) {
         return true
       } else {
         return false
       }
     })
     foundChildren.map(item => {
-      const customChild: DrawableNode = {
+      const customChild: temporaryData = {
         id: item.id,
-        name: item.name,
-        gender: item.gender,
+        // gender: item.gender,
         father,
         mother,
-        spouses: this.getSpouses(selfNode),
+        // spouses: this.getSpouses(selfNode),
         type: 'child',
       }
       allChildren.push(customChild)
-      const foundSpouses = this.customGetSpouses(item)
+      const foundSpousesIds = this.getSpouses(item)
+
+      const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
+        const foundSpouse = this.getNode(sp)
+        const result: temporaryData = {
+          id: foundSpouse.id,
+          // name: foundSpouse.name,
+          // gender: foundSpouse.gender,
+          type: 'spouse',
+          target: item.id,
+        }
+        return result
+      })
+
       allChildren.push(...foundSpouses)
     })
     return allChildren;
 
   }
+
+  // traverses to find all descendants
+  customGetChildrenByParents(familyNode: temporaryData): DrawableNode {
+    if (familyNode.type === 'spouse') {
+      const currentChildren: temporaryData[] = this.getChildrenByParents(familyNode.target as number, familyNode.id)
+      const customChildren = currentChildren.map(item => {
+        const spDrawable = this.customGetChildrenByParents(item)
+        return spDrawable;
+      })
+      const foundItem = this.getNode(familyNode.id)
+      const customResponse: DrawableNode = {
+        id: foundItem.id,
+        gender: foundItem.gender,
+        name: foundItem.name,
+        type: familyNode.type,
+        children: customChildren,
+        father: familyNode.father,
+        mother: familyNode.mother,
+        target: familyNode.target
+
+      }
+      return customResponse
+    } else if (familyNode.type === 'child') {
+      const currentChildren: temporaryData[] = this.getChildrenByParents(familyNode.id, undefined)
+      const customChildren = currentChildren.map(item => {
+        // 6
+        // 2  2, 1
+        const spDrawable = this.customGetChildrenByParents(item)
+        return spDrawable;
+      })
+      const foundItem = this.getNode(familyNode.id)
+      const customResponse: DrawableNode = {
+        id: foundItem.id,
+        gender: foundItem.gender,
+        name: foundItem.name,
+        type: familyNode.type,
+        children: customChildren,
+        father: familyNode.father,
+        mother: familyNode.mother,
+        target: familyNode.target
+
+      }
+      return customResponse
+
+    } else {
+      throw new Error('temporaryData can\'t have value called' + familyNode.type)
+    }
+
+  }
+
   customGetSpouses(familyNode: FamilyNode): DrawableNode[] {
     const foundParentHood = this.data.parents.filter(item => {
       if (familyNode.gender === "MALE" && item.maleNode) {
@@ -915,19 +198,22 @@ export class NodeData {
     }).filter(item => item)
     const newSpouses: DrawableNode[] = []
     for (let s of spouses) {
-      const newSpouse: DrawableNode = {
-        id: s.id,
-        name: s.name,
-        gender: s.gender,
-        type: 'spouse',
-        target: familyNode.id,
-        children: [],
+      if (s) {
+        const newSpouse: DrawableNode = {
+          id: s.id,
+          name: s.name,
+          gender: s.gender,
+          type: 'spouse',
+          target: familyNode.id,
+          children: [],
+        }
+        newSpouses.push(newSpouse)
       }
-      newSpouses.push(newSpouse)
     }
 
     return newSpouses;
   }
+  
   getChildren(id: number): number[] {
     const foundNode = this.getNode(id)
     const foundSpouseRelations = this.getSpouseRelationship(foundNode)
@@ -940,46 +226,6 @@ export class NodeData {
       }
     })
     return foundChildren.map(item => item.id)
-
-  }
-  customGetChildren(id: number): DrawableNode[] {
-    const foundNode = this.getNode(id)
-    const foundSpouseRelations = this.getSpouseRelationship(foundNode)
-    const foundSpouseRelationsIds = foundSpouseRelations.map(item => item.id)
-    const foundChildren = this.data.familyNodes.filter(item => {
-      if (item.parentRelationship && foundSpouseRelationsIds.includes(item.parentRelationship.id)) {
-        return true
-      } else {
-        return false
-      }
-    })
-    const allChildren: DrawableNode[] = []
-    let father: number, mother: number;
-    if (foundNode.parentRelationship) {
-      const foundParentHood = this.getParentRelationship(foundNode.parentRelationship.id)
-      if (foundParentHood.femaleNode) {
-        mother = foundParentHood.femaleNode.id
-      }
-      if (foundParentHood.maleNode) {
-        father = foundParentHood.maleNode.id
-      }
-    }
-
-    foundChildren.map(item => {
-      const customChild: DrawableNode = {
-        id: item.id,
-        name: item.name,
-        gender: item.gender,
-        father,
-        mother,
-        spouses: this.getSpouses(foundNode),
-        type: 'child',
-      }
-      allChildren.push(customChild)
-      const foundSpouses = this.customGetSpouses(item)
-      allChildren.push(...foundSpouses)
-    })
-    return allChildren;
 
   }
 
@@ -1004,69 +250,67 @@ export class NodeData {
 
   customBuildDescendantsHiararchy(startNodeId: number): DrawableNode {
     const familyNode = this.getNode(startNodeId)
-    const preDesc = this._customBuildDescendantsHiararchy(startNodeId)
-    preDesc.father = undefined;
-    preDesc.mother = undefined;
+    // const preDesc = this._customBuildDescendantsHiararchy(startNodeId)
+    const tempNodes: temporaryData = {
+      id: familyNode.id,
+      type: 'child',
+    }
+
+    const allChildren: temporaryData[] = []
+    const customChild: temporaryData = {
+      id: familyNode.id,
+      // spouses: this.getSpouses(selfNode),
+      type: 'child',
+    }
+    allChildren.push(customChild)
+    const foundSpousesIds = this.getSpouses(familyNode)
+    const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
+      const foundSpouse = this.getNode(sp)
+
+      const result: temporaryData = {
+        id: foundSpouse.id,
+        // name: foundSpouse.name,
+        // gender: foundSpouse.gender,
+        type: 'spouse',
+        target: familyNode.id,
+      }
+      return result
+    })
+
+    allChildren.push(...foundSpouses)
+
+
+    const customChildren = allChildren.map(item => {
+      const spDrawable = this.customGetChildrenByParents(item)
+      return spDrawable;
+    })
+
     const spouses = this.customGetSpouses(familyNode)
     const resultedChildren: DrawableNode = {
       id: 0,
       name: 'root',
       gender: 'MALE',
       type: 'root',
-      children: [preDesc, ...spouses]
+      children: customChildren
     }
     return resultedChildren;
   }
 
 
-
-  _customBuildDescendantsHiararchy(startNodeId: number): DrawableNode {
-    const foundNode = this.getNode(startNodeId)
-    // Create a map of all nodes by ID
-    const allChildren: DrawableNode[] = this.customGetChildren(startNodeId);
-    const selfspouses = this.getSpouses(foundNode)
-    // selfspouses.map(item => {
-      
-    //   const allChildren: DrawableNode[] = this.getChildrenByParents(startNodeId);
-    // })
-    const children: DrawableNode[] = allChildren
-      .map(item => {
-        if (item.type === 'spouse') {
-          return item;
-        } else {
-          const childDescendants: DrawableNode = this._customBuildDescendantsHiararchy(item.id)
-          return childDescendants
-        }
-      })
-    let father, mother;
-    if (foundNode.parentRelationship) {
-      const foundParentHood = this.getParentRelationship(foundNode.parentRelationship.id)
-      if (foundParentHood.femaleNode) {
-        mother = foundParentHood.femaleNode.id
-      }
-      if (foundParentHood.maleNode) {
-        father = foundParentHood.maleNode.id
-      }
-    }
-    const resultedChildren: DrawableNode = {
-      id: startNodeId,
-      name: foundNode.name,
-      gender: foundNode.gender,
-      type: 'child',
-      spouses: selfspouses,
-      father,
-      mother,
-      children
-    }
-    return resultedChildren;
-  }
-
-  customBuildAncestorsHierarchy(startNodeId: number): HrDataParent {
+  customBuildAncestorsHierarchy(startNodeId: number, other: number | undefined): DrawableNode {
     const foundNode = this.getNode(startNodeId)
     // Create a map of all nodes by ID
     const allParents = this.getParents(startNodeId).map(item => item.id)
-    const operatedParents = allParents.map(item => {
-      return this.customBuildAncestorsHierarchy(item)
+
+    const operatedParents = allParents.map((item, index, arr) => {
+      let other;
+      if (index === 0 && arr.length === 2) {
+        other = allParents[1]
+      }
+      if (index === 1 && arr.length === 2) {
+        other = allParents[0]
+      }
+      return this.customBuildAncestorsHierarchy(item, other)
     })
 
     let father, mother;
@@ -1088,24 +332,28 @@ export class NodeData {
       gender: foundNode.gender,
       father,
       mother,
-      // target?: ;
       // spouses?: ;
       type: 'child'
       // children?: []
     }
+    if (other) hrParent.target = other;
     return hrParent
   }
 
 
 }
 
-const ND = new NodeData()
+export const ND = new NodeData()
 
-export const treeDatazy = ND.customBuildDescendantsHiararchy(6);
-console.log("new Nodeszy", treeDatazy)
+
 
 // Now pass it to d3.hierarchy()
 // const treeDataz = buildAncestorsHierarchy(flatData, 4);
 
 
 
+// change node event.
+// get the data for the new root node.
+// identify which nodes from the previous drawing need to stay.
+// // those who stayed get resized and repositioned. and those who are not needed fade out
+// // those who are new get displayed (fade in)

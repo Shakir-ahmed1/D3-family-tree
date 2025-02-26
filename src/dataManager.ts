@@ -111,9 +111,8 @@ export class NodeData {
         // spouses: this.getSpouses(selfNode),
         type: 'child',
       }
-      allChildren.push(customChild)
       const foundSpousesIds = this.getSpouses(item)
-
+      
       const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
         const foundSpouse = this.getNode(sp)
         const result: temporaryData = {
@@ -126,7 +125,14 @@ export class NodeData {
         return result
       })
 
-      allChildren.push(...foundSpouses)
+      if (item.gender === "MALE") {
+        allChildren.push(customChild)
+        allChildren.push(...foundSpouses)
+      } else {
+        allChildren.push(...foundSpouses)
+        allChildren.push(customChild)
+  
+      }
     })
     return allChildren;
 
@@ -235,13 +241,13 @@ export class NodeData {
     const parents = []
     if (foundNode.parentRelationship) {
       const foundParentship = this.getParentRelationship(foundNode.parentRelationship.id)
-      if (foundParentship.femaleNode) {
-        const mother = this.getNode(foundParentship.femaleNode.id)
-        parents.push(mother)
-      }
       if (foundParentship.maleNode) {
         const father = this.getNode(foundParentship.maleNode.id)
         parents.push(father)
+      }
+      if (foundParentship.femaleNode) {
+        const mother = this.getNode(foundParentship.femaleNode.id)
+        parents.push(mother)
       }
     }
     return parents;
@@ -262,11 +268,10 @@ export class NodeData {
       // spouses: this.getSpouses(selfNode),
       type: 'child',
     }
-    allChildren.push(customChild)
     const foundSpousesIds = this.getSpouses(familyNode)
     const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
       const foundSpouse = this.getNode(sp)
-
+      
       const result: temporaryData = {
         id: foundSpouse.id,
         // name: foundSpouse.name,
@@ -276,8 +281,14 @@ export class NodeData {
       }
       return result
     })
+    if (familyNode.gender === "MALE") {
+      allChildren.push(customChild)
+      allChildren.push(...foundSpouses)
+    } else {
+      allChildren.push(...foundSpouses)
+      allChildren.push(customChild)
 
-    allChildren.push(...foundSpouses)
+    }
 
 
     const customChildren = allChildren.map(item => {

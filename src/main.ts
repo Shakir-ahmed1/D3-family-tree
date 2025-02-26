@@ -6,6 +6,7 @@ import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
 // export const descendantsData = ND.customBuildDescendantsHiararchy(middle);
 
 // const drawer = new FamilyTreeDrawer(descendantsData, ancestorsData, middle);
+const drawer = new FamilyTreeDrawer();
 
 
 
@@ -41,29 +42,6 @@ function clearContainer(containerId: string) {
     }
 }
 
-// Function to draw the family tree
-// function renderFamilyTree(na: any, selfNodeId: number, oldNodeData) {
-//     const containerId = 'treeContainer';
-//     const nodesArray = structuredClone(na)
-//     // console.log('fetched data', na)
-//     // Clear the existing content in the container
-//     clearContainer(containerId);
-
-//     const drawingData = processRelations(nodesArray, selfNodeId);
-
-//     // Customize nodes with labels and styles
-//     drawingData.nodes.forEach((item) => {
-//         item.label = item.data['first name'];
-//         item.gender = item.data.gender === 'F' ? 'female' : 'male';
-//         item.color = item.gender + '-color';
-//         return item;
-//     });
-
-//     // Draw the family tree in the specified container
-//     return drawFamilyTree({ containerId, ...drawingData, oldNodeData });
-// }
-
-// Event listener for the API fetch form
 const apiForm = document.getElementById('apiForm') as HTMLFormElement;
 apiForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -74,9 +52,16 @@ apiForm.addEventListener('submit', async (event) => {
 
     // Fetch the nodes array
     const nodesArray = await fetchNodesArray(apiUrl, bearerToken);
+
     // Store the fetched data globally
     if (nodesArray) {
         fetchedNodesArray = nodesArray;
+        ND.setData(fetchedNodesArray)
+        let middle = 2;
+        const ancestorsData = ND.customBuildAncestorsHierarchy(middle, undefined);
+        const descendantsData = ND.customBuildDescendantsHiararchy(middle);
+        console.log(ancestorsData, descendantsData)
+        drawer.updateTreeData(descendantsData,ancestorsData, middle)
         alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
     }
 });
@@ -99,23 +84,29 @@ viewChangeForm.addEventListener('submit', (event) => {
         alert('Please enter a valid Self Node ID (number).');
         return;
     }
-clearContainer('treeContainer')
+    // clearContainer('treeContainer')
     // Use the already fetched data to draw the tree
     // const middle = 4;
     // console.log(selfNodeId, fetchedNodesArray)
     // if (!fetchNodesArray.familyNodes) {
     //     throw new Error('fetching wrong data type')
     // }
-    ND.setData(fetchedNodesArray)
-    const ancestorsData = ND.customBuildAncestorsHierarchy(selfNodeId, undefined);
-    const descendantsData = ND.customBuildDescendantsHiararchy(selfNodeId);
-    const drawer = new FamilyTreeDrawer(descendantsData, ancestorsData, selfNodeId);
 
-    const ancestorsData2 = ND.customBuildAncestorsHierarchy(2, undefined);
-    const descendantsData2 = ND.customBuildDescendantsHiararchy(2);
-    drawer.updateTreeData(descendantsData2,ancestorsData2, 2)
-    
-    
+
+    //     ND.setData(fetchedNodesArray)
+    //     let middle = 2;
+    //     const ancestorsData = ND.customBuildAncestorsHierarchy(middle, undefined);
+    //    const descendantsData = ND.customBuildDescendantsHiararchy(middle);
+
+    // drawer = new FamilyTreeDrawer(descendantsData, ancestorsData, middle);
+    ND.setData(fetchedNodesArray)
+    const ancestorsData2 = ND.customBuildAncestorsHierarchy(selfNodeId, undefined);
+    const descendantsData2 = ND.customBuildDescendantsHiararchy(selfNodeId);
+    console.log("ance 2", ancestorsData2)
+    console.log("desc 2", descendantsData2)
+    drawer.updateTreeData(descendantsData2, ancestorsData2, selfNodeId)
+
+
 });
 
 

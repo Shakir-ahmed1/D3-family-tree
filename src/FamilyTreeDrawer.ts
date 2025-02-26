@@ -31,9 +31,6 @@ export class FamilyTreeDrawer {
     private containerClassName: string = '#treeContainer';
     private fadeInAnimationDuration = 1000;
 
-    // private familyTreeGroup;
-    // private ancestorsGroup;
-    // private descendantsGroup;
     private stayAnceNode: d3.HierarchyNode<DrawableNode>[] = []
     private stayDescNode: d3.HierarchyNode<DrawableNode>[] = []
     private outAnceNode: d3.HierarchyNode<DrawableNode>[] = []
@@ -49,30 +46,9 @@ export class FamilyTreeDrawer {
     ancestorsGroup = this.familyTreeGroup.append("g").attr("class", "ancestors");
     descendantsGroup = this.familyTreeGroup.append("g").attr("class", "descendants");
 
-    // private root =  d3.hierarchy({});
-
     constructor(
-        //     , options?: {
-        //     containerClassName: string;
-        // }
+
     ) {
-
-
-        // this.updateTreeData(desc, ance, rootNodeId)
-        // this.descRoot = d3.hierarchy<DrawableNode>(desc);
-        // this.descTreeData = this.descTreeLayout(this.descRoot);
-        // this.descNodes = this.descTreeData.descendants().filter(item => item.data.id !== 0);
-        // // this.descNodes = this.descTreeData.descendants();
-        // console.log('this is desc nodes', this.descNodes);
-        // this.anceRoot = d3.hierarchy<DrawableNode>(ance);
-        // this.anceTreeData = this.anceTreeLayout(this.anceRoot);
-        // this.anceNodes = this.anceTreeData.descendants().filter(item => item.data.id !== 0);
-        // // this.anceNodes = this.anceTreeData.descendants()
-        // console.log(this.anceNodes, this.descNodes);
-        // this.drawNodes()
-        // this.centerTree()
-        // window.addEventListener("resize", () => this.updateSvgSize());
-        // this.updateSvgSize();
     }
     private drawNodes() {
         this.joinTree();
@@ -198,12 +174,6 @@ export class FamilyTreeDrawer {
 
         // Maintain aspect ratio: Use the smallest scale factor
         const scaleFactor = Math.min(this.xScale(groupWidth) / groupWidth, this.yScale(groupHeight) / groupHeight);
-
-        // Calculate translation to center the group inside the SVG
-        // const translateX = (svgWidth - groupWidth * scaleFactor) / 2;
-        // const translateY = (svgHeight - groupHeight * scaleFactor) / 2;
-        // console.log("dh3dhed",)
-        // Apply transform: scale and translate
         group.attr('transform', `scale(${scaleFactor})`);
     }
 
@@ -230,7 +200,6 @@ export class FamilyTreeDrawer {
 
     }
 
-    // const root = d3.hierarchy(data);
     // Draw marriage lines based on 'target' property
     drawDescMarriageLines(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
         console.log("desc marriage lines", nodes.filter(d => d.data.type === "spouse").map(item => item.data))
@@ -303,106 +272,6 @@ export class FamilyTreeDrawer {
         });
     }
 
-    // drawAnceMarriageLines(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
-    //     // 1. DATA JOIN (Key by a combination of spouse IDs)
-    //     console.log("nnnnnnnnnnnnnnnnnnnnnnnnnnnn",nodes)
-    //     const lines = svg.selectAll("line.marriage-line")
-    //         .data(nodes.filter(d => d.data.type === "spouse" && d.data.target), d => {
-    //             const spouseId = Math.min(d.data.id, d.data.target);
-    //             const otherSpouseId = Math.max(d.data.id, d.data.target);
-    //             return `${spouseId}-${otherSpouseId}`;
-    //         });
-
-    //     // 2. EXIT (Remove old lines)
-    //     lines.exit().transition()
-    //         .duration(this.fadeInAnimationDuration)
-    //         .attr("opacity", 0)
-    //         .remove();
-
-    //     // 3. UPDATE (Transition existing lines)
-    //     lines.transition()
-    //         .duration(this.fadeInAnimationDuration)
-    //         .attr("x1", d => d.x ?? 0)
-    //         .attr("y1", d => d.y ?? 0)
-    //         .attr("x2", d => {
-    //             const spouse = nodes.find(n => n.data.id === d.data.target);
-    //             return spouse?.x ?? 0;
-    //         })
-    //         .attr("y2", d => {
-    //             const spouse = nodes.find(n => n.data.id === d.data.target);
-    //             return spouse?.y ?? 0;
-    //         })
-    //         .attr("opacity", 1);
-
-    //     // 4. ENTER (Create new lines)
-    //     const enter = lines.enter().append("line")
-    //         .attr("class", "marriage-line")
-    //         .attr("stroke", "#000")
-    //         .attr("stroke-width", 2)
-    //         .attr("opacity", 0);
-
-    //     enter.attr("x1", d => d.x ?? 0)
-    //         .attr("y1", d => d.y ?? 0)
-    //         .attr("x2", d => {
-    //             const spouse = nodes.find(n => n.data.id === d.data.target);
-    //             return spouse?.x ?? 0;
-    //         })
-    //         .attr("y2", d => {
-    //             const spouse = nodes.find(n => n.data.id === d.data.target);
-    //             return spouse?.y ?? 0;
-    //         });
-
-    //     enter.transition()
-    //         .duration(this.fadeInAnimationDuration)
-    //         .delay(this.fadeInAnimationDuration) // Delay to match node transition
-    //         .attr("opacity", 1);
-
-    //     // Midpoint calculation (do this AFTER data join and transitions)
-    //     nodes.forEach(d => {
-    //         const spouse = nodes.find(n => n.data.id === d.data.target);
-    //         if (spouse) {
-    //             d.marriageMidpoint = {
-    //                 x: ((d.x ?? 0) + (spouse.x ?? 0)) / 2,
-    //                 y: d.y
-    //             };
-    //             spouse.marriageMidpoint = d.marriageMidpoint;
-    //         }
-    //     });
-    // }
-    // Draw child-parent connections
-
-    // drawAnceMarriageLines(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
-    //     const rootNode = nodes.find(item => item.data.id === this.rootNodeId);
-    //     nodes.forEach(d => {
-    //         const spouse = nodes.find(n => n.data.id === d.data.target);
-    //         if (spouse) {
-    //             const line = svg.append("line")
-    //                 .attr("x1", d.x ?? 0)
-    //                 .attr("y1", d.y ?? 0)
-    //                 .attr("x2", spouse.x ?? 0)
-    //                 .attr("y2", spouse.y ?? 0)
-    //                 .attr("stroke", "#000")
-    //                 .attr("stroke-width", 2)
-    //                 .attr("opacity", 0); // Start with opacity 0
-
-
-    //             // Animate opacity to 1 over 500ms
-    //             line.transition()
-    //                 .duration(500)
-    //                 .delay(500)
-
-    //                 .attr("opacity", 1);
-
-    //             // Store midpoint of marriage line for children connections
-    //             d.marriageMidpoint = {
-    //                 x: ((d.x ?? 0) + (spouse.x ?? 0)) / 2,
-    //                 y: d.y
-    //             };
-    //             spouse.marriageMidpoint = d.marriageMidpoint;
-    //         }
-    //     });
-
-    // }
 
     drawAnceMarriageLines(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
         // 1. DATA JOIN (Key by a combination of spouse IDs)
@@ -476,6 +345,7 @@ export class FamilyTreeDrawer {
             }
         });
     }
+
     drawDescParentChildLine(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
         // 1. DATA JOIN (Key by a combination of parent and child IDs)
         const paths = svg.selectAll("path.child-link")
@@ -558,33 +428,6 @@ export class FamilyTreeDrawer {
             .attr("opacity", 1);
     }
 
-    fadeAwayNodes(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, disappearingNodes: d3.HierarchyNode<DrawableNode>[]) {
-        const disappearingIds = disappearingNodes.map(item => item.data.id)
-
-        // svg.selectAll('g.node').data(this.oldDescData)
-        //     .transition().duration(300).attr("opacity", d => {
-
-        //         // if (disappearingIds.includes(d.data.id)) {
-        //             return 0;
-        //         // } else {
-        //         //     return 1;
-        //         // }
-        //     })
-        console.log("disappearing nodes ", disappearingIds)
-    }
-    fadeAwayMarriageLines(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, disappearingNodes: d3.HierarchyNode<DrawableNode>[]) {
-        // const disappearingIds = disappearingNodes.map(item => item.data.id)
-
-        // const lines = svg.selectAll('g line').data(this.oldDescData)
-        //     .transition().duration(1000).attr("opacity", 0)
-        // console.log("selected lines", lines)
-        // console.log("disappearing nodes ", disappearingIds)
-    }
-    // Draw nodes
-    private getNodeColor(d: d3.HierarchyNode<DrawableNode>): string {
-        return d.data.gender === "MALE" ? "#9FC0CC" :
-            d.data.gender === "FEMALE" ? "#D8A5AD" : "#AAA";
-    }
     drawDescNodes(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
         const rootNode = this.oldAnceData.find(item => item.data.id === this.rootNodeId);
 
@@ -625,6 +468,11 @@ export class FamilyTreeDrawer {
             .duration(this.fadeInAnimationDuration)
             .attr('opacity', 0)
             .remove();
+    }
+
+    private getNodeColor(d: d3.HierarchyNode<DrawableNode>): string {
+        return d.data.gender === "MALE" ? "#9FC0CC" :
+            d.data.gender === "FEMALE" ? "#D8A5AD" : "#AAA";
     }
 
 
@@ -789,19 +637,6 @@ export class FamilyTreeDrawer {
     updateTreeData(desc: DrawableNode, ance: DrawableNode, rootNodeId: number) {
         const oldRootNodeId = this.rootNodeId;
         this.rootNodeId = rootNodeId;
-        // if (this.familyTreeGroup)
-        //     this.familyTreeGroup.transition().attr('opacity', 0).delay(1500).duration(500).selectAll("*").remove()
-        // this.svg.selectAll("*").remove()
-        console.log("i am the main svg", this.svg)
-        // this.svg = d3.select('body').select(this.containerClassName)
-        // .append('svg')
-        // .attr("width", this.width)
-        // .attr("height", this.height)
-        // .append("g");        // const familyTreeGroup = this.svg.select("g").attr("class", "familyTree");
-        // // const ancestorsGroup = familyTreeGroup.select("g").attr("class", "ancestors");
-        // const descendantsGroup = familyTreeGroup.select("g").attr("class", "descendants");
-
-        console.log("this is a container name", this.containerClassName)
         this.oldAnceData = this.anceNodes;
         this.oldDescData = this.descNodes;
 
@@ -840,9 +675,6 @@ export class FamilyTreeDrawer {
         }
         );
 
-        // console.log(oldRootNodeId, this.rootNodeId)
-        // console.log('ance', this.oldAnceData, this.anceNodes,)
-        // console.log('desc', this.oldDescData, this.descNodes,)
         function customPrinter(obj) {
             return obj.map(item => item)
         }
@@ -854,19 +686,6 @@ export class FamilyTreeDrawer {
         console.log(`old`, customPrinter(this.oldAnceData), customPrinter(this.oldDescData))
 
         this.drawNodes()
-        // this.joinTree();
-        // this.calculateTreeWidthReposition();
-
-        // this.scaleGroupToFit(familyTreeGroup);
-        // this.drawDescMarriageLines(this.descNodes, descendantsGroup);
-        // this.drawDescParentChildLine(this.descNodes, descendantsGroup);
-        // this.drawDescNodes(this.descNodes, descendantsGroup);
-        // this.drawAnceMarriageLines(this.anceNodes, ancestorsGroup);
-        // this.drawAnceParentChildLine(this.anceNodes, ancestorsGroup);
-        // this.drawAnceNodes(this.anceNodes, ancestorsGroup);
-        // console.log(this.anceNodes, this.descNodes);
-
-
     }
 
 

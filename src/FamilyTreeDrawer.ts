@@ -62,9 +62,10 @@ export class FamilyTreeDrawer {
         this.drawAnceNodes(this.anceNodes, this.ancestorsGroup);
 
         this.reorderElements(this.ancestorsGroup);
-        this.reorderElements(this.descendantsGroup);    
+        this.reorderElements(this.descendantsGroup);
         console.log(this.familyTreeGroup, this.ancestorsGroup, this.descendantsGroup)
     }
+    
     private calculateTreeWidthReposition() {
         // reposition to positives of x and y
         let paddingTreeX = this.NODE_RADIUS;
@@ -149,7 +150,6 @@ export class FamilyTreeDrawer {
         console.log("Join treenodes", this.anceNodes, this.descNodes)
     }
 
-
     private scaleGroupToFit(group: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
         // Get the bounding box of the group (natural size before scaling)
         let targetHeight = this.height;
@@ -176,9 +176,6 @@ export class FamilyTreeDrawer {
         const scaleFactor = Math.min(this.xScale(groupWidth) / groupWidth, this.yScale(groupHeight) / groupHeight);
         group.attr('transform', `scale(${scaleFactor})`);
     }
-
-
-
 
     private centerTree() {
 
@@ -271,7 +268,6 @@ export class FamilyTreeDrawer {
             }
         });
     }
-
 
     drawAnceMarriageLines(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
         // 1. DATA JOIN (Key by a combination of spouse IDs)
@@ -429,7 +425,7 @@ export class FamilyTreeDrawer {
     }
 
     drawDescNodes(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
-        const rootNode = this.oldAnceData.find(item => item.data.id === this.rootNodeId);
+        const rootNode = this.oldDescData.find(item => item.data.id === this.rootNodeId);
 
         // 1. SELECT and DATA JOIN: This is the KEY change
         const node = svg.selectAll("g.node")  // Select existing nodes
@@ -475,8 +471,6 @@ export class FamilyTreeDrawer {
             d.data.gender === "FEMALE" ? "#D8A5AD" : "#AAA";
     }
 
-
-
     // Draw child-parent connections
     drawAnceParentChildLine(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
         const paths = svg.selectAll("path.child-link").data(nodes.filter(d => d.data.type === "child"), d => {
@@ -492,13 +486,13 @@ export class FamilyTreeDrawer {
             }
             return key;
         });
-    
+
         paths.exit().transition().duration(this.fadeInAnimationDuration).attr("opacity", 0).remove();
-    
+
         paths.transition().duration(this.fadeInAnimationDuration).attr("d", d => {
             let pathD = "";
             let parent;
-    
+
             if (d.data.mother && d.data.father) {
                 const mother = nodes.find(n => n.data.id === d.data.mother);
                 const father = nodes.find(n => n.data.id === d.data.father);
@@ -510,21 +504,21 @@ export class FamilyTreeDrawer {
             } else if (d.data.father) {
                 parent = nodes.find(n => n.data.id === d.data.father);
             }
-    
+
             if (parent && d) {
                 const midY = (parent.y + d.y) / 2;
-                pathD = `M${parent.marriageMidpoint?parent.marriageMidpoint.x:parent.x},${parent.marriageMidpoint?parent.marriageMidpoint.y:parent.y}V${midY}H${d.x}V${d.y}`;
+                pathD = `M${parent.marriageMidpoint ? parent.marriageMidpoint.x : parent.x},${parent.marriageMidpoint ? parent.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
             }
-    
+
             return pathD;
         }).attr("opacity", 1);
-    
+
         const enter = paths.enter().append("path").attr("class", "child-link").attr("fill", "none").attr("stroke", "#ccc").attr("stroke-width", 1.5).attr("opacity", 0);
-    
+
         enter.attr("d", d => {
             let pathD = "";
             let parent;
-    
+
             if (d.data.mother && d.data.father) {
                 const mother = nodes.find(n => n.data.id === d.data.mother);
                 const father = nodes.find(n => n.data.id === d.data.father);
@@ -536,15 +530,15 @@ export class FamilyTreeDrawer {
             } else if (d.data.father) {
                 parent = nodes.find(n => n.data.id === d.data.father);
             }
-    
+
             if (parent && d) {
                 const midY = (parent.y + d.y) / 2;
-                pathD = `M${parent.marriageMidpoint?parent.marriageMidpoint.x:parent.x},${parent.marriageMidpoint?parent.marriageMidpoint.y:parent.y}V${midY}H${d.x}V${d.y}`;
+                pathD = `M${parent.marriageMidpoint ? parent.marriageMidpoint.x : parent.x},${parent.marriageMidpoint ? parent.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
             }
-    
+
             return pathD;
         });
-    
+
         enter.transition().duration(this.fadeInAnimationDuration).delay(this.fadeInAnimationDuration).attr("opacity", 1);
     }
 
@@ -687,7 +681,6 @@ export class FamilyTreeDrawer {
 
         this.drawNodes()
     }
-
 
 
 }

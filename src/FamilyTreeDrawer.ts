@@ -48,6 +48,7 @@ export class FamilyTreeDrawer {
     familyTreeGroup = this.svg.append("g").attr("class", "familyTree").attr('opacity', 1);
     ancestorsGroup = this.familyTreeGroup.append("g").attr("class", "ancestors");
     descendantsGroup = this.familyTreeGroup.append("g").attr("class", "descendants");
+    private nodePositions: Map<number, { x: number; y: number }> = new Map();
 
     constructor(
 
@@ -61,7 +62,6 @@ export class FamilyTreeDrawer {
             item.data.catag = 'desc'
         })
         this.jointNode = [...this.descNodes, ...this.anceNodes]
-        console.log("weeeeeeeeeeeee", this.anceNodes.map(item => item.data), this.descNodes.map(item => item.data))
 
     }
 
@@ -70,22 +70,13 @@ export class FamilyTreeDrawer {
         this.joinTree();
         this.calculateTreeWidthReposition();
         this.scaleGroupToFit(this.familyTreeGroup);
-        // this.drawDescMarriageLines(this.anceNodes, this.ancestorsGroup);
-        // this.drawDescParentChildLine(this.anceNodes, this.ancestorsGroup);
-        // this.drawDescMarriageLines(this.descNodes, this.descendantsGroup);
-        // this.drawDescParentChildLine(this.descNodes, this.descendantsGroup);
-        // this.drawDescNodes(this.descNodes, this.descendantsGroup);
-        // this.drawDescNodes(this.anceNodes, this.ancestorsGroup);
-        console.log("Joint NodeNode", this.jointNode)
         this.drawDescMarriageLines(this.jointNode, this.descendantsGroup);
         this.drawDescParentChildLine(this.jointNode, this.descendantsGroup);
         this.drawDescNodes(this.jointNode, this.descendantsGroup);
 
 
-        // this.reorderElements(this.ancestorsGroup);
         this.reorderElements(this.descendantsGroup);
         // this.centerTree()
-        console.log(this.familyTreeGroup, this.ancestorsGroup, this.descendantsGroup)
     }
 
     private calculateTreeWidthReposition() {
@@ -220,7 +211,6 @@ export class FamilyTreeDrawer {
 
     // Draw marriage lines based on 'target' property
     drawDescMarriageLines(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
-        // console.log("desc marriage lines", nodes.filter(d => d.data.type === "spouse").map(item => item.data))
 
 
         // 1. DATA JOIN (Key by a combination of spouse IDs)
@@ -426,7 +416,6 @@ export class FamilyTreeDrawer {
                 if (d.data.mother && d.data.father) {
                     const mother = nodes.find(n => n.data.id === d.data.mother);
                     const father = nodes.find(n => n.data.id === d.data.father);
-                    console.log("parentchild line", d.data.id)
                     let theSpouse = (mother.data.type === 'spouse') ? mother : father;
                     if (mother && father && theSpouse.marriageMidpoint) {
                         pathD = `M${theSpouse.x}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
@@ -475,7 +464,7 @@ export class FamilyTreeDrawer {
     }
 
     drawDescNodes(nodes: d3.HierarchyNode<DrawableNode>[], svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
-        const rootNode = this.oldJointData.find(item => item.data.id === this.rootNodeId);
+        const rootNode = this.jointNode.find(item => item.data.id === this.rootNodeId);
 
         // 1. SELECT and DATA JOIN: This is the KEY change
         const node = svg.selectAll("g.node")  // Select existing nodes
@@ -490,8 +479,17 @@ export class FamilyTreeDrawer {
         // 3. ENTER: Handle new nodes
         const enter = node.enter().append("g")
             .attr("class", "node")
-            .attr("transform", d => `translate(${rootNode?.x ?? 0}, ${rootNode?.y ?? 0})`) // Start at root
-            .attr('opacity', 0); // Start hidden
+            .attr("transform", d => {
+                // Animate from parent or a relevant existing node
+                const parent = nodes.find(n => n.children && n.children.some(child => child.data.id === d.data.id));
+                if (parent) {
+                    return `translate(${parent.x},${parent.y})`;
+                } else if (rootNode) {
+                    return `translate(${rootNode.x},${rootNode.y})`
+                }
+                return `translate(${d.x},${d.y})`
+            })
+            .attr('opacity', 0);
 
         enter.append("circle")
             .attr("r", this.NODE_RADIUS)
@@ -591,6 +589,9 @@ export class FamilyTreeDrawer {
 
 
     updateTreeData(desc: DrawableNode, ance: DrawableNode, rootNodeId: number) {
+        this.oldJointData.forEach(node => {
+            this.nodePositions.set(node.data.id, { x: node.x, y: node.y });
+        });
         this.oldRootNodeId = this.rootNodeId;
         this.rootNodeId = rootNodeId;
         this.oldAnceData = this.anceNodes;
@@ -635,6 +636,23 @@ export class FamilyTreeDrawer {
         function customPrinter(obj) {
             return obj.map(item => item)
         }
+
+        this.stayAnceNode.forEach(node => {
+            const pos = this.nodePositions.get(node.data.id);
+            if (pos) {
+                node.x = pos.x;
+                node.y = pos.y;
+            }
+        });
+        this.stayDescNode.forEach(node => {
+            const pos = this.nodePositions.get(node.data.id);
+            if (pos) {
+                node.x = pos.x;
+                node.y = pos.y;
+            }
+        });
+
+
         console.log('old root', this.oldRootNodeId)
         console.log('new root', this.rootNodeId)
         console.log(`stay`, customPrinter(this.stayAnceNode), customPrinter(this.stayDescNode))

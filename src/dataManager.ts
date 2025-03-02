@@ -48,6 +48,7 @@ export class NodeData {
         return item.maleNode.id
       }
     }).filter((item): item is number => item !== undefined)
+    // console.log('FoundSpouses ' + familyNode.id, result)
     return result
 
   }
@@ -67,7 +68,7 @@ export class NodeData {
       parentHood = this.data.parents.find(item => {
         if (selfNode.gender === "MALE" && item.maleNode?.id === selfNode.id && !item.femaleNode) {
           return true
-        } else if (selfNode.gender === "FEMALE" && item.femaleNode?.id === selfNode.id && !item.femaleNode) {
+        } else if (selfNode.gender === "FEMALE" && item.femaleNode?.id === selfNode.id && !item.maleNode) {
           return true
         } else {
           return false

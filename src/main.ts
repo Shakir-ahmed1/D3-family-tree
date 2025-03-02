@@ -1,5 +1,6 @@
 import { ND } from "./dataManager";
 import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
+import { requestActions } from './relations-structure'
 
 // const middle = 4;
 // export const ancestorsData = ND.customBuildAncestorsHierarchy(middle, undefined);
@@ -7,10 +8,9 @@ import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
 
 // const drawer = new FamilyTreeDrawer(descendantsData, ancestorsData, middle);
 const drawer = new FamilyTreeDrawer();
+let nodesArray;
 
 
-
-import { requestActions } from './relations-structure'
 let fetchedNodesArray: any = null; // To store the fetched data
 let nodesData: any = null;
 // Function to fetch NODESARRAY from the provided API
@@ -51,17 +51,19 @@ apiForm.addEventListener('submit', async (event) => {
     const bearerToken = (document.getElementById('bearerToken') as HTMLInputElement).value;
 
     // Fetch the nodes array
-    const nodesArray = await fetchNodesArray(apiUrl, bearerToken);
+    nodesArray = await fetchNodesArray(apiUrl, bearerToken);
 
     // Store the fetched data globally
     if (nodesArray) {
         fetchedNodesArray = nodesArray;
-        ND.setData(fetchedNodesArray)
-        let middle = 2;
-        const ancestorsData = ND.customBuildAncestorsHierarchy(middle, undefined);
-        const descendantsData = ND.customBuildDescendantsHiararchy(middle);
-        console.log(ancestorsData, descendantsData)
-        drawer.updateTreeData(descendantsData,ancestorsData, middle)
+        console.log("fetched Array Data", nodesArray)
+        // ND.setData(nodesArray)
+        // let middle = 2;
+        // const ancestorsData = ND.customBuildAncestorsHierarchy(middle, undefined);
+        // const descendantsData = ND.customBuildDescendantsHiararchy(middle);
+        // console.log("ancestors and descendants fetched data",ancestorsData, descendantsData)
+        // drawer.updateTreeData(descendantsData,ancestorsData, middle)
+        drawer.fetchData(nodesArray, 2, true)
         alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
     }
 });
@@ -99,12 +101,8 @@ viewChangeForm.addEventListener('submit', (event) => {
     //    const descendantsData = ND.customBuildDescendantsHiararchy(middle);
 
     // drawer = new FamilyTreeDrawer(descendantsData, ancestorsData, middle);
-    ND.setData(fetchedNodesArray)
-    const ancestorsData2 = ND.customBuildAncestorsHierarchy(selfNodeId, undefined);
-    const descendantsData2 = ND.customBuildDescendantsHiararchy(selfNodeId);
-    console.log("ance 2", ancestorsData2)
-    console.log("desc 2", descendantsData2)
-    drawer.updateTreeData(descendantsData2, ancestorsData2, selfNodeId)
+    drawer.fetchData(nodesArray, selfNodeId,false)
+
 
 
 });

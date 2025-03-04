@@ -47,6 +47,7 @@ export interface CustomStructure {
     rels: Relations;
 }
 export interface DrawableNode {
+    catag: string;
     id: number,
     name: string;
     gender: string;

@@ -12,18 +12,34 @@ export class NodeData {
     familyNodes: [],
     parents: []
   }
+
+  /**
+   * returns the node with the given id if found
+   * @param id nodes id
+   * @returns the found node
+   */
   getNode(id: number): FamilyNode {
     const foundNode = this.data.familyNodes.find(item => id === item.id)
     if (!foundNode) throw Error(`node with id ${id} was not found`)
     return foundNode;
   }
-
+/**
+ * returns the parentRealtionship with the given id if found
+ * @param id parentRelationship id
+ * @returns 
+ */
   getParentRelationship(id: number): Parent {
     const foundParentship = this.data.parents.find(item => id === item.id)
     if (!foundParentship) throw Error(`parentship with id ${id} was not found`)
     return foundParentship;
   }
 
+
+  /**
+   * given node it returns all spouse ids of the node
+   * @param familyNode the node searching for it's spouse
+   * @returns list of spouse ids
+   */
   getSpouses(familyNode: FamilyNode): number[] {
     const foundParentHood = this.data.parents.filter(item => {
       if (familyNode.gender === "MALE" && item.maleNode) {
@@ -44,6 +60,11 @@ export class NodeData {
 
   }
 
+  /**
+   * given the single parent node it returns all his children that doesn't have the other parent
+   * @param selfNode a single parent that might have children
+   * @returns list of child nodes
+   */
   getSingleParentedChildNodes(selfNode: FamilyNode) {
     const parentHoods = this.data.parents.filter(item => {
       if (selfNode.gender === "MALE" && item.maleNode?.id === selfNode.id && !item.femaleNode) {
@@ -65,7 +86,12 @@ export class NodeData {
     return foundChildren
   }
 
-  // returns all children and thier spouses as temporary storage
+  /**
+   * Returns all the children and their spouses as a children of the selfNode and spouseNode(if available) and arrange them by relevance
+   * @param selfNodeId the node in question
+   * @param spouseNodeId his spouse if he has
+   * @returns returns all children and thier spouses as temporary storage
+   */
   getChildrenByParents(selfNodeId: number, spouseNodeId: number | undefined): temporaryData[] {
     const selfNode = this.getNode(selfNodeId)
     let spouseNode;
@@ -74,8 +100,7 @@ export class NodeData {
     } else {
       spouseNode = undefined;
     }
-    let parentHood
-    if (!spouseNodeId) {
+    if (!spouseNodeId) { // With no spouse
       const foundChildren =this.getSingleParentedChildNodes(selfNode)
       const allChildren: temporaryData[] = []
       let father: undefined | number, mother: undefined | number;
@@ -102,8 +127,6 @@ export class NodeData {
           const foundSpouse = this.getNode(sp)
           const result: temporaryData = {
             id: foundSpouse.id,
-            // name: foundSpouse.name,
-            // gender: foundSpouse.gender,
             type: 'spouse',
             target: item.id,
           }
@@ -120,10 +143,8 @@ export class NodeData {
         }
       })
       return allChildren;
-
-
-    } else {
-      parentHood = this.data.parents.find(item => {
+    } else {    // With spouse
+      const parentHood = this.data.parents.find(item => {
         if (selfNode.gender === "MALE" && item.maleNode && item.maleNode.id === selfNode.id && item.femaleNode && spouseNode && item.femaleNode.id === spouseNode?.id) {
           return true
         } else if (selfNode.gender === "FEMALE" && item.femaleNode && item.femaleNode.id === selfNode.id && item.maleNode && spouseNode && item.maleNode.id === spouseNode?.id) {
@@ -164,8 +185,6 @@ export class NodeData {
           const foundSpouse = this.getNode(sp)
           const result: temporaryData = {
             id: foundSpouse.id,
-            // name: foundSpouse.name,
-            // gender: foundSpouse.gender,
             type: 'spouse',
             target: item.id,
           }
@@ -186,7 +205,11 @@ export class NodeData {
 
   }
 
-  // traverses to find all descendants
+  /**
+   * traverses to find all descendants to build a hierarchial Data
+   * @param familyNode the node being traversed to get descendants (is a "temporaryData")
+   * @returns  a hierarchy data "DrawableNode"
+   */
   customGetChildrenByParents(familyNode: temporaryData): DrawableNode {
     if (familyNode.type === 'spouse') {
       const currentChildren: temporaryData[] = this.getChildrenByParents(familyNode.target as number, familyNode.id)
@@ -235,7 +258,11 @@ export class NodeData {
 
   }
 
-
+/**
+ * gets the parent nodes of the given node
+ * @param startNodeId the starting node id 
+ * @returns both/one parents of the give starting node as a list
+ */
   getParents(startNodeId: number): FamilyNode[] {
     const foundNode = this.getNode(startNodeId);
     const parents = []
@@ -253,7 +280,11 @@ export class NodeData {
     return parents;
   }
 
-
+/**
+ * traverses the nodes to find all it's descendants
+ * @param startNodeId the starting node for traversal
+ * @returns returns all descendants of the node as a hierarchial data
+ */
   customBuildDescendantsHiararchy(startNodeId: number): DrawableNode {
     const familyNode = this.getNode(startNodeId)
     // const preDesc = this._customBuildDescendantsHiararchy(startNodeId)
@@ -270,8 +301,6 @@ export class NodeData {
       
       const result: temporaryData = {
         id: foundSpouse.id,
-        // name: foundSpouse.name,
-        // gender: foundSpouse.gender,
         type: 'spouse',
         target: familyNode.id,
       }
@@ -302,7 +331,12 @@ export class NodeData {
     return resultedChildren;
   }
 
-
+/**
+ * Traverses the nodes to find all it's ancestors
+ * @param startNodeId the starting node for traversal
+ * @param other the spouse of startNode
+ * @returns returns all ancestors of the node as a hierarchial data
+ */
   customBuildAncestorsHierarchy(startNodeId: number, other: number | undefined): DrawableNode {
     const foundNode = this.getNode(startNodeId)
     // Create a map of all nodes by ID
@@ -345,17 +379,9 @@ export class NodeData {
     if (other) hrParent.target = other;
     return hrParent
   }
-
-
 }
 
 export const ND = new NodeData()
-
-
-
-// Now pass it to d3.hierarchy()
-// const treeDataz = buildAncestorsHierarchy(flatData, 4);
-
 
 
 // change node event.

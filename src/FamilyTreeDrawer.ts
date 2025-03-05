@@ -139,9 +139,9 @@ export class FamilyTreeDrawer {
                 father: a.data.father,
                 mother: a.data.mother,
             }
-            newList.push(JSON.stringify(newObject))
+            // newList.push(JSON.stringify(newObject))
         }
-        console.log("custom print",newList)
+        console.log("custom print",nodes)
     }
     private scaleGroupToFit() {
         const treeWidth = this.maxTreeX - this.minTreeX;

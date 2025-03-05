@@ -1,5 +1,4 @@
-import * as d3 from 'd3';
-import { CustomFlatData, DrawableNode, FamilyNode, HrDataChild, HrDataParent, Parent, temporaryData } from "./node.interface";
+import { CustomFlatData, DrawableNode, FamilyNode, Parent, temporaryData } from "./node.interface";
 
 export class NodeData {
   setData(fetchedNodesArray: any) {
@@ -24,15 +23,7 @@ export class NodeData {
     if (!foundParentship) throw Error(`parentship with id ${id} was not found`)
     return foundParentship;
   }
-  getSpouseRelationship(familyNode: FamilyNode): Parent[] {
-    return this.data.parents.filter(item => {
-      if (familyNode.gender === "MALE" && item.maleNode) {
-        return item.maleNode.id === familyNode.id
-      } else if (familyNode.gender === "FEMALE" && item.femaleNode) {
-        return item.femaleNode.id === familyNode.id
-      }
-    })
-  }
+
   getSpouses(familyNode: FamilyNode): number[] {
     const foundParentHood = this.data.parents.filter(item => {
       if (familyNode.gender === "MALE" && item.maleNode) {
@@ -53,6 +44,26 @@ export class NodeData {
 
   }
 
+  getSingleParentedChildNodes(selfNode: FamilyNode) {
+    const parentHoods = this.data.parents.filter(item => {
+      if (selfNode.gender === "MALE" && item.maleNode?.id === selfNode.id && !item.femaleNode) {
+        return true
+      } else if (selfNode.gender === "FEMALE" && item.femaleNode?.id === selfNode.id && !item.maleNode) {
+        return true
+      } else {
+        return false
+      }
+    }).map(item=>item.id)
+    const foundChildren = this.data.familyNodes.filter(item => {
+
+      if (parentHoods.includes(item.parentRelationship?.id)) {
+        return true
+      } else {
+        return false
+      }
+    })
+    return foundChildren
+  }
 
   // returns all children and thier spouses as temporary storage
   getChildrenByParents(selfNodeId: number, spouseNodeId: number | undefined): temporaryData[] {
@@ -65,15 +76,51 @@ export class NodeData {
     }
     let parentHood
     if (!spouseNodeId) {
-      parentHood = this.data.parents.find(item => {
-        if (selfNode.gender === "MALE" && item.maleNode?.id === selfNode.id && !item.femaleNode) {
-          return true
-        } else if (selfNode.gender === "FEMALE" && item.femaleNode?.id === selfNode.id && !item.maleNode) {
-          return true
+      const foundChildren =this.getSingleParentedChildNodes(selfNode)
+      const allChildren: temporaryData[] = []
+      let father: undefined | number, mother: undefined | number;
+        if (selfNode.gender === 'MALE') {
+          father = selfNode.id;
+          mother = spouseNode?.id
         } else {
-          return false
+          mother = selfNode.id;
+          father = spouseNode?.id;
+        }
+  
+      foundChildren.map(item => {
+        const customChild: temporaryData = {
+          id: item.id,
+          // gender: item.gender,
+          father,
+          mother,
+          // spouses: this.getSpouses(selfNode),
+          type: 'child',
+        }
+        const foundSpousesIds = this.getSpouses(item)
+        
+        const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
+          const foundSpouse = this.getNode(sp)
+          const result: temporaryData = {
+            id: foundSpouse.id,
+            // name: foundSpouse.name,
+            // gender: foundSpouse.gender,
+            type: 'spouse',
+            target: item.id,
+          }
+          return result
+        })
+  
+        if (item.gender === "MALE") {
+          allChildren.push(customChild)
+          allChildren.push(...foundSpouses)
+        } else {
+          allChildren.push(...foundSpouses)
+          allChildren.push(customChild)
+    
         }
       })
+      return allChildren;
+
 
     } else {
       parentHood = this.data.parents.find(item => {
@@ -83,59 +130,59 @@ export class NodeData {
           return true
         }
       })
-    }
-    const allChildren: temporaryData[] = []
-    let father: undefined | number, mother: undefined | number;
-    if (parentHood) {
-      if (selfNode.gender === 'MALE') {
-        father = selfNode.id;
-        mother = spouseNode?.id
-      } else {
-        mother = selfNode.id;
-        father = spouseNode?.id;
-      }
-    }
-    const foundChildren = this.data.familyNodes.filter(item => {
-
-      if (parentHood && item.parentRelationship?.id === parentHood?.id) {
-        return true
-      } else {
-        return false
-      }
-    })
-    foundChildren.map(item => {
-      const customChild: temporaryData = {
-        id: item.id,
-        // gender: item.gender,
-        father,
-        mother,
-        // spouses: this.getSpouses(selfNode),
-        type: 'child',
-      }
-      const foundSpousesIds = this.getSpouses(item)
-      
-      const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
-        const foundSpouse = this.getNode(sp)
-        const result: temporaryData = {
-          id: foundSpouse.id,
-          // name: foundSpouse.name,
-          // gender: foundSpouse.gender,
-          type: 'spouse',
-          target: item.id,
+      const allChildren: temporaryData[] = []
+      let father: undefined | number, mother: undefined | number;
+      if (parentHood) {
+        if (selfNode.gender === 'MALE') {
+          father = selfNode.id;
+          mother = spouseNode?.id
+        } else {
+          mother = selfNode.id;
+          father = spouseNode?.id;
         }
-        return result
-      })
-
-      if (item.gender === "MALE") {
-        allChildren.push(customChild)
-        allChildren.push(...foundSpouses)
-      } else {
-        allChildren.push(...foundSpouses)
-        allChildren.push(customChild)
-  
       }
-    })
-    return allChildren;
+      const foundChildren = this.data.familyNodes.filter(item => {
+  
+        if (parentHood && item.parentRelationship?.id === parentHood?.id) {
+          return true
+        } else {
+          return false
+        }
+      })
+      foundChildren.map(item => {
+        const customChild: temporaryData = {
+          id: item.id,
+          // gender: item.gender,
+          father,
+          mother,
+          // spouses: this.getSpouses(selfNode),
+          type: 'child',
+        }
+        const foundSpousesIds = this.getSpouses(item)
+        
+        const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
+          const foundSpouse = this.getNode(sp)
+          const result: temporaryData = {
+            id: foundSpouse.id,
+            // name: foundSpouse.name,
+            // gender: foundSpouse.gender,
+            type: 'spouse',
+            target: item.id,
+          }
+          return result
+        })
+  
+        if (item.gender === "MALE") {
+          allChildren.push(customChild)
+          allChildren.push(...foundSpouses)
+        } else {
+          allChildren.push(...foundSpouses)
+          allChildren.push(customChild)
+    
+        }
+      })
+      return allChildren;
+    }
 
   }
 
@@ -188,54 +235,6 @@ export class NodeData {
 
   }
 
-  customGetSpouses(familyNode: FamilyNode): DrawableNode[] {
-    const foundParentHood = this.data.parents.filter(item => {
-      if (familyNode.gender === "MALE" && item.maleNode) {
-        return item.maleNode.id === familyNode.id
-      } else if (familyNode.gender === "FEMALE" && item.femaleNode) {
-        return item.femaleNode.id === familyNode.id
-      }
-    })
-    const spouses = foundParentHood.map(item => {
-      if (familyNode.gender === "MALE" && item.femaleNode) {
-        return this.getNode(item.femaleNode.id)
-      } else if (familyNode.gender === "FEMALE" && item.maleNode) {
-        return this.getNode(item.maleNode.id)
-      }
-    }).filter(item => item)
-    const newSpouses: DrawableNode[] = []
-    for (let s of spouses) {
-      if (s) {
-        const newSpouse: DrawableNode = {
-          id: s.id,
-          name: s.name,
-          gender: s.gender,
-          type: 'spouse',
-          target: familyNode.id,
-          children: [],
-        }
-        newSpouses.push(newSpouse)
-      }
-    }
-
-    return newSpouses;
-  }
-  
-  getChildren(id: number): number[] {
-    const foundNode = this.getNode(id)
-    const foundSpouseRelations = this.getSpouseRelationship(foundNode)
-    const foundSpouseRelationsIds = foundSpouseRelations.map(item => item.id)
-    const foundChildren = this.data.familyNodes.filter(item => {
-      if (item.parentRelationship && foundSpouseRelationsIds.includes(item.parentRelationship.id)) {
-        return true
-      } else {
-        return false
-      }
-    })
-    return foundChildren.map(item => item.id)
-
-  }
-
 
   getParents(startNodeId: number): FamilyNode[] {
     const foundNode = this.getNode(startNodeId);
@@ -258,10 +257,6 @@ export class NodeData {
   customBuildDescendantsHiararchy(startNodeId: number): DrawableNode {
     const familyNode = this.getNode(startNodeId)
     // const preDesc = this._customBuildDescendantsHiararchy(startNodeId)
-    const tempNodes: temporaryData = {
-      id: familyNode.id,
-      type: 'child',
-    }
 
     const allChildren: temporaryData[] = []
     const customChild: temporaryData = {
@@ -297,7 +292,6 @@ export class NodeData {
       return spDrawable;
     })
 
-    const spouses = this.customGetSpouses(familyNode)
     const resultedChildren: DrawableNode = {
       id: 0,
       name: 'root',

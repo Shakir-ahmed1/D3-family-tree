@@ -54,10 +54,10 @@ export class FamilyTreeDrawer {
         if (foundDescRoot && foundAnceRoot) {
             foundDescRoot.data.mother = foundAnceRoot?.data.mother
             foundDescRoot.data.father = foundAnceRoot?.data.father
-            console.log(`
-                ance: (${foundAnceRoot.x} ${foundAnceRoot.y})
-                desc: (${foundDescRoot.x} ${foundDescRoot.y})
-                `)
+            // console.log(`
+            //     ance: (${foundAnceRoot.x} ${foundAnceRoot.y})
+            //     desc: (${foundDescRoot.x} ${foundDescRoot.y})
+            //     `)
         }
         this.jointNode = [...this.descNodes, ...this.anceNodes.filter(item => item.data.id !== this.rootNodeId)]
     }
@@ -135,10 +135,13 @@ export class FamilyTreeDrawer {
             const newObject = {
                 id: a.data.id,
                 x: a.x,
-                y: a.y
+                y: a.y,
+                father: a.data.father,
+                mother: a.data.mother,
             }
             newList.push(JSON.stringify(newObject))
         }
+        console.log("custom print",newList)
     }
     private scaleGroupToFit() {
         const treeWidth = this.maxTreeX - this.minTreeX;
@@ -148,13 +151,13 @@ export class FamilyTreeDrawer {
         const scaleX = svgWidth / treeWidth;
         const scaleY = svgHeight / treeHeight;
         this.scaleFactor = Math.min(scaleX, scaleY, 1); // Use the smallest scale, and don't scale up
-        console.log(`
-            scale:
-            x : (${this.minTreeX}, ${this.maxTreeX})
-            y : (${this.minTreeY}, ${this.maxTreeY})
-            scale x: ${scaleX}
-            scale y: ${scaleY}
-            `)
+        // console.log(`
+        //     scale:
+        //     x : (${this.minTreeX}, ${this.maxTreeX})
+        //     y : (${this.minTreeY}, ${this.maxTreeY})
+        //     scale x: ${scaleX}
+        //     scale y: ${scaleY}
+        //     `)
         const treeLeftPadding = 2 * (this.NODE_RADIUS) * this.scaleFactor;
         const treeTopPadding = 2 * (this.NODE_RADIUS) * this.scaleFactor;
         this.jointNode.forEach(item => {
@@ -318,6 +321,7 @@ export class FamilyTreeDrawer {
                             pathD = `M${theSpouse.x}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
                         }
                     } else if (d.data.mother || d.data.father) {
+                        console.log("this is the data", d.data)
                         let pr;
                         if (d.data.father) pr = this.jointNode.find(n => n.data.id === d.data.father);
                         if (d.data.mother) pr = this.jointNode.find(n => n.data.id === d.data.mother);
@@ -541,6 +545,7 @@ export class FamilyTreeDrawer {
         this.oldRootNodeId = this.rootNodeId;
         this.rootNodeId = rootNodeId;
         this.oldJointData = this.jointNode
+        this.custPrint(this.jointNode)
         this.drawNodes()
     }
 }

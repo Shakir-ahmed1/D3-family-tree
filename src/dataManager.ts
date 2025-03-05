@@ -5,7 +5,6 @@ export class NodeData {
     this.data = fetchedNodesArray
   }
   constructor() {
-
   }
 
   private data: CustomFlatData = {
@@ -23,11 +22,11 @@ export class NodeData {
     if (!foundNode) throw Error(`node with id ${id} was not found`)
     return foundNode;
   }
-/**
- * returns the parentRealtionship with the given id if found
- * @param id parentRelationship id
- * @returns 
- */
+  /**
+   * returns the parentRealtionship with the given id if found
+   * @param id parentRelationship id
+   * @returns 
+   */
   getParentRelationship(id: number): Parent {
     const foundParentship = this.data.parents.find(item => id === item.id)
     if (!foundParentship) throw Error(`parentship with id ${id} was not found`)
@@ -74,7 +73,7 @@ export class NodeData {
       } else {
         return false
       }
-    }).map(item=>item.id)
+    }).map(item => item.id)
     const foundChildren = this.data.familyNodes.filter(item => {
 
       if (parentHoods.includes(item.parentRelationship?.id)) {
@@ -101,17 +100,17 @@ export class NodeData {
       spouseNode = undefined;
     }
     if (!spouseNodeId) { // With no spouse
-      const foundChildren =this.getSingleParentedChildNodes(selfNode)
+      const foundChildren = this.getSingleParentedChildNodes(selfNode)
       const allChildren: temporaryData[] = []
       let father: undefined | number, mother: undefined | number;
-        if (selfNode.gender === 'MALE') {
-          father = selfNode.id;
-          mother = spouseNode?.id
-        } else {
-          mother = selfNode.id;
-          father = spouseNode?.id;
-        }
-  
+      if (selfNode.gender === 'MALE') {
+        father = selfNode.id;
+        mother = spouseNode?.id
+      } else {
+        mother = selfNode.id;
+        father = spouseNode?.id;
+      }
+
       foundChildren.map(item => {
         const customChild: temporaryData = {
           id: item.id,
@@ -122,7 +121,7 @@ export class NodeData {
           type: 'child',
         }
         const foundSpousesIds = this.getSpouses(item)
-        
+
         const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
           const foundSpouse = this.getNode(sp)
           const result: temporaryData = {
@@ -132,14 +131,14 @@ export class NodeData {
           }
           return result
         })
-  
+
         if (item.gender === "MALE") {
           allChildren.push(customChild)
           allChildren.push(...foundSpouses)
         } else {
           allChildren.push(...foundSpouses)
           allChildren.push(customChild)
-    
+
         }
       })
       return allChildren;
@@ -163,7 +162,7 @@ export class NodeData {
         }
       }
       const foundChildren = this.data.familyNodes.filter(item => {
-  
+
         if (parentHood && item.parentRelationship?.id === parentHood?.id) {
           return true
         } else {
@@ -180,7 +179,7 @@ export class NodeData {
           type: 'child',
         }
         const foundSpousesIds = this.getSpouses(item)
-        
+
         const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
           const foundSpouse = this.getNode(sp)
           const result: temporaryData = {
@@ -190,14 +189,14 @@ export class NodeData {
           }
           return result
         })
-  
+
         if (item.gender === "MALE") {
           allChildren.push(customChild)
           allChildren.push(...foundSpouses)
         } else {
           allChildren.push(...foundSpouses)
           allChildren.push(customChild)
-    
+
         }
       })
       return allChildren;
@@ -220,6 +219,7 @@ export class NodeData {
       const foundItem = this.getNode(familyNode.id)
       const customResponse: DrawableNode = {
         id: foundItem.id,
+        uuid: crypto.randomUUID(),
         gender: foundItem.gender,
         name: foundItem.name,
         type: familyNode.type,
@@ -240,6 +240,8 @@ export class NodeData {
       })
       const foundItem = this.getNode(familyNode.id)
       const customResponse: DrawableNode = {
+
+        uuid: crypto.randomUUID(),
         id: foundItem.id,
         gender: foundItem.gender,
         name: foundItem.name,
@@ -258,11 +260,11 @@ export class NodeData {
 
   }
 
-/**
- * gets the parent nodes of the given node
- * @param startNodeId the starting node id 
- * @returns both/one parents of the give starting node as a list
- */
+  /**
+   * gets the parent nodes of the given node
+   * @param startNodeId the starting node id 
+   * @returns both/one parents of the give starting node as a list
+   */
   getParents(startNodeId: number): FamilyNode[] {
     const foundNode = this.getNode(startNodeId);
     const parents = []
@@ -280,11 +282,11 @@ export class NodeData {
     return parents;
   }
 
-/**
- * traverses the nodes to find all it's descendants
- * @param startNodeId the starting node for traversal
- * @returns returns all descendants of the node as a hierarchial data
- */
+  /**
+   * traverses the nodes to find all it's descendants
+   * @param startNodeId the starting node for traversal
+   * @returns returns all descendants of the node as a hierarchial data
+   */
   customBuildDescendantsHiararchy(startNodeId: number): DrawableNode {
     const familyNode = this.getNode(startNodeId)
     // const preDesc = this._customBuildDescendantsHiararchy(startNodeId)
@@ -298,7 +300,7 @@ export class NodeData {
     const foundSpousesIds = this.getSpouses(familyNode)
     const foundSpouses: temporaryData[] = foundSpousesIds.map(sp => {
       const foundSpouse = this.getNode(sp)
-      
+
       const result: temporaryData = {
         id: foundSpouse.id,
         type: 'spouse',
@@ -323,6 +325,7 @@ export class NodeData {
 
     const resultedChildren: DrawableNode = {
       id: 0,
+      uuid: '0',
       name: 'root',
       gender: 'MALE',
       type: 'root',
@@ -331,12 +334,12 @@ export class NodeData {
     return resultedChildren;
   }
 
-/**
- * Traverses the nodes to find all it's ancestors
- * @param startNodeId the starting node for traversal
- * @param other the spouse of startNode
- * @returns returns all ancestors of the node as a hierarchial data
- */
+  /**
+   * Traverses the nodes to find all it's ancestors
+   * @param startNodeId the starting node for traversal
+   * @param other the spouse of startNode
+   * @returns returns all ancestors of the node as a hierarchial data
+   */
   customBuildAncestorsHierarchy(startNodeId: number, other: number | undefined): DrawableNode {
     const foundNode = this.getNode(startNodeId)
     // Create a map of all nodes by ID
@@ -365,6 +368,8 @@ export class NodeData {
     }
     const hrParent: DrawableNode = {
       id: startNodeId,
+      uuid: crypto.randomUUID(),
+
       // parents: operatedParents,
       children: operatedParents,
 

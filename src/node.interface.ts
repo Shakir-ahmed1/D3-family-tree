@@ -49,6 +49,7 @@ export interface CustomStructure {
 export interface DrawableNode {
     catag: string;
     id: number,
+    uuid: string,
     name: string;
     gender: string;
     father?: number;

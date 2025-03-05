@@ -59,6 +59,17 @@ export class FamilyTreeDrawer {
             //     desc: (${foundDescRoot.x} ${foundDescRoot.y})
             //     `)
         }
+        // const removeDuplicates = (items: d3.HierarchyNode<DrawableNode>[]): d3.HierarchyNode<DrawableNode>[] => {
+        //     console.log('remove duplicates',  items)
+        //     return Array.from(new Map(items.map(item => [item.id, item])).values());
+        //   };
+
+        // const removeDuplicates = (items: d3.HierarchyNode<DrawableNode>[]): d3.HierarchyNode<DrawableNode>[] => {
+        //     return items.filter((item, index, self) =>
+        //         index === self.findIndex((t) => t.id === item.id && t.height === item.height)
+        //     );
+        // };
+        // this.anceNodes = removeDuplicates(this.anceNodes)
         this.jointNode = [...this.descNodes, ...this.anceNodes.filter(item => item.data.id !== this.rootNodeId)]
     }
     private adjustPostioning() {
@@ -80,6 +91,9 @@ export class FamilyTreeDrawer {
             ND.setData(fetchedNodesArray)
         }
         this.preProcessData(rootId)
+    }
+    reduceRepetition() {
+
     }
     private preProcessData(rootId: number) {
         const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
@@ -132,22 +146,28 @@ export class FamilyTreeDrawer {
     custPrint(nodes: d3.HierarchyNode<DrawableNode>[]) {
         const newList = []
         for (let a of nodes) {
-            const newObject = {
+            // const newObject = {
+            //     id: a.data.id,
+            //     x: a.x,
+            //     y: a.y,
+            //     depth: a.depth,
+            //     width: a.height,
+            //     father: a.data.father,
+            //     mother: a.data.mother,
+            // }
+                        const newObject = {
                 id: a.data.id,
-                x: a.x,
-                y: a.y,
-                father: a.data.father,
-                mother: a.data.mother,
+                d: a
             }
-            // newList.push(JSON.stringify(newObject))
+            newList.push((newObject))
         }
-        console.log("custom print",nodes)
+        console.log("custom print", newList)
     }
     private scaleGroupToFit() {
         const treeWidth = this.maxTreeX - this.minTreeX;
         const treeHeight = this.maxTreeY - this.minTreeY;
-        const svgWidth = this.width - this.widthPadding ;
-        const svgHeight = this.height - this.heightPadding ;
+        const svgWidth = this.width - this.widthPadding;
+        const svgHeight = this.height - this.heightPadding;
         const scaleX = svgWidth / treeWidth;
         const scaleY = svgHeight / treeHeight;
         this.scaleFactor = Math.min(scaleX, scaleY, 1); // Use the smallest scale, and don't scale up
@@ -248,11 +268,11 @@ export class FamilyTreeDrawer {
         enter.attr("x1", d => d.x ?? 0)
             .attr("y1", d => d.y ?? 0)
             .attr("x2", d => {
-                const spouse = this.jointNode.find(n => n.data.id === d.data.target);
+                const spouse = this.jointNode.find(n => n.data.id === d.data.target && n.data.type === 'child');
                 return spouse?.x ?? 0;
             })
             .attr("y2", d => {
-                const spouse = this.jointNode.find(n => n.data.id === d.data.target);
+                const spouse = this.jointNode.find(n => n.data.id === d.data.target && n.data.type === 'child');
                 return spouse?.y ?? 0;
             });
         enter.transition()

@@ -89,11 +89,12 @@ export class FamilyTreeDrawer {
     }
     private drawNodes() {
         this.adjustPostioning()
+        this.custPrint(this.jointNode)
         this.drawDescMarriageLines();
         this.drawDescParentChildLine();
         this.drawDescNodes();
         this.reorderElements();
-        this.centerFamilyGroup()
+        this.centerFamilyGroup();
     }
     fetchData(fetchedNodesArray: any, rootId: number, setData: boolean) {
         if (setData) {
@@ -108,8 +109,8 @@ export class FamilyTreeDrawer {
         const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
         const descendantsData = ND.customBuildDescendantsHiararchy(rootId);
 
-        // console.log("descendants data",descendantsData)
-        // console.log("ancestors data",ancestorsData)
+        console.log("descendants data",descendantsData)
+        console.log("ancestors data",ancestorsData)
         this.fetchedDesendants = descendantsData;
         this.fetchedAncestors = ancestorsData;
         this.updateTreeDrawing(rootId)
@@ -121,7 +122,7 @@ export class FamilyTreeDrawer {
         const descRootX: number = descRootPossiton.x as number;
         const descRootY: number = descRootPossiton.y as number;
         // Reposition the descendants relative to the root
-        this.custPrint(this.descNodes)
+        // this.custPrint(this.descNodes)
         this.descNodes = this.descNodes.map(node => {
             node.y = node.y as number - descRootY;
             node.x = node.x as number - descRootX;
@@ -169,11 +170,13 @@ export class FamilyTreeDrawer {
             // }
             const newObject = {
                 id: a.data.id,
-                d: a
+                uuid: a.data.uuid,
+                father: a.data.father,
+                mother: a.data.mother
             }
             newList.push((newObject))
         }
-        // console.log("custom print", newList)
+        console.log("custom print", newList)
     }
     private scaleGroupToFit() {
         const treeWidth = this.maxTreeX - this.minTreeX;
@@ -578,7 +581,7 @@ export class FamilyTreeDrawer {
         this.oldRootNodeId = this.rootNodeId;
         this.rootNodeId = rootNodeId;
         this.oldJointData = this.jointNode
-        this.custPrint(this.jointNode)
+        // this.custPrint(this.jointNode)
         this.drawNodes()
     }
 }

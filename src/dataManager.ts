@@ -354,10 +354,11 @@ export class NodeData {
    * @param other the spouse of startNode
    * @returns returns all ancestors of the node as a hierarchial data
    */
-  customBuildAncestorsHierarchy(startNodeId: number, other: number | undefined, caller: number | undefined): DrawableNode {
+  customBuildAncestorsHierarchy(startNodeId: number, other: number | undefined, caller: string): DrawableNode {
     const foundNode = this.getNode(startNodeId)
     // Create a map of all nodes by ID
     const allParents = this.getParents(startNodeId).map(item => item.id)
+    const customCaller = `${caller? caller : ''}*${startNodeId}`
 
     const operatedParents = allParents.map((item, index, arr) => {
       let other;
@@ -367,7 +368,7 @@ export class NodeData {
       if (index === 1 && arr.length === 2) {
         other = allParents[0]
       }
-      return this.customBuildAncestorsHierarchy(item, other, startNodeId)
+      return this.customBuildAncestorsHierarchy(item, other, customCaller )
     })
 
     let father, mother;
@@ -375,17 +376,17 @@ export class NodeData {
     if (foundNode.parentRelationship) {
       const foundParentHood = this.getParentRelationship(foundNode.parentRelationship.id)
       if (foundParentHood.femaleNode) {
-        mother = `${startNodeId}*${foundParentHood.femaleNode.id}`
+        mother = `${customCaller}*${foundParentHood.femaleNode.id}`
         motherId = foundParentHood.femaleNode.id
       }
       if (foundParentHood.maleNode) {
-        father = `${startNodeId}*${foundParentHood.maleNode.id}`
+        father = `${customCaller}*${foundParentHood.maleNode.id}`
         fatherId = foundParentHood.maleNode.id
       }
     }
     const hrParent: DrawableNode = {
       id: startNodeId,
-      uuid: `${caller ? caller : ''}*${startNodeId}`,
+      uuid: customCaller,
 
       // parents: operatedParents,
       children: operatedParents,

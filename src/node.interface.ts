@@ -52,8 +52,10 @@ export interface DrawableNode {
     uuid: string,
     name: string;
     gender: string;
-    father?: number;
-    mother?: number;
+    father?: string;
+    mother?: string;
+    fatherId?: number;
+    motherId?: number;
     target?: number;
     spouses?: number[];
     type: 'spouse' | 'child' | 'root';
@@ -61,8 +63,12 @@ export interface DrawableNode {
 }
 export interface temporaryData {
     id: number;
+    uuid: string;
     type: 'spouse' | 'child';
     target?: number;
-    father?: number;
-    mother?: number;
+    father?: string;
+    mother?: string;
+    fatherId?: number;
+    motherId?: number;
+
 }

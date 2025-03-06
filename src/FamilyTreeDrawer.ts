@@ -12,7 +12,7 @@ export class FamilyTreeDrawer {
     private fetchedAncestors: DrawableNode | undefined;
     private oldJointData: d3.HierarchyNode<DrawableNode>[] = [];
     private NODE_RADIUS = 40; // Change this to scale node size
-    private verticalSpacing = this.NODE_RADIUS * 3; // Space between generations
+    private verticalSpacing = this.NODE_RADIUS * 3.3; // Space between generations
     private horizontalSpacing = this.NODE_RADIUS * 3; // Space between siblings/spouses
     private widthPadding = 4 * this.NODE_RADIUS;
     private heightPadding = 4 * this.NODE_RADIUS;
@@ -55,31 +55,9 @@ export class FamilyTreeDrawer {
             foundDescRoot.data.mother = foundAnceRoot?.data.mother
             foundDescRoot.data.father = foundAnceRoot?.data.father
             foundDescRoot.data.catag = 'ance'
-            // console.log(`
-            //     ance: (${foundAnceRoot.x} ${foundAnceRoot.y})
-            //     desc: (${foundDescRoot.x} ${foundDescRoot.y})
-            //     `)
         }
 
-        // const removeDuplicates = (items: d3.HierarchyNode<DrawableNode>[]): d3.HierarchyNode<DrawableNode>[] => {
-        //     return items.filter((item, index, self) =>
-        //         index === self.findIndex((t) => t.id === item.id && t.height === item.height)
-        //     );
-        // };
-        // this.anceNodes = removeDuplicates(this.anceNodes)
         this.jointNode = [...this.descNodes, ...this.anceNodes.filter(item => item.data.id !== this.rootNodeId)]
-        // const removeDuplicates = (items: d3.HierarchyNode<DrawableNode>[]): d3.HierarchyNode<DrawableNode>[] => {
-        //     const itemsIDs = new Array(...(new Set(items.map(item => item.data.id))))
-        //     const newCopy: d3.HierarchyNode<DrawableNode>[] = []
-        //     console.log(itemsIDs)
-        //     return items
-        //     return itemsIDs.map(item => {
-        //         return items.find(it => it.data.id === item)
-        //     })
-        //     // return Array.from(new Map(items.map(item => [item.id, item])).values());
-        // };
-
-        // this.jointNode = removeDuplicates(this.jointNode)
     }
     private adjustPostioning() {
         this.attachNodes()
@@ -109,8 +87,8 @@ export class FamilyTreeDrawer {
         const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
         const descendantsData = ND.customBuildDescendantsHiararchy(rootId);
 
-        console.log("descendants data",descendantsData)
-        console.log("ancestors data",ancestorsData)
+        // console.log("descendants data", descendantsData)
+        // console.log("ancestors data", ancestorsData)
         this.fetchedDesendants = descendantsData;
         this.fetchedAncestors = ancestorsData;
         this.updateTreeDrawing(rootId)
@@ -171,12 +149,13 @@ export class FamilyTreeDrawer {
             const newObject = {
                 id: a.data.id,
                 uuid: a.data.uuid,
+                name: a.data.name,
                 father: a.data.father,
                 mother: a.data.mother
             }
             newList.push((newObject))
         }
-        console.log("custom print", newList)
+        // console.log("custom print", newList)
     }
     private scaleGroupToFit() {
         const treeWidth = this.maxTreeX - this.minTreeX;
@@ -321,6 +300,7 @@ export class FamilyTreeDrawer {
             }
         });
     }
+
     drawDescParentChildLine() {
         // 1. DATA JOIN (Key by a combination of parent and child IDs)
         const paths = this.descendantsGroup.selectAll("path.child-link")
@@ -444,57 +424,59 @@ export class FamilyTreeDrawer {
     }
     drawDescNodes() {
         const rootNode = this.jointNode.find(item => item.data.id === this.rootNodeId);
-        // 1. SELECT and DATA JOIN: This is the KEY change
-        const node = this.descendantsGroup.selectAll("g.node")  // Select existing nodes
-            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id); // Key by ID
-        // 2. UPDATE: Handle existing nodes (transitions)
+        const strokeWidth = 3;
+    
+        const node = this.descendantsGroup.selectAll("g.node")
+            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id);
+    
         node.transition()
             .duration(this.fadeInAnimationDuration)
             .attr("transform", d => `translate(${d.x},${d.y}) scale(${this.scaleFactor})`)
-            .attr('opacity', 1)
-        // 3. ENTER: Handle new nodes
+            .attr('opacity', 1);
+    
         const enter = node.enter().append("g")
             .attr("class", "node")
-            .attr("transform", d => {
-                // Animate from parent or a relevant existing node
-                console.log("others :", d.x, d.y, "root:", rootNode.x, rootNode.y)
-                // const parent = this.jointNode.find(n => n.children && n.children.some(child => child.data.uuid === d.data.uuid));
-                // if (parent) {
-                //     return `translate(${parent.x},${parent.y}) scale(${this.scaleFactor})`;
-                // } else if (rootNode) {
-                return `translate(${rootNode.x - this.offSetX},${rootNode.y}) scale(${this.scaleFactor})`
-                // }
-                // return `translate(${d.x},${d.y}) scale(${this.scaleFactor})`
-            })
-            .attr('opacity', 0);
-        enter.append("circle")
-            .attr("r", this.NODE_RADIUS)
+            .attr("transform", d => `translate(${rootNode.x - this.offSetX},${rootNode.y}) scale(${this.scaleFactor})`)
+            .attr('opacity', 0)
             .on('click', (_event, d) => {
                 if (d.data.id !== this.rootNodeId)
-                    this.preProcessData(d.data.id)
-
-            })
-            .attr("fill", d => this.getNodeColor(d))
+                    this.preProcessData(d.data.id);
+            });
+    
+        const circles = enter.append("circle")
+            .attr("r", this.NODE_RADIUS)
+            .attr("stroke", "#999")
+            .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth))
+            .attr("fill", d => this.getNodeColor(d));
+    
+        console.log("old root", this.oldRootNodeId, this.rootNodeId);
+    
+        this.descendantsGroup.selectAll("circle")
+            .transition()
+            .duration(300)
+            .ease(d3.easeLinear)
+            .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth))
+    
+    
         enter.append("text")
-            .attr("dy", -10)
+            .attr("dy", this.NODE_RADIUS + 20)
             .attr("text-anchor", "middle")
             .text(d => d.data.name);
-        this.appendActionCircles(enter); // Add action circles
+    
+        this.defaultNodePicture(enter);
+        this.appendActionCircles(enter);
+    
         enter.transition()
             .duration(this.fadeInAnimationDuration)
             .attr('opacity', 1)
             .attr("transform", d => `translate(${d.x},${d.y}) scale(${this.scaleFactor})`);
-        // 4. EXIT: Handle removed nodes
+    
         if (this.oldRootNodeId && this.oldJointData) {
-            const foundOldRoot = this.jointNode.find(item => item.data.id === this.oldRootNodeId)// ??? what if multiple nodes with the given id was found
+            const foundOldRoot = this.jointNode.find(item => item.data.id === this.oldRootNodeId);
             node.exit().transition()
                 .duration(this.fadeInAnimationDuration)
                 .attr("transform", d => {
-                    if (foundOldRoot) {
-                        return `translate(${foundOldRoot.x},${foundOldRoot.y}) scale(${this.scaleFactor})`
-                    } else {
-                        return `translate(${d.x},${d.y}) scale(${this.scaleFactor})`
-                    }
+                    return foundOldRoot ? `translate(${foundOldRoot.x},${foundOldRoot.y}) scale(${this.scaleFactor})` : `translate(${d.x},${d.y}) scale(${this.scaleFactor})`;
                 })
                 .attr('opacity', 0)
                 .remove();
@@ -504,7 +486,13 @@ export class FamilyTreeDrawer {
                 .attr('opacity', 0)
                 .remove();
         }
+    
+        // Store the previous root node ID for reference in the next update
+        this.oldRootNodeId = this.rootNodeId;
     }
+    
+
+
     private getNodeColor(d: d3.HierarchyNode<DrawableNode>): string {
         return d.data.gender === "MALE" ? "#9FC0CC" :
             d.data.gender === "FEMALE" ? "#D8A5AD" : "#AAA";
@@ -516,6 +504,80 @@ export class FamilyTreeDrawer {
         this.descendantsGroup.selectAll("g.node").raise(); // Raise nodes to the top
     }
     // Draw nodes
+    defaultNodePicture(svg, options = {}) {
+        const {
+            width = 0,
+            height = 0,
+            outerRadius = this.NODE_RADIUS,
+            innerRadius = outerRadius * 0.45,
+        } = options;
+        const cutoutColor = "white";
+
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        const group = svg.append("g")
+            .attr("transform", `translate(${centerX}, ${centerY})`);
+
+        // Outer Circle
+        group.append("circle")
+            .attr("r", outerRadius)
+            .attr("fill", d => this.getNodeColor(d));
+
+        // Inner Circle (Cutout)
+        group.append("circle")
+            .attr("r", innerRadius)
+            .attr("fill", cutoutColor);
+
+        // Lower Shape (Crescent-like bottom part) - Scaled dynamically
+        const lowerShapePath = `M${-outerRadius * 0.66},${outerRadius * 0.85} 
+            q${outerRadius * 0.27},${-outerRadius * 0.35} ${outerRadius * 0.4},${-outerRadius * 0.35} 
+            h${outerRadius * 0.54} 
+            q${outerRadius * 0.4},0 ${outerRadius * 0.4},${outerRadius * 0.35} 
+            a${outerRadius * 0.97},${outerRadius * 0.97} 0 0,1 ${-outerRadius * 1.3},0`;
+
+        group.append("path")
+            .attr("d", lowerShapePath)
+            .attr("fill", cutoutColor);
+
+        // Profile Picture
+        const imageUrl = d => `http://localhost:3000/api/family-tree/1/nodes/${d.data.id}/primaryPicture`;
+
+        group.each(function (d) {
+            fetch(imageUrl(d), {
+                headers: {
+                    'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
+                }
+            }).then(response => {
+                if (!response.ok) throw new Error('Image not found');
+                return response.blob();
+            }).then(blob => {
+                const url = URL.createObjectURL(blob);
+                const defs = svg.append("defs");
+                defs.append("clipPath")
+                    .attr("id", `clip-${d.data.id}`)
+                    .append("circle")
+                    .attr("r", outerRadius)
+                    .attr("cx", 0)
+                    .attr("cy", 0);
+
+                d3.select(this).append("image")
+                    .attr("x", -outerRadius)
+                    .attr("y", -outerRadius)
+                    .attr("width", outerRadius * 2)
+                    .attr("height", outerRadius * 2)
+                    .attr("clip-path", `url(#clip-${d.data.id})`)
+                    .attr("href", url);
+            }).catch(() => {
+                // If image is not found, default SVG remains
+            });
+        });
+
+
+
+    }
+
+
     appendActionCircles(enter: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>) {
         // Action buttons group
         const actionGroup = enter.append("g")
@@ -549,13 +611,14 @@ export class FamilyTreeDrawer {
             .on("click", async (_event, d) => {
                 const deleteUri = `http://localhost:3000/api/family-tree/1/node/${d.data.id}`
                 try {
-                    const response = await fetch(deleteUri, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
-                            'Content-Type': 'application/json',
-                        },
-                    });
+                    const
+                        response = await fetch(deleteUri, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
+                                'Content-Type': 'application/json',
+                            },
+                        });
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }

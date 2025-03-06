@@ -63,7 +63,7 @@ apiForm.addEventListener('submit', async (event) => {
         // const descendantsData = ND.customBuildDescendantsHiararchy(middle);
         // console.log("ancestors and descendants fetched data",ancestorsData, descendantsData)
         // drawer.updateTreeData(descendantsData,ancestorsData, middle)
-        drawer.fetchData(nodesArray, 2, true)
+        drawer.fetchData(nodesArray, 10, true)
         alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
     }
 });

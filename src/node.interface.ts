@@ -47,7 +47,7 @@ export interface CustomStructure {
     rels: Relations;
 }
 export interface DrawableNode {
-    catag: string;
+    catag: 'ance' | 'desc' | undefined;
     id: number,
     uuid: string,
     name: string;
@@ -58,8 +58,9 @@ export interface DrawableNode {
     motherId?: number;
     target?: number;
     spouses?: number[];
-    type: 'spouse' | 'child' | 'root';
+    type: 'spouse' | 'child' | 'root' | 'net';
     children?: DrawableNode[]
+    source?: string
 }
 export interface temporaryData {
     id: number;
@@ -70,5 +71,6 @@ export interface temporaryData {
     mother?: string;
     fatherId?: number;
     motherId?: number;
+    source?: string
 
 }

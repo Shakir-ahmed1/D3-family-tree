@@ -46,8 +46,18 @@ export interface CustomStructure {
     // imageUrl: string;
     rels: Relations;
 }
+export enum actionTypes {
+    addChildOfOneParent = "addChildOfOneParent",
+    addChildOfTwoParents = "addChildOfTwoParents",
+    addExistingParent = "addExistingParent",
+    addNewParent = "addNewParent",
+    addNewPartner = 'addNewPartner',
+    addExistingPartner = "addExistingPartner",
+    addNewPartnerAsParent = "addCreateBiologicalMother",
+    addExistingPartnerAsParent = 'addExistingPartnerAsParent',
+}
 export interface DrawableNode {
-    catag: 'ance' | 'desc' | undefined;
+    catag: 'ance' | 'desc' | 'editDesc' | 'editAnce' | undefined;
     id: number,
     uuid: string,
     name: string;
@@ -60,7 +70,9 @@ export interface DrawableNode {
     spouses?: number[];
     type: 'spouse' | 'child' | 'root' | 'net';
     children?: DrawableNode[]
-    source?: string
+    source?: string;
+    mode: 'edit' | 'node',
+    actionType: actionTypes;
 }
 export interface temporaryData {
     id: number;

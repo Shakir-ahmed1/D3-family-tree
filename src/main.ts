@@ -1,18 +1,15 @@
 import { ND } from "./dataManager";
+import { CreateNewPrimaryFamilyNodeInterface } from "./dtos/create-new-primary-family-node.dto";
 import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
 import { requestActions } from './relations-structure'
+import { FamilyTreeService } from "./services";
 
-// const middle = 4;
-// export const ancestorsData = ND.customBuildAncestorsHierarchy(middle, undefined);
-// export const descendantsData = ND.customBuildDescendantsHiararchy(middle);
 
-// const drawer = new FamilyTreeDrawer(descendantsData, ancestorsData, middle);
 const drawer = new FamilyTreeDrawer();
 let nodesArray;
 
 
 let fetchedNodesArray: any = null; // To store the fetched data
-let nodesData: any = null;
 // Function to fetch NODESARRAY from the provided API
 async function fetchNodesArray(apiUrl: string, bearerToken: string) {
     try {
@@ -57,13 +54,7 @@ apiForm.addEventListener('submit', async (event) => {
     if (nodesArray) {
         fetchedNodesArray = nodesArray;
         console.log("fetched Array Data", nodesArray)
-        // ND.setData(nodesArray)
-        // let middle = 2;
-        // const ancestorsData = ND.customBuildAncestorsHierarchy(middle, undefined);
-        // const descendantsData = ND.customBuildDescendantsHiararchy(middle);
-        // console.log("ancestors and descendants fetched data",ancestorsData, descendantsData)
-        // drawer.updateTreeData(descendantsData,ancestorsData, middle)
-        drawer.fetchData(nodesArray, 10, true)
+        drawer.fetchDataEditMode(nodesArray, 6, true)
         alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
     }
 });
@@ -80,33 +71,15 @@ viewChangeForm.addEventListener('submit', (event) => {
 
     // Get Self Node ID value
     const selfNodeIdInput = (document.getElementById('selfNodeId') as HTMLInputElement).value;
-    const selfNodeId = parseInt(selfNodeIdInput, 10);
+    const selfNodeId = parseInt(selfNodeIdInput, 6);
 
     if (isNaN(selfNodeId)) {
         alert('Please enter a valid Self Node ID (number).');
         return;
     }
-    // clearContainer('treeContainer')
-    // Use the already fetched data to draw the tree
-    // const middle = 4;
-    // console.log(selfNodeId, fetchedNodesArray)
-    // if (!fetchNodesArray.familyNodes) {
-    //     throw new Error('fetching wrong data type')
-    // }
-
-
-    //     ND.setData(fetchedNodesArray)
-    //     let middle = 2;
-    //     const ancestorsData = ND.customBuildAncestorsHierarchy(middle, undefined);
-    //    const descendantsData = ND.customBuildDescendantsHiararchy(middle);
-
-    // drawer = new FamilyTreeDrawer(descendantsData, ancestorsData, middle);
-    drawer.fetchData(nodesArray, selfNodeId,false)
-
-
+    drawer.fetchDataEditMode(nodesArray, selfNodeId, false)
 
 });
-
 
 // Function to populate the request body field based on selected action
 function populateRequestBody(actionTitle: string) {
@@ -116,7 +89,6 @@ function populateRequestBody(actionTitle: string) {
         requestBodyField.value = action.requestBody.trim();
     }
 }
-
 // Function to make a POST request
 async function makePostRequest(uri: string, requestBody: any) {
     try {
@@ -175,4 +147,71 @@ addNodeForm.addEventListener('submit', async (event) => {
     const uri = action.uri.replace('},{familyTreeId}', familyTreeId.toString());
 
     await makePostRequest(uri, requestBody);
+});
+
+
+
+
+
+
+
+
+
+
+const Service = new FamilyTreeService()
+
+const endpointServiceMap = {
+    addNewParent: Service.addNewParent,
+    addExistingParent: Service.addExistingParent,
+    addChildOfOneParent: Service.addChildOfOneParent,
+    addChildOfTwoParents: Service.addChildOfTwoParents,
+    addNewPartner: Service.addNewPartner,
+    addExistingPartner: Service.addExistingPartner,
+    addNewPartnerAsParent: Service.addNewPartnerAsParent,
+    addExistingPartnerAsParent: Service.addExistingPartnerAsParent,
+};
+
+const endpointFieldMap = {
+    addExistingParent: ['otherNodeId'],
+    addChildOfTwoParents: ['partnerNodeId', 'partnershipType'],
+    addNewPartner: ['partnershipType'],
+    addExistingPartner: ['otherNodeId', 'partnershipType'],
+    addNewPartnerAsParent: ['partnershipType', 'childNodeId'],
+    addExistingPartnerAsParent: ['otherNodeId', 'partnershipType', 'childNodeId'],
+};
+
+document.getElementById('endpoint').addEventListener('change', function () {
+    const selected = this.value;
+    const dynamicFields = document.getElementById('dynamicFields');
+    dynamicFields.innerHTML = '';
+
+    const fields = endpointFieldMap[selected] || [];
+    fields.forEach(field => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = field;
+        input.placeholder = field;
+        input.required = true;
+        dynamicFields.appendChild(input);
+    });
+
+});
+document.getElementById('familyTreeForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const endpoint = formData.get('endpoint');
+    const data = Object.fromEntries(formData.entries());
+
+    if (endpointServiceMap[endpoint]) {
+        try {
+            console.log("Entry Data", data)
+            const familyTreeId = data.familyTreeId;
+            const familyNodeId = data.familyNodeId;
+
+            const response = await endpointServiceMap[endpoint](data);
+            console.log('Success:', response);
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
 });

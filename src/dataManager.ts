@@ -1,4 +1,11 @@
-import { CustomFlatData, DrawableNode, FamilyNode, Parent, temporaryData } from "./node.interface";
+import { actionTypes, CustomFlatData, DrawableNode, FamilyNode, Parent, temporaryData } from "./node.interface";
+
+let id = -1;
+let callBackCounter = 0;
+function assignId() {
+  id = id - 1
+  return id;
+}
 
 export class NodeData {
   setData(fetchedNodesArray: any) {
@@ -392,6 +399,8 @@ export class NodeData {
       if (index === 1 && arr.length === 2) {
         other = allParents[0]
       }
+      console.log("call back count", callBackCounter, item)
+      callBackCounter += 1;
       return this.customBuildAncestorsHierarchy(item, other, customCaller)
     })
 
@@ -438,14 +447,13 @@ export class NodeData {
         const foundMother = this.getNode(foundParentHood.femaleNode.id)
         mother = {
           id: foundMother.id,
-          uuid: 'mother',
+          uuid: `${foundMother.id}`,
           // parents: operatedParents,
           children: [],
           name: foundMother.name,
           gender: foundMother.gender,
-          source: `${startNodeId}`,
           type: 'child',
-          catag: 'ance',
+          catag: 'editAnce',
         }
       }
       if (foundParentHood.maleNode) {
@@ -453,47 +461,61 @@ export class NodeData {
 
         father = {
           id: foundFather.id,
-          uuid: 'father',
+          uuid: `${foundFather.id}`,
           children: [],
           name: foundFather.name,
           gender: foundFather.gender,
-          source: `${startNodeId}`,
           type: 'child',
-          catag: 'ance'
+          catag: 'editAnce'
         }
       }
     }
     if (!father) {
       father = {
-        id: 0,
+        id: assignId(),
         uuid: 'father',
         children: [],
-        name: foundNode.name,
-        gender: foundNode.gender,
+        name: 'Add Father',
+        gender: 'MALE',
         source: `${startNodeId}`,
         type: 'child',
-        catag: 'ance'
+        catag: 'editAnce',
+        mode: 'edit',
+        actionType: actionTypes.addNewParent
       }
     }
     if (!mother) {
       mother = {
-        id: 0,
+        id: assignId(),
         uuid: 'mother',
         children: [],
         name: 'Add Mother',
         gender: 'FEMALE',
         source: `${startNodeId}`,
         type: 'child',
-        catag: 'ance',
+        catag: 'editAnce',
+        mode: 'edit',
+        actionType: actionTypes.addNewParent
       }
     }
+    const displayableParents = []
+    if (father) {
+      if (mother) father.target = mother.id;
+      displayableParents.push(father)
+    } 
+    if (mother) {
+      if (father) mother.target = father.id
+      displayableParents.push(mother)
+    }
+    console.log("mother father", mother, father)
     const parents: DrawableNode = {
       id: startNodeId,
       uuid: `${startNodeId}`,
-      children: [father, mother],
-
+      children: displayableParents,
       name: foundNode.name,
       gender: foundNode.gender,
+      father:father.uuid,
+      mother:mother.uuid,
       type: 'child'
     }
     return parents;
@@ -511,7 +533,7 @@ export class NodeData {
       femaleNode = otherNode
     }
     return this.data.parents.find(item=> {
-      if (maleNode.id === item.maleNode.id && femaleNode.id === item.femaleNode.id) return true
+      if (maleNode?.id === item.maleNode?.id && femaleNode.id === item.femaleNode?.id) return true
       else return false
     })
   }
@@ -521,8 +543,16 @@ export class NodeData {
       const spouseNode = this.getNode(item)
       const foundParentHood = this.getParentHoodBySpouses(selfNode, spouseNode)
       const foundChildren = this.data.familyNodes.filter(item=>item?.parentRelationship?.id === foundParentHood?.id)
-      const motherNode = this.getNode(foundParentHood.femaleNode.id)
-      const fatherNode = this.getNode(foundParentHood.maleNode.id)
+
+      let motherNode, fatherNode;
+      if (selfNode.gender === "FEMALE") {
+        motherNode = selfNode;
+        fatherNode = spouseNode
+      } else {
+        fatherNode = selfNode;
+        motherNode = spouseNode
+      }
+      console.log("parents ", motherNode, fatherNode)
       const DrawableChildren = foundChildren.map(item=> {
         // const foundParentHood = this.getParentRelationship(item.parentRelationship.id)
         const customResponse: DrawableNode = {
@@ -533,14 +563,14 @@ export class NodeData {
           type: 'child',
           children: [],
           father: `${fatherNode.id}`,
-          mother: `${motherNode.id}`,
+          mother:`${motherNode.id}`,
           fatherId: fatherNode.id,
           motherId: motherNode.id,
         }
         return customResponse
       })
       const addDaughter: DrawableNode = {
-        id: 0,
+        id: assignId(),
         uuid: `daughter-${fatherNode.id}-${motherNode.id}`,
         gender: 'FEMALE',
         name: 'Add Daughter',
@@ -550,9 +580,11 @@ export class NodeData {
         mother: `${motherNode.id}`,
         fatherId: fatherNode.id,
         motherId: motherNode.id,
+        mode: 'edit',
+        actionType: actionTypes.addChildOfTwoParents
       }
       const addSon: DrawableNode = {
-        id: 0,
+        id: assignId(),
         uuid: `son-${fatherNode.id}-${motherNode.id}`,
         gender: 'MALE',
         name: 'Add Son',
@@ -562,14 +594,18 @@ export class NodeData {
         mother: `${motherNode.id}`,
         fatherId: fatherNode.id,
         motherId: motherNode.id,
+        mode: 'edit',
+        actionType: actionTypes.addChildOfTwoParents
+
       }
       DrawableChildren.push(addSon,addDaughter)
       const currentSpouse: DrawableNode = {
         id: spouseNode.id,
-        uuid:`${selfNode.id}+${spouseNode.id}`,
+        uuid:`${spouseNode.id}`,
         gender: spouseNode.gender,
         name: spouseNode.name,
         type: 'spouse',
+        target: selfNode.id,
         children: DrawableChildren,
       }
       allSpouseAsParents.push(currentSpouse)
@@ -585,7 +621,7 @@ export class NodeData {
       fatherNode = foundNode
     }
     const addDaughter: DrawableNode = {
-      id: 0,
+      id: assignId(),
       uuid: `daughter-${foundNode.id}`,
       gender: 'FEMALE',
       name: 'Add Daughter',
@@ -595,9 +631,12 @@ export class NodeData {
       mother: motherNode ?`${motherNode.id}`: undefined,
       fatherId: fatherNode? fatherNode.id: undefined,
       motherId: motherNode? motherNode.id: undefined,
+      mode: 'edit',
+      actionType: actionTypes.addChildOfOneParent
+
     }
     const addSon: DrawableNode = {
-      id: 0,
+      id: assignId(),
       uuid: `son-${foundNode.id}`,
       gender: 'MALE',
       name: 'Add Son',
@@ -607,12 +646,42 @@ export class NodeData {
       mother: motherNode ?`${motherNode.id}`: undefined,
       fatherId: fatherNode? fatherNode.id: undefined,
       motherId: motherNode? motherNode.id: undefined,
+      mode: 'edit',
+      actionType: actionTypes.addChildOfOneParent
     }
     return [addSon, addDaughter]
   }
   customBuildChildren(startNodeId: number) {
     const foundNode = this.getNode(startNodeId)
     const singledChildren = this.getSingleParentedChildNodes(foundNode)
+    const drawableSingledChildren = singledChildren.map(item=> {
+      if (foundNode.gender === "MALE") {
+        const singledChild: DrawableNode = {
+          id: item.id,
+          uuid: `${item.id}`,
+          gender: item.gender,
+          name: item.name,
+          type: 'child',
+          children: [],
+          father: `${foundNode.id}`,
+          fatherId: foundNode.id,
+        }
+        return singledChild;
+      } else {
+        const singledChild: DrawableNode = {
+          id: item.id,
+          uuid: `${item.id}`,
+          gender: item.gender,
+          name: item.name,
+          type: 'child',
+          children: [],
+          mother: `${foundNode.id}`,
+          motherId: foundNode.id,
+        }
+        return singledChild;
+      }
+    })
+
     const singledAddableChildren = this.temporarySingledChildren(foundNode)
     const foundSpouseIds = this.getSpouses(foundNode)
     const foundDoubleParentedChildren = this.simpleGetChildren(foundNode, foundSpouseIds)
@@ -623,18 +692,21 @@ export class NodeData {
       gender: foundNode.gender,
       name: foundNode.name,
       type: 'child',
-      children: [...singledAddableChildren, ...singledChildren],
+      children: [...singledAddableChildren, ...drawableSingledChildren],
       // father: fatherNode ?`${fatherNode.id}`: undefined,
       // mother: motherNode ?`${motherNode.id}`: undefined,
       // fatherId: fatherNode? fatherNode.id: undefined,
       // motherId: motherNode? motherNode.id: undefined,
     }
     const spouseDrawableTemporary: DrawableNode = {
-      id: 0,
+      id: assignId(),
       uuid: `spouse-${foundNode.id}`,
       name: 'Add Spouse',
       type: 'spouse',
+      target: startNodeId,
+      mode: 'edit',
       children: [],
+      actionType: actionTypes.addNewPartner,
     }
     const customChildren = []
     if (foundNode.gender === 'MALE') {

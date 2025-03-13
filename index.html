@@ -4,100 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reusable Family Tree</title>
-    <link rel="stylesheet" href="style.css" />
-    <style>
-        /* General Reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        h5 {
-            text-align: center;
-            margin: 10px 0;
-            color: #333;
-        }
-
-        .main {
-            display: flex;
-            width: 100%;
-            height: calc(100vh - 50px); /* Adjust for header height */
-        }
-
-        /* Sidebar styles */
-        .sidebar {
-            width: 33%;
-            padding: 15px;
-            background-color: #333;
-            border-right: 1px solid #ddd;
-            overflow-y: auto;
-        }
-
-        .sidebar form {
-            margin-bottom: 20px;
-            padding: 10px;
-            background-color: #333;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar form label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            font-size: 14px;
-            color: #555;
-        }
-
-        .sidebar form input,
-        .sidebar form select,
-        .sidebar form textarea {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .sidebar form button {
-            background-color: #007bff;
-            color: #fff;
-            padding: 8px 15px;
-            font-size: 14px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .sidebar form button:hover {
-            background-color: #0056b3;
-        }
-
-        /* Main content styles */
-        #container1 {
-            flex: 1;
-            padding: 20px;
-            background-color: #888;
-            overflow-y: auto;
-        }
-
-        /* Scrollable forms and content */
-        .main .sidebar,
-        .main #container1 {
-            overflow-y: auto;
-        }
-    </style>
+    <link rel="stylesheet" href="src/style.css" />
 </head>
 <body>
     <h5>Family Trees</h5>
@@ -152,72 +59,20 @@
         <!-- Main Content -->
         <div id="treeContainer" style="padding: 50px;">
             <div class="form-container">
+                <button
+                id="modeType"
+              >edit</button>
                 <form id="familyTreeForm">
                     <h2 id="endpointLabel">Select Action Type</h2>
-            
+                    <p>endpoint: <span id="postEndpoint">endpoint here</span></p>
                     <input value="1" type="number" id="familyTreeId" name="familyTreeId" placeholder="Family Tree ID" required />
-                    <input value="6" type="number" id="familyNodeId" name="familyNodeId" placeholder="Family Node ID" required disabled/>
+                    <input value="6" type="number" id="familyNodeId" name="familyNodeId" placeholder="Family Node ID" required />
             
                     <div id="dynamicFields"></div>
-            
-                    <h3>Primary Node Data</h3>
-                    <input type="text" id="name" name="name" placeholder="Name" required value="John Doe" />
-                    <input type="text" id="gender" name="gender" placeholder="Gender" required value="MALE" disabled/>
-                    <input type="text" id="title" name="title" placeholder="Title" value="Mr." />
-                    <input type="text" id="phone" name="phone" placeholder="Phone" value="+1234567890" />
-                    <input type="text" id="address" name="address" placeholder="Address" value="123 Main Street" />
-                    <input type="text" id="nickName" name="nickName" placeholder="Nick Name" value="Johnny" />
-                    <input type="date" id="birthDate" name="birthDate" placeholder="Birth Date" value="1990-01-01" />
-                    <input type="date" id="deathDate" name="deathDate" placeholder="Death Date" value="2090-01-01" />
-                    <input type="number" id="ownedById" name="ownedById" placeholder="Owned By ID" value="1" />
-                                
+     
                     <button type="submit">Submit</button>
                 </form>
             </div>
-            
-            <style>
-                .form-container {
-                    width: 25%;
-                    padding: 15px;
-                    background-color: #f8f8f8;
-                    border-left: 1px solid #ddd;
-                    position: absolute;
-                    right: 0;
-                    top: 0;
-                    height: 100%;
-                    overflow-y: auto;
-                }
-            
-                .form-container form label {
-                    font-weight: bold;
-                    color: #555;
-                }
-            
-                .form-container form input,
-                .form-container form select,
-                .form-container form button {
-                    width: 100%;
-                    padding: 8px;
-                    margin-bottom: 10px;
-                    font-size: 14px;
-                    border: 1px solid #ccc;
-                    border-radius: 4px;
-                }
-            
-                .form-container form button {
-                    background-color: #28a745;
-                    color: #fff;
-                    cursor: pointer;
-                }
-            
-                .form-container form button:hover {
-                    background-color: #218838;
-                }
-            </style>
-            
-            
-            
-
     <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

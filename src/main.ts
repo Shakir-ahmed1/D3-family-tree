@@ -180,33 +180,31 @@ const endpointFieldMap = {
     addExistingPartnerAsParent: ['otherNodeId', 'partnershipType', 'childNodeId'],
 };
 
-document.getElementById('endpoint').addEventListener('change', function () {
-    const selected = this.value;
-    const dynamicFields = document.getElementById('dynamicFields');
-    dynamicFields.innerHTML = '';
+// document.getElementById('endpoint').addEventListener('change', function () {
+//     const dynamicFields = document.getElementById('dynamicFields');
+//     dynamicFields.innerHTML = '';
 
-    const fields = endpointFieldMap[selected] || [];
-    fields.forEach(field => {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.name = field;
-        input.placeholder = field;
-        input.required = true;
-        dynamicFields.appendChild(input);
-    });
+//     const fields = endpointFieldMap[selected] || [];
+//     fields.forEach(field => {
+//         const input = document.createElement('input');
+//         input.type = 'text';
+//         input.name = field;
+//         input.placeholder = field;
+//         input.required = true;
+//         dynamicFields.appendChild(input);
+//     });
 
-});
+// });
 document.getElementById('familyTreeForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const formData = new FormData(this);
-    const endpoint = formData.get('endpoint');
+    const endpoint = document.getElementById('postEndpoint')?.textContent;
     const data = Object.fromEntries(formData.entries());
 
+    console.log("this is this", endpoint)
     if (endpointServiceMap[endpoint]) {
         try {
             console.log("Entry Data", data)
-            const familyTreeId = data.familyTreeId;
-            const familyNodeId = data.familyNodeId;
 
             const response = await endpointServiceMap[endpoint](data);
             console.log('Success:', response);

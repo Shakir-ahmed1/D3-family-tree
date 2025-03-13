@@ -29,6 +29,7 @@ export class FamilyTreeDrawer {
     private rootNodeId: number | undefined;
     private containerClassName: string = '#treeContainer';
     private fadeInAnimationDuration = 1000;
+    private fadeOutAnimationDuration = 1000;
     private oldRootNodeId: number | undefined;
     private offSetX = 0;
     private offSetY = 0;
@@ -40,6 +41,7 @@ export class FamilyTreeDrawer {
         .append("g");
     private familyTreeGroup = this.svg.append("g").attr("class", "familyTree").attr('opacity', 1).attr('transform', 'translate(0,0)');
     descendantsGroup = this.familyTreeGroup.append("g").attr("class", "descendants");
+    private currentMode = 'view';
 
     // edit mode
     private fetchedEditModeParents: DrawableNode | undefined;
@@ -58,22 +60,29 @@ export class FamilyTreeDrawer {
     private oldCurrentEditModeNodeId: number | undefined;
     private jointNodeEditMode: d3.HierarchyNode<DrawableNode>[] = []
     private oldJointDataEditMode: d3.HierarchyNode<DrawableNode>[] = [];
-    private minTreeXEditMode: number;
-    private maxTreeXEditMode: number;
-    private minTreeYEditMode: number;
-    private maxTreeYEditMode: number;
-    private offSetXEditMode: number;
-    private offSetYEditMode: number;
-    private scaleFactorEditMode: number;
+    private minTreeXEditMode: number = 0;
+    private maxTreeXEditMode: number = 0;
+    private minTreeYEditMode: number = 0;
+    private maxTreeYEditMode: number = 0;
+    private offSetXEditMode: number = 0;
+    private offSetYEditMode: number = 0;
+    private scaleFactorEditMode: number = 0.5;
 
-    descendantsGroupEditMode = this.familyTreeGroup.append("g").attr("class", "descendantsEditMode");
+    descendantsGroupEditMode = this.descendantsGroup
+    // descendantsGroupEditMode = this.familyTreeGroup.append("g").attr("class", "descendantsEditMode");
     private fadeInAnimationDurationEditMode = 1000;
+    private fadeOutAnimationDurationEditMode = 1000;
 
 
 
 
     constructor(
     ) {
+        const modeButton = document.getElementById('modeType')
+        modeButton.addEventListener('click', (event) => {
+            this.toggleModes()
+        });
+
     }
     private attachNodes() {
         this.anceNodes.forEach(item => {
@@ -144,24 +153,53 @@ export class FamilyTreeDrawer {
         if (setData) {
             ND.setData(fetchedNodesArray)
         }
-        this.preProcessData(rootId)
+        this.currentMode = document.getElementById('modeType')?.textContent
+        console.log('MMM', this.currentMode)
+        if (this.currentMode === 'view') {
+            this.preProcessData(rootId)
+        } else {
+            this.preProcessDataEditMode(rootId)
+        }
     }
     fetchDataEditMode(fetchedNodesArray: any, rootId: number, setData: boolean) {
         if (setData) {
             ND.setData(fetchedNodesArray)
         }
-        this.preProcessDataEditMode(rootId)
+        this.currentMode = document.getElementById('modeType')?.textContent
+
+        if (this.currentMode === 'view') {
+            this.preProcessData(rootId)
+        } else {
+            this.preProcessDataEditMode(rootId)
+        }
+
     }
     private preProcessData(rootId: number) {
-        const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
-        const descendantsData = ND.customBuildDescendantsHiararchy(rootId);
-        const editModeParents = ND.customBuildParent(rootId)
-        const editModeChildren = ND.customBuildChildren(rootId)
+        if (this.jointNode && this.rootNodeId) {
+            const foundCurrentRoot = this.jointNode.find(item => item.data.id === rootId)
+            if (foundCurrentRoot) {
+                const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
+                const descendantsData = ND.customBuildDescendantsHiararchy(rootId);
+                const editModeParents = ND.customBuildParent(rootId)
+                const editModeChildren = ND.customBuildChildren(rootId)
 
-        this.fetchedDesendants = descendantsData;
-        this.fetchedAncestors = ancestorsData;
-        
-        this.updateTreeDrawing(rootId)
+                this.fetchedDesendants = descendantsData;
+                this.fetchedAncestors = ancestorsData;
+
+                this.updateTreeDrawing(rootId)
+
+            }
+        } else {
+            const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
+            const descendantsData = ND.customBuildDescendantsHiararchy(rootId);
+            const editModeParents = ND.customBuildParent(rootId)
+            const editModeChildren = ND.customBuildChildren(rootId)
+
+            this.fetchedDesendants = descendantsData;
+            this.fetchedAncestors = ancestorsData;
+
+            this.updateTreeDrawing(rootId)
+        }
     }
     private preProcessDataEditMode(rootId: number) {
         const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
@@ -174,7 +212,7 @@ export class FamilyTreeDrawer {
         // this.fetchedEditModeChildren = editModeChildren;
         this.fetchedEditModeParents = editModeParents;
         this.fetchedEditModeChildren = editModeChildren;
-        console.log("Parents",editModeParents, "children", editModeChildren)
+        // console.log("Parents", editModeParents, "children", editModeChildren)
         this.updateTreeDrawingEditMode(rootId)
     }
     private joinTree() {
@@ -191,30 +229,30 @@ export class FamilyTreeDrawer {
             return node;
         });
         // Filp ancestors upside down
-        this.anceNodes = this.anceTreeData.descendants()
+        this.anceNodes = this.anceTreeData?.descendants()
             .map(node => {
                 node.y = -node.y; // Flip Y-axis to move ancestors above the root
                 return node;
-            });
+            }) as d3.HierarchyNode<DrawableNode>[];
         // find the root in the ancestors
         let anceRootPossiton = this.anceNodes.find(item => item.data.id === this.rootNodeId);
         if (!anceRootPossiton) throw new Error('root node wasn\'t found in ancsestors');
-        const anceRootX = anceRootPossiton.x;
-        const anceRootY = anceRootPossiton.y;
+        const anceRootX = anceRootPossiton.x as number;
+        const anceRootY = anceRootPossiton.y as number;
         // repositon the ancestors relative to the root
         this.anceNodes = this.anceNodes.map(node => {
-            node.y = node.y - anceRootY;
-            node.x = node.x - anceRootX;
+            node.y = node.y as number - anceRootY;
+            node.x = node.x as number - anceRootX;
             return node;
         });
         if (this.oldJointData.length > 0 && this.oldRootNodeId) {
             const oldRootNode = this.oldJointData.find(item => item.data.id === this.rootNodeId);
             const newRootNode = this.jointNode.find(item => item.data.id === this.rootNodeId)
-            const rootOffSetX = newRootNode.x + oldRootNode.x
-            const rootOffSetY = newRootNode.y + oldRootNode?.y
+            const rootOffSetX: number = newRootNode?.x as number + oldRootNode?.x as number
+            const rootOffSetY: number = newRootNode?.y as number + oldRootNode?.y as number
             this.jointNode.forEach(item => {
-                item.x = item.x + rootOffSetX
-                item.y = item.y + rootOffSetY
+                item.x = item.x as number + rootOffSetX
+                item.y = item.y as number + rootOffSetY
             })
         }
     }
@@ -236,26 +274,26 @@ export class FamilyTreeDrawer {
             .map(node => {
                 node.y = -node.y; // Flip Y-axis to move parentstors above the root
                 return node;
-            });
+            }) as d3.HierarchyNode<DrawableNode>[];
         // find the root in the parentstors
         let parentRootPossiton = this.parentNodes.find(item => item.data.id === this.currentEditModeNodeId);
         if (!parentRootPossiton) throw new Error('root node wasn\'t found in ancsestors');
-        const parentRootX = parentRootPossiton.x;
-        const parentRootY = parentRootPossiton.y;
+        const parentRootX: number = parentRootPossiton.x as number;
+        const parentRootY: number = parentRootPossiton.y as number;
         // repositon the parentstors relative to the root
         this.parentNodes = this.parentNodes.map(node => {
-            node.y = node.y - parentRootY;
-            node.x = node.x - parentRootX;
+            node.y = node.y as number - parentRootY as number;
+            node.x = node.x as number - parentRootX as number;
             return node;
         });
         if (this.oldJointDataEditMode.length > 0 && this.oldRootNodeId) {
-            const oldRootNode = this.oldJointDataEditMode.find(item => item.data.id === this.currentEditModeNodeId);
-            const newRootNode = this.jointNodeEditMode.find(item => item.data.id === this.currentEditModeNodeId)
-            const rootOffSetX = newRootNode.x + oldRootNode.x
-            const rootOffSetY = newRootNode.y + oldRootNode?.y
+            const oldRootNode = this.oldJointDataEditMode.find(item => item.data.id === this.currentEditModeNodeId) as d3.HierarchyNode<DrawableNode>;;
+            const newRootNode = this.jointNodeEditMode.find(item => item.data.id === this.currentEditModeNodeId) as d3.HierarchyNode<DrawableNode>;
+            const rootOffSetX = newRootNode?.x as number + oldRootNode?.x as number
+            const rootOffSetY = newRootNode?.y as number + oldRootNode?.y as number
             this.jointNodeEditMode.forEach(item => {
-                item.x = item.x + rootOffSetX
-                item.y = item.y + rootOffSetY
+                item.x = item.x as number + rootOffSetX
+                item.y = item.y as number + rootOffSetY
             })
         }
     }
@@ -294,8 +332,8 @@ export class FamilyTreeDrawer {
         const treeLeftPadding = 2 * (this.NODE_RADIUS) * this.scaleFactor;
         const treeTopPadding = 2 * (this.NODE_RADIUS) * this.scaleFactor;
         this.jointNode.forEach(item => {
-            item.x = (this.scaleFactor * item.x) + treeLeftPadding;
-            item.y = (this.scaleFactor * item.y) + treeTopPadding;
+            item.x = (this.scaleFactor * (item.x as number)) + treeLeftPadding;
+            item.y = (this.scaleFactor * (item.y as number)) + treeTopPadding;
         })
     }
     private scaleGroupToFitEditMode() {
@@ -316,8 +354,8 @@ export class FamilyTreeDrawer {
         const treeLeftPadding = 2 * (this.NODE_RADIUS) * this.scaleFactorEditMode;
         const treeTopPadding = 2 * (this.NODE_RADIUS) * this.scaleFactorEditMode;
         this.jointNodeEditMode.forEach(item => {
-            item.x = (this.scaleFactorEditMode * item.x) + treeLeftPadding;
-            item.y = (this.scaleFactorEditMode * item.y) + treeTopPadding;
+            item.x = (this.scaleFactorEditMode * (item.x as number)) + treeLeftPadding;
+            item.y = (this.scaleFactorEditMode * (item.y as number)) + treeTopPadding;
         })
     }
     centerFamilyGroup() {
@@ -354,8 +392,8 @@ export class FamilyTreeDrawer {
         this.offSetX = - this.minTreeX;
         this.offSetY = - this.minTreeY;
         this.jointNode.forEach(item => {
-            item.x = this.offSetX + item.x
-            item.y = this.offSetY + item.y
+            item.x = this.offSetX + (item.x as number)
+            item.y = this.offSetY + (item.y as number)
         })
     }
     private centerTreeEditMode() {
@@ -366,8 +404,8 @@ export class FamilyTreeDrawer {
         this.offSetXEditMode = - this.minTreeXEditMode;
         this.offSetYEditMode = - this.minTreeYEditMode;
         this.jointNodeEditMode.forEach(item => {
-            item.x = this.offSetXEditMode + item.x
-            item.y = this.offSetYEditMode + item.y
+            item.x = this.offSetXEditMode + (item.x as number)
+            item.y = this.offSetYEditMode + (item.y as number)
         })
     }
     // Draw marriage lines based on 'target' property
@@ -397,12 +435,13 @@ export class FamilyTreeDrawer {
                     }
                     return ""; // Return empty string if no spouse found (will be filtered out)
                 } else {
-                    throw new Error('data must have a .catag property set either to "desc" or "ance"')
+                    // console.log("data", d.data.id)
+                    // throw new Error('data must have a .catag property set either to "desc" or "ance"')
                 }
             });
         // 2. EXIT (Remove old lines - this is important!)
         lines.exit().transition()
-            .duration(this.fadeInAnimationDuration)
+            .duration(this.fadeOutAnimationDuration)
             .attr("opacity", 0)
             .remove(); // Remove immediately after transition
         // 3. UPDATE (Transition existing lines)
@@ -485,7 +524,7 @@ export class FamilyTreeDrawer {
             });
         // 2. EXIT (Remove old paths)
         paths.exit().transition()
-            .duration(this.fadeInAnimationDuration)
+            .duration(this.fadeOutAnimationDuration)
             .attr("opacity", 0)
             .remove();
         // 3. UPDATE (Transition existing paths)
@@ -588,64 +627,92 @@ export class FamilyTreeDrawer {
             // .delay(this.fadeInAnimationDuration)
             .attr("opacity", 1);
     }
+    modeController(rootId) {
+        this.currentMode = document.getElementById('modeType')?.textContent
+        const modeButton = document.getElementById('modeType')
+        modeButton.textContent = 'view'
+        this.preProcessData(rootId);
+
+        // if (this.currentMode === 'view') {
+
+        // }
+        // else if (this.currentMode === 'edit') {
+        // this.preProcessDataEditMode(rootId);
+        // }
+    }
+    toggleModes(nodeId?: number) {
+        const modeButton = document.getElementById('modeType')
+        modeButton.textContent === "view" ? modeButton.textContent = "edit" : modeButton.textContent = "view"
+        this.currentMode = document.getElementById('modeType')?.textContent
+        if (this.currentMode === 'view') {
+            this.preProcessData(nodeId ? nodeId : this.currentEditModeNodeId);
+
+        } else if (this.currentMode === 'edit') {
+            this.preProcessDataEditMode(nodeId ? nodeId : this.rootNodeId);
+        }
+    }
 
 
-    
     drawDescNodes() {
         const rootNode = this.jointNode.find(item => item.data.id === this.rootNodeId);
         const strokeWidth = 3;
-    
+
+        const handleClick = (_event, d) => {
+            if (d.data.id !== this.rootNodeId) {
+                this.modeController(d.data.id);
+                this.selectEndpoint(d.data.id);
+            }
+        };
+
         const node = this.descendantsGroup.selectAll("g.node")
             .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id);
-    
+        node.on('click', handleClick);
+
         node.transition()
             .duration(this.fadeInAnimationDuration)
             .attr("transform", d => `translate(${d.x},${d.y}) scale(${this.scaleFactor})`)
             .attr('opacity', 1);
-    
+
         const enter = node.enter().append("g")
             .attr("class", "node")
             .attr("transform", d => `translate(${rootNode.x - this.offSetX},${rootNode.y}) scale(${this.scaleFactor})`)
             .attr('opacity', 0)
-            .on('click', (_event, d) => {
-                if (d.data.id !== this.rootNodeId) {
-                    this.preProcessData(d.data.id);
-                    // Handle the click event to simulate selecting an endpoint and trigger dynamic fields
-                    this.selectEndpoint(d.data.id);  // We'll define this function below
-                }
-            });
-    
+            .on('click', handleClick);
+
         const circles = enter.append("circle")
             .attr("r", this.NODE_RADIUS)
             .attr("stroke", "#999")
             .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth))
-            .attr("fill", d => this.getNodeColor(d));
-    
-        console.log("old root", this.oldRootNodeId, this.rootNodeId);
-    
+            .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
+
+        // console.log("old root", this.oldRootNodeId, this.rootNodeId);
+
         this.descendantsGroup.selectAll("circle")
             .transition()
             .duration(300)
             .ease(d3.easeLinear)
             .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth));
-    
+
         enter.append("text")
             .attr("dy", this.NODE_RADIUS + 20)
             .attr("text-anchor", "middle")
             .text(d => d.data.name);
-    
+
         this.defaultNodePicture(enter);
         this.appendActionCircles(enter);
-    
+
         enter.transition()
+
             .duration(this.fadeInAnimationDuration)
             .attr('opacity', 1)
             .attr("transform", d => `translate(${d.x},${d.y}) scale(${this.scaleFactor})`);
-    
+
         if (this.oldRootNodeId && this.oldJointData) {
             const foundOldRoot = this.jointNode.find(item => item.data.id === this.oldRootNodeId);
             node.exit().transition()
-                .duration(this.fadeInAnimationDuration)
+
+
+                .duration(this.fadeOutAnimationDuration)
                 .attr("transform", d => {
                     return foundOldRoot ? `translate(${foundOldRoot.x},${foundOldRoot.y}) scale(${this.scaleFactor})` : `translate(${d.x},${d.y}) scale(${this.scaleFactor})`;
                 })
@@ -653,37 +720,40 @@ export class FamilyTreeDrawer {
                 .remove();
         } else {
             node.exit().transition()
-                .duration(this.fadeInAnimationDuration)
+
+
+                .duration(this.fadeOutAnimationDuration)
                 .attr('opacity', 0)
                 .remove();
         }
-    
+
         // Store the previous root node ID for reference in the next update
         this.oldRootNodeId = this.rootNodeId;
     }
-    
+
     // Function to simulate selecting an endpoint and trigger dynamic fields
-    selectEndpoint(nodeId) {
-        const endpointMapping = {
-            // Add a mapping from node data id to endpoint here
-            // Assuming your node has a `type` or `id` that can map to your endpoints
-            'node1': 'addNewParent',
-            'node2': 'addExistingParent',
-            'node3': 'addChildOfOneParent',
-            'node4': 'addChildOfTwoParents',
-            // Add more mappings as needed
-        };
-    
-        const endpoint = endpointMapping[nodeId];
-    
-        if (endpoint) {
-            const select = document.getElementById('endpoint');
-            select.value = endpoint; // Set the value in the hidden select
-            const event = new Event('change');
-            select.dispatchEvent(event);  // Trigger the change event to update dynamic fields
-        }
+    selectEndpoint(nodeId: number) {
+        // console.log("hey it's me")
+        // const endpointMapping = {
+        //     // Add a mapping from node data id to endpoint here
+        //     // Assuming your node has a `type` or `id` that can map to your endpoints
+        //     'node1': 'addNewParent',
+        //     'node2': 'addExistingParent',
+        //     'node3': 'addChildOfOneParent',
+        //     'node4': 'addChildOfTwoParents',
+        //     // Add more mappings as needed
+        // };
+
+        // const endpoint = endpointMapping[nodeId];
+
+        // if (endpoint) {
+        //     const select = document.getElementById('endpoint');
+        //     select.value = endpoint; // Set the value in the hidden select
+        //     const event = new Event('change');
+        //     select.dispatchEvent(event);  // Trigger the change event to update dynamic fields
+        // }
     }
-    
+
 
     drawDescMarriageLinesEditMode() {
         // 1. DATA JOIN (Key by a combination of spouse IDs)
@@ -698,14 +768,14 @@ export class FamilyTreeDrawer {
                     throw new Error('data must have a .catag property set either to "editDesc" or "editAnce"')
                 }
             }), d => {
-                console.log("I am being excuted")
+                // console.log("I am being excuted")
                 if (d.data.catag === 'editDesc') {
                     const spouseId = Math.min(d.data.id, d.data.target);
                     const otherSpouseId = Math.max(d.data.id, d.data.target);
                     return `${spouseId}-${otherSpouseId}`;
                 } else if (d.data.catag === 'editAnce') {
                     const spouse = this.jointNodeEditMode.find(n => n.data.id === d.data.target);
-                    console.log("sssssspouse",spouse)
+                    // console.log("sssssspouse", spouse)
                     if (spouse) {
                         const spouseId = Math.min(d.data.id, spouse.data.id); // Use spouse ID directly
                         const otherSpouseId = Math.max(d.data.id, spouse.data.id);
@@ -713,12 +783,12 @@ export class FamilyTreeDrawer {
                     }
                     return ""; // Return empty string if no spouse found (will be filtered out)
                 } else {
-                    throw new Error('data must have a .catag property set either to "editDesc" or "editAnce"' + `because it is ${d.data.catag}`)
+                    // throw new Error('data must have a .catag property set either to "editDesc" or "editAnce"' + `because it is ${d.data.catag}`)
                 }
             });
         // 2. EXIT (Remove old lines - this is important!)
         lines.exit().transition()
-            .duration(this.fadeInAnimationDurationEditMode)
+            .duration(this.fadeOutAnimationDurationEditMode)
             .attr("opacity", 0)
             .remove(); // Remove immediately after transition
         // 3. UPDATE (Transition existing lines)
@@ -801,7 +871,7 @@ export class FamilyTreeDrawer {
             });
         // 2. EXIT (Remove old paths)
         paths.exit().transition()
-            .duration(this.fadeInAnimationDurationEditMode)
+            .duration(this.fadeOutAnimationDurationEditMode)
             .attr("opacity", 0)
             .remove();
         // 3. UPDATE (Transition existing paths)
@@ -879,7 +949,7 @@ export class FamilyTreeDrawer {
             } else if (d.data.catag === 'editAnce') {
                 let pathD = "";
                 let parent;
-                console.log("ddddddddd",d.data)
+                // console.log("ddddddddd", d.data)
                 if (d.data.mother && d.data.father) {
 
                     const mother = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
@@ -887,7 +957,7 @@ export class FamilyTreeDrawer {
                     if (mother && father && mother.marriageMidpoint !== undefined) {
                         parent = (mother.data.type === 'spouse') ? mother : father;
                     }
-                    console.log("parent-----", parent)
+                    // console.log("parent-----", parent)
                 } else if (d.data.mother) {
                     parent = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
                 } else if (d.data.father) {
@@ -910,63 +980,79 @@ export class FamilyTreeDrawer {
     drawDescNodesEditMode() {
         const rootNode = this.jointNodeEditMode.find(item => item.data.id === this.currentEditModeNodeId);
         const strokeWidth = 3;
-    
+
         const node = this.descendantsGroupEditMode.selectAll("g.node")
             .data(this.jointNodeEditMode.filter(d => d.data.type !== 'root'), d => d.data.id);
-    
-        node.transition()
-            .duration(this.fadeInAnimationDurationEditMode)
+
+        node.transition().duration(this.fadeInAnimationDurationEditMode)
             .attr("transform", d => `translate(${d.x},${d.y}) scale(${this.scaleFactorEditMode})`)
             .attr('opacity', 1);
-    
+        node.on('click', (_event, d) => {
+            // When a node is clicked, check for the actionType and update the h2 label
+
+            if (d.data.mode !== 'edit' && d.data.id !== this.currentEditModeNodeId) {
+                // this.preProcessDataEditMode(d.data.id);
+                this.modeController(d.data.id)
+            } else {
+
+                // Simulate selecting the correct actionType and updating the h2 label
+                const actionType = d.data.actionType;
+                this.setActionTypeLabel(actionType, d); // Function to handle label update and field updates
+            }
+
+        });
         const enter = node.enter().append("g")
             .attr("class", "node")
             .attr("transform", d => `translate(${rootNode.x - this.offSetXEditMode},${rootNode.y}) scale(${this.scaleFactorEditMode})`)
             .attr('opacity', 0)
             .on('click', (_event, d) => {
                 // When a node is clicked, check for the actionType and update the h2 label
-                if ( d.data.mode !== 'edit' && d.data.id !== this.currentEditModeNodeId) {
-                    this.preProcessDataEditMode(d.data.id);
+
+                if (d.data.mode !== 'edit' && d.data.id !== this.currentEditModeNodeId) {
+                    // this.preProcessDataEditMode(d.data.id);
+                    this.modeController(d.data.id)
                 } else {
 
                     // Simulate selecting the correct actionType and updating the h2 label
                     const actionType = d.data.actionType;
                     this.setActionTypeLabel(actionType, d); // Function to handle label update and field updates
                 }
-    
+
+
             });
-    
+
         const circles = enter.append("circle")
             .attr("r", this.NODE_RADIUS)
             .attr("stroke", "#999")
             .attr("stroke-width", d => (d.data.id === this.currentEditModeNodeId ? strokeWidth * 5 : strokeWidth))
-            .attr("fill", d => this.getNodeColor(d));
-    
-        console.log("old root", this.oldCurrentEditModeNodeId, this.currentEditModeNodeId);
-    
+            .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
+
         this.descendantsGroupEditMode.selectAll("circle")
             .transition()
+
             .duration(300)
             .ease(d3.easeLinear)
             .attr("stroke-width", d => (d.data.id === this.currentEditModeNodeId ? strokeWidth * 5 : strokeWidth));
-    
+
         enter.append("text")
             .attr("dy", this.NODE_RADIUS + 20)
             .attr("text-anchor", "middle")
             .text(d => d.data.name);
-    
+
         this.defaultNodePictureEditMode(enter);
         this.appendActionCircles(enter);
-    
+
         enter.transition()
+
             .duration(this.fadeInAnimationDurationEditMode)
             .attr('opacity', 1)
             .attr("transform", d => `translate(${d.x},${d.y}) scale(${this.scaleFactorEditMode})`);
-    
+
         if (this.oldCurrentEditModeNodeId && this.oldJointData) {
             const foundOldRoot = this.jointNodeEditMode.find(item => item.data.id === this.oldCurrentEditModeNodeId);
             node.exit().transition()
-                .duration(this.fadeInAnimationDurationEditMode)
+                .duration(this.fadeOutAnimationDurationEditMode)
+
                 .attr("transform", d => {
                     return foundOldRoot ? `translate(${foundOldRoot.x},${foundOldRoot.y}) scale(${this.scaleFactorEditMode})` : `translate(${d.x},${d.y}) scale(${this.scaleFactorEditMode})`;
                 })
@@ -974,53 +1060,104 @@ export class FamilyTreeDrawer {
                 .remove();
         } else {
             node.exit().transition()
-                .duration(this.fadeInAnimationDurationEditMode)
+
+                .duration(this.fadeOutAnimationDurationEditMode)
                 .attr('opacity', 0)
                 .remove();
         }
-    
+
         // Store the previous root node ID for reference in the next update
         this.oldCurrentEditModeNodeId = this.currentEditModeNodeId;
     }
-    
+
     // Function to update the h2 label and dynamic fields based on the actionType
-    setActionTypeLabel(actionType, node) {
+    _setActionTypeLabel(actionType: string | number | null | undefined, node: d3.HierarchyNode<DrawableNode>) {
         // Update the h2 label with the corresponding actionType
         const actionTypeLabels = {
-            addNewParent: {MALE:"Add New Father",FEMALE:"Add New Mother",},
-            addExistingParent: {MALE:"Add Existing Father",FEMALE:"Add Existing Mother",},
-            addChildOfOneParent: {MALE:"Add Son of One Parent",FEMALE:"Add Daughter of One Parent",},
-            addChildOfTwoParents: {MALE:"Add Son of Two Parents",FEMALE:"Add Daughter of Two Parents",},
-            addNewPartner: {MALE:"Add New Partner",FEMALE:"Add New Partner",},
-            addExistingPartner: {MALE:"Add Existing Partner",FEMALE:"Add Existing Partner",},
-            addNewPartnerAsParent: {MALE:"Add New Partner as Parent",FEMALE:"Add New Partner as Parent",},
-            addExistingPartnerAsParent: {MALE:"Add Existing Partner as Parent",FEMALE:"Add Existing Partner as Parent"},
+            addParent: { MALE: "Add New Father", FEMALE: "Add New Mother", },
+            addChildOfOneParent: { MALE: "Add Son of One Parent", FEMALE: "Add Daughter of One Parent", },
+            addChildOfTwoParents: { MALE: "Add Son of Two Parents", FEMALE: "Add Daughter of Two Parents", },
+            addPartner: { MALE: "Add New Partner", FEMALE: "Add New Partner", },
+            addPartnerAsParent: { MALE: "Add New Partner as Parent", FEMALE: "Add New Partner as Parent", },
         };
-        console.log(actionType);
+        // console.log("action type", actionType);
         // Update the h2 text with the corresponding action type
         let label = actionTypeLabels[actionType][node.data.gender] || "Select Action Type";
 
         document.getElementById('endpointLabel').textContent = label;
-        document.getElementById('gender').value = node.data.gender
-    
+        document.getElementById('gender').value = node.data.gender;
+
         // Now, handle dynamic fields as before
         const dynamicFields = document.getElementById('dynamicFields');
         const endpointFieldMap = {
             addNewParent: ['otherNodeId'],
             addExistingParent: ['partnerNodeId', 'partnershipType'],
             addChildOfTwoParents: ['partnerNodeId', 'partnershipType'],
+            addChildOfOneParent: [],
             addNewPartner: ['partnershipType'],
             addExistingPartner: ['partnerNodeId', 'partnershipType'],
             addNewPartnerAsParent: ['partnershipType', 'childNodeId'],
             addExistingPartnerAsParent: ['partnerNodeId', 'partnershipType', 'childNodeId'],
         };
-    
+        const endpointFieldMapNew = {
+            addParent: {
+                new: {
+                    endpoint: 'addNewParent',
+                    label: 'Add new parent',
+                    fields: ['otherNodeId', 'partnerNodeData']
+                },
+                existing: {
+                    endpoint: 'addExistingParent',
+                    label: 'add existing parent',
+                    fields: ['partnershipType', 'partnerNodeId']
+                },
+            },
+            addChildOfTwoParents: {
+                new: {
+                    endpoint: 'addChildOfTwoParents',
+                    label: 'add child of two parents',
+                    fields: ['partnerNodeId', 'partnershipType', 'childNodeData']
+                }
+            },
+            addChildOfOneParent: {
+                new: {
+                    endpoint: 'addChildOfOneParent',
+                    label: 'add child of one parent',
+                    fields: ['childNodeData']
+                }
+            },
+            addPartner: {
+                new: {
+                    endpoint: 'addNewPartner',
+                    label: 'add new partner',
+                    fields: ['partnershipType', 'partnerNodeData']
+                },
+                existing: {
+                    endpoint: 'addExistingPartner',
+                    label: 'Add existing partner',
+                    fields: ['partnershipType', 'partnerNodeId']
+                },
+            },
+            addPartnerAsParent: {
+                new: {
+                    endpoint: 'addNewPartnerAsParent',
+                    label: 'Add new partner as a parent',
+                    fields: ['partnershipType', 'childNodeId', 'partnerNodeData',]
+                },
+                existing: {
+                    endpoint: 'addExistingPartnerAsParent',
+                    label: 'Add existing partner as Parent',
+                    fields: ['partnershipType', 'childNodeId', 'partnerNodeId']
+                },
+            }
+        };
+
         // Clear the dynamic fields first
         dynamicFields.innerHTML = '';
-    
+
         // Get the fields for the selected actionType and create corresponding input elements
         const fields = endpointFieldMap[actionType] || [];
-        fields.forEach(field => {
+        fields.forEach((field: string) => {
             const input = document.createElement('input');
             input.type = 'text';
             input.name = field;
@@ -1029,9 +1166,150 @@ export class FamilyTreeDrawer {
             dynamicFields.appendChild(input);
         });
     }
-    
-    
+    setActionTypeLabel(actionType, node) {
 
+        const dynamicFields = document.getElementById('dynamicFields');
+        document.getElementById('familyNodeId').value = this.currentEditModeNodeId;
+
+        dynamicFields.innerHTML = '';
+        const endpointFieldMapNew = {
+            addParent: {
+                new: {
+                    endpoint: 'addNewParent',
+                    label: { MALE: "Add New Father", FEMALE: "Add New Mother" },
+                    fields: ['partnerNodeData']
+                },
+                existing: {
+                    endpoint: 'addExistingParent',
+                    label: { MALE: "Add Exiting Father", FEMALE: "Add Exiting Mother" },
+                    fields: ['partnershipType', 'partnerNodeId']
+                },
+            },
+            addChildOfTwoParents: {
+                new: {
+                    endpoint: 'addChildOfTwoParents',
+                    label: { MALE: "Add Son of Two Parents", FEMALE: "Add Daughter of Two Parents" },
+                    fields: ['partnerNodeId', 'partnershipType', 'childNodeData']
+                }
+            },
+            addChildOfOneParent: {
+                new: {
+                    endpoint: 'addChildOfOneParent',
+                    label: { MALE: "Add Son of One Parent", FEMALE: "Add Daughter of One Parent" },
+                    fields: ['childNodeData']
+                }
+            },
+            addPartner: {
+                new: {
+                    endpoint: 'addNewPartner',
+                    label: { MALE: "Add New Partner", FEMALE: "Add New Partner" },
+                    fields: ['partnershipType', 'partnerNodeData']
+                },
+                existing: {
+                    endpoint: 'addExistingPartner',
+                    label: { MALE: "Add Existing Partner", FEMALE: "Add Existing Partner" },
+                    fields: ['partnershipType', 'partnerNodeId']
+                },
+            },
+            addPartnerAsParent: {
+                new: {
+                    endpoint: 'addNewPartnerAsParent',
+                    label: { MALE: "Add New Partner as Parent", FEMALE: "Add New Partner as Parent" },
+                    fields: ['partnershipType', 'childNodeId', 'partnerNodeData',]
+                },
+                existing: {
+                    endpoint: 'addExistingPartnerAsParent',
+                    label: { MALE: "Add Existing Partner as Parent", FEMALE: "Add Existing Partner as Parent" },
+                    fields: ['partnershipType', 'childNodeId', 'partnerNodeId']
+                },
+            }
+        };
+
+        const actionOptions = endpointFieldMapNew[actionType];
+
+        if (!actionOptions) return;
+
+        // Create dropdown for selecting between 'new' and 'existing' if both exist
+        if (actionOptions.new && actionOptions.existing) {
+            const select = document.createElement('select');
+            select.id = 'actionOptionSelect';
+
+            ['existing', 'new'].forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = actionOptions[option].label[node.data.gender];
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', () => {
+                const label = endpointFieldMapNew[actionType][select.value].label[node.data.gender];
+                document.getElementById('endpointLabel').textContent = label;
+                document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][select.value].endpoint;
+                generateFields(select.value)
+            });
+            dynamicFields.appendChild(select);
+            const label = endpointFieldMapNew[actionType]['existing'].label[node.data.gender];
+            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType]['existing'].endpoint;
+            document.getElementById('endpointLabel').textContent = label;
+
+            generateFields('existing'); // Default selection
+        } else {
+            const option = actionOptions.new ? 'new' : 'existing';
+            const label = endpointFieldMapNew[actionType][option].label[node.data.gender];
+            document.getElementById('endpointLabel').textContent = label;
+            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][option].endpoint;
+
+            generateFields(option);
+        }
+
+        function generateFields(option) {
+            const fields = actionOptions[option].fields;
+            dynamicFields.querySelectorAll('.dynamic-input').forEach(el => el.remove());
+
+            fields.forEach(field => {
+                if (field.includes('Data')) {
+                    const h2 = document.createElement('h2');
+                    h2.textContent = field;
+                    h2.className = 'dynamic-input';
+                    dynamicFields.appendChild(h2);
+
+                    ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach(name => {
+                        const input = document.createElement('input');
+                        input.type = name.includes('Date') ? 'date' : name === 'ownedById' ? 'number' : 'text';
+                        input.id = name;
+                        input.name = name;
+                        input.placeholder = name.replace(/([A-Z])/g, ' $1').trim();
+                        input.required = true;
+                        input.className = 'dynamic-input';
+                        input.required = false
+                        if (name === 'gender') {
+                            input.value = node.data.gender
+                        }
+                        dynamicFields.appendChild(input);
+                    });
+                } else if (field.endsWith('Id')) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.name = field;
+                    input.placeholder = field;
+                    input.required = true;
+                    input.className = 'dynamic-input';
+                    dynamicFields.appendChild(input);
+                } else {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = field;
+                    input.placeholder = field;
+                    input.required = true;
+                    input.className = 'dynamic-input';
+                    dynamicFields.appendChild(input);
+                }
+            });
+        }
+    }
+
+    // Sample call (replace with actual data)
+    // setActionTypeLabel('addParent', { data: { gender: 'MALE' } });
 
 
     private getNodeColor(d: d3.HierarchyNode<DrawableNode>): string {
@@ -1050,7 +1328,7 @@ export class FamilyTreeDrawer {
         this.descendantsGroupEditMode.selectAll("g.node").raise(); // Raise nodes to the top
     }
     // Draw nodes
-    defaultNodePicture(svg, options = {}) {
+    defaultNodePicture(svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>, options = {}) {
         const {
             width = 0,
             height = 0,
@@ -1068,7 +1346,7 @@ export class FamilyTreeDrawer {
         // Outer Circle
         group.append("circle")
             .attr("r", outerRadius)
-            .attr("fill", d => this.getNodeColor(d));
+            .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
 
         // Inner Circle (Cutout)
         group.append("circle")
@@ -1087,7 +1365,7 @@ export class FamilyTreeDrawer {
             .attr("fill", cutoutColor);
 
         // Profile Picture
-        const imageUrl = d => `http://localhost:3000/api/family-tree/1/nodes/${d.data.id}/primaryPicture`;
+        const imageUrl = (d: d3.HierarchyNode<DrawableNode>) => `http://localhost:3000/api/family-tree/1/nodes/${d.data.id}/primaryPicture`;
 
         group.each(function (d) {
             fetch(imageUrl(d), {
@@ -1119,12 +1397,9 @@ export class FamilyTreeDrawer {
                 // If image is not found, default SVG remains
             });
         });
-
-
-
     }
 
-    defaultNodePictureEditMode(svg, options = {}) {
+    defaultNodePictureEditMode(svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>, options = {}) {
         const {
             width = 0,
             height = 0,
@@ -1132,37 +1407,37 @@ export class FamilyTreeDrawer {
             innerRadius = outerRadius * 0.45,
         } = options;
         const cutoutColor = "white";
-    
+
         const centerX = width / 2;
         const centerY = height / 2;
-    
-        svg.each((d, i, nodes) => {
+
+        svg.each((d: d3.HierarchyNode<DrawableNode>, i: number, nodes) => {
             const nodeGroup = d3.select(nodes[i])
                 .append("g")
                 .attr("transform", `translate(${centerX}, ${centerY})`);
-    
+
             if (d.data.mode !== 'edit') {
                 // ✅ Normal Node with Profile Picture
                 nodeGroup.append("circle")
                     .attr("r", outerRadius)
-                    .attr("fill", d => this.getNodeColor(d));
-    
+                    .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
+
                 nodeGroup.append("circle")
                     .attr("r", innerRadius)
                     .attr("fill", cutoutColor);
-    
+
                 const lowerShapePath = `M${-outerRadius * 0.66},${outerRadius * 0.85} 
                     q${outerRadius * 0.27},${-outerRadius * 0.35} ${outerRadius * 0.4},${-outerRadius * 0.35} 
                     h${outerRadius * 0.54} 
                     q${outerRadius * 0.4},0 ${outerRadius * 0.4},${outerRadius * 0.35} 
                     a${outerRadius * 0.97},${outerRadius * 0.97} 0 0,1 ${-outerRadius * 1.3},0`;
-    
+
                 nodeGroup.append("path")
                     .attr("d", lowerShapePath)
                     .attr("fill", cutoutColor);
-    
+
                 const imageUrl = `http://localhost:3000/api/family-tree/1/nodes/${d.data.id}/primaryPicture`;
-    
+
                 fetch(imageUrl, {
                     headers: {
                         'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzE5MzkwOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
@@ -1173,14 +1448,14 @@ export class FamilyTreeDrawer {
                 }).then(blob => {
                     const url = URL.createObjectURL(blob);
                     const defs = svg.append("defs");
-    
+
                     defs.append("clipPath")
                         .attr("id", `clip-${d.data.id}`)
                         .append("circle")
                         .attr("r", outerRadius)
                         .attr("cx", 0)
                         .attr("cy", 0);
-    
+
                     nodeGroup.append("image")
                         .attr("x", -outerRadius)
                         .attr("y", -outerRadius)
@@ -1191,33 +1466,33 @@ export class FamilyTreeDrawer {
                 }).catch(() => {
                     // If image is not found, default SVG remains
                 });
-    
+
             } else if (d.data.mode === 'edit') {
                 // ✅ Edit Node with Plus Icon
                 nodeGroup.append("circle")
                     .attr("r", outerRadius)
                     .attr("fill", "#f0f0f0") // Gray background for edit mode
-                    .attr("stroke", d => this.getNodeColor(d))
+                    .attr("stroke", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>))
                     .attr("stroke-width", 2);
-    
+
                 // Group for the plus icon (centered inside the node)
                 const iconGroup = nodeGroup.append("g")
                     .attr("transform", `translate(0,0) scale(${outerRadius / 12})`);
-    
+
                 iconGroup.append("circle")
                     .attr("r", 12)
                     .attr("cx", 0)
                     .attr("cy", 0)
                     .style("fill", "rgba(0,0,0,0)");
-    
+
                 iconGroup.append("path")
                     .attr("d", "M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z")
-                    .attr("fill", d => this.getNodeColor(d))
+                    .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>))
                     .attr("transform", "translate(-12,-12)"); // Center the plus icon inside the node
             }
         });
     }
-    
+
 
     appendActionCircles(enter: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>) {
         // Action buttons group
@@ -1282,7 +1557,7 @@ export class FamilyTreeDrawer {
         // this.renewTreeDataEditMode(desc, ance)
 
     }
-    renewTreeDataEditMode(child?: DrawableNode, parent?: DrawableNode) {
+    renewTreeDataEditMode(child: DrawableNode, parent: DrawableNode) {
         this.childRoot = d3.hierarchy<DrawableNode>(child);
         this.childTreeData = this.childTreeLayout(this.childRoot);
         this.childNodes = this.childTreeData.descendants().filter(item => item.data.type !== 'root');
@@ -1298,16 +1573,13 @@ export class FamilyTreeDrawer {
         this.oldRootNodeId = this.rootNodeId;
         this.rootNodeId = rootNodeId;
         this.oldJointData = this.jointNode;
-        // this.custPrint(this.jointNode)
         this.drawNodes()
-        // this.drawNodesEditMode()
     }
     updateTreeDrawingEditMode(rootNodeId: number) {
         this.renewTreeDataEditMode(this.fetchedEditModeChildren as DrawableNode, this.fetchedEditModeParents as DrawableNode);
         this.oldRootNodeId = this.rootNodeId;
         this.currentEditModeNodeId = rootNodeId
-        // this.custPrint(this.jointNode)
-        // this.drawNodes()
+
         this.drawNodesEditMode()
     }
 }

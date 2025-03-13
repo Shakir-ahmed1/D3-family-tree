@@ -23,14 +23,16 @@ function constructNodeCreator(allData): CreateNewPrimaryFamilyNodeInterface {
     const newNode: CreateNewPrimaryFamilyNodeInterface = {
         name: allData.name,
         address: allData.address,
-        birthDate: allData.birthDate,
-        deathDate: allData.deathDate,
         gender: allData.gender,
         nickName: allData.nickName,
         ownedById: allData.ownedById,
         phone: allData.phone,
         title: allData.title
     }
+    if (allData.birthDate) { newNode.birthDate = allData.birthDate }
+    if (allData.deathDate) { newNode.deathDate = allData.deathDate }
+    console.log("gender", newNode)
+
     return newNode;
 }
 
@@ -39,14 +41,14 @@ export class FamilyTreeService {
         const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/parent/NewParent`;
         const nodeData = constructNodeCreator(data)
         const customData: CreateNewParentInterface = {
-            parentNodeData: data
+            parentNodeData: nodeData
         }
         return postData(url, customData);
     }
 
     async addExistingParent(data) {
         const customData: CreateExistingParentInterface = {
-            parentNodeId: data.parentNodeId
+            parentNodeId: parseInt(data.parentNodeId)
         }
         const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/parent/ExitingParent`;
         return postData(url, customData);
@@ -64,7 +66,7 @@ export class FamilyTreeService {
     async addChildOfTwoParents(data) {
         const customData: CreateChildOfTwoParentsInterface = {
             childNodeData: constructNodeCreator(data),
-            partnerNodeId: data.parentNodeId,
+            partnerNodeId: parseInt(data.parentNodeId),
             partnershipType: data.partnershipType
         }
         const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/child/ChildOfTwoParents`;
@@ -82,7 +84,7 @@ export class FamilyTreeService {
 
     async addExistingPartner(data) {
         const customData: CreateExistingPartnerInterface = {
-            otherNodeId: data.otherNodeId,
+            otherNodeId: parseInt(data.otherNodeId),
             partnershipType: data.partnershipType
         }
         const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/spouse/ExistingPartner`;
@@ -91,7 +93,7 @@ export class FamilyTreeService {
 
     async addNewPartnerAsParent(data) {
         const customData: CreateNewPartnerAsParentInterface = {
-            childNodeId: data.childNodeId,
+            childNodeId: parseInt(data.childNodeId),
             otherNodeData: constructNodeCreator(data),
             partnershipType: data.partnershipType
         }
@@ -101,8 +103,8 @@ export class FamilyTreeService {
 
     async addExistingPartnerAsParent(data) {
         const customData: CreateExistingPartnerAsParentInterface = {
-            childNodeId: data.childNodeId,
-            otherNodeId: data.otherNodeId,
+            childNodeId: parseInt(data.childNodeId),
+            otherNodeId: parseInt(data.otherNodeId),
             partnershipType: data.partnershipType,
         }
         const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/spouse/ExistingPartnerAsParent`;

@@ -53,8 +53,16 @@ export enum actionTypes {
     addNewParent = "addNewParent",
     addNewPartner = 'addNewPartner',
     addExistingPartner = "addExistingPartner",
-    addNewPartnerAsParent = "addCreateBiologicalMother",
+    addNewPartnerAsParent = "addNewPartnerAsParent",
     addExistingPartnerAsParent = 'addExistingPartnerAsParent',
+}
+
+export enum genericActionTypes {
+    addChildOfOneParent = "addChildOfOneParent",
+    addChildOfTwoParents = "addChildOfTwoParents",
+    addParent = "addParent",
+    addPartner = 'addPartner',
+    addPartnerAsParent = "addPartnerAsParent",
 }
 export interface DrawableNode {
     catag: 'ance' | 'desc' | 'editDesc' | 'editAnce' | undefined;
@@ -72,7 +80,7 @@ export interface DrawableNode {
     children?: DrawableNode[]
     source?: string;
     mode: 'edit' | 'node',
-    actionType: actionTypes;
+    actionType?: genericActionTypes;
 }
 export interface temporaryData {
     id: number;

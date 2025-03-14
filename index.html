@@ -3,15 +3,39 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reusable Family Tree</title>
+    <title>Reusable Family Tree with Tabs</title>
     <link rel="stylesheet" href="src/style.css" />
+    <style>
+        .tabs {
+            display: flex;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+        }
+        .tab.active {
+            background: #fff;
+            border-bottom: none;
+            font-weight: bold;
+        }
+        .tab-content {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <h5>Family Trees</h5>
     <div class="main">
-        <!-- Sidebar -->
         <div class="sidebar">
-            <!-- Form for Fetching API Data -->
             <form id="apiForm">
                 <label for="apiUrl">API URL:</label>
                 <input type="text" id="apiUrl" placeholder="Enter API URL" value="http://localhost:3000/api/family-tree/1/relations" />
@@ -20,59 +44,70 @@
                 <button type="submit">Fetch Data</button>
             </form>
 
-            <!-- Form for Updating Self Node ID -->
             <form id="viewChangeForm">
                 <label for="selfNodeId">Self Node ID:</label>
-                <input type="text" id="selfNodeId" placeholder="Enter Self Node ID" value="1" required />
+                <input type="text" id="selfNodeId" placeholder="Enter Self Node ID" required />
                 <button type="submit">Draw Tree</button>
-            </form>
-
-            <!-- Form for Adding a New Node -->
-            <form id="addNodeForm">
-                <label for="actionSelect">Select Action:</label>
-                <select id="actionSelect" required>
-                    <option value="" disabled selected>Select an action</option>
-                    <!-- Populate dropdown with action titles -->
-                    <script>
-                        const actions = [
-                            "SIBLING: Add a new sibling to the family tree",
-                            "PARENT: Add a new biological parent to the node",
-                            "CHILD: Create a child with an existing partner",
-                            "CHILD: Create a child without a partner",
-                            "CHILD: Create a child with a new partner",
-                            "SPOUSE: Add a new partner to the family tree",
-                            "SPOUSE: Add an existing partner to the family tree",
-                        ];
-                        actions.forEach(action => {
-                            document.write(`<option value="${action}">${action}</option>`);
-                        });
-                    </script>
-                </select>
-
-                <label for="requestBody">Request Body:</label>
-                <textarea id="requestBody" rows="10" placeholder="Request body will appear here..." required></textarea>
-
-                <button type="submit">Submit</button>
             </form>
         </div>
 
-        <!-- Main Content -->
         <div id="treeContainer" style="padding: 50px;">
             <div class="form-container">
-                <button
-                id="modeType"
-              >edit</button>
-                <form id="familyTreeForm">
-                    <h2 id="endpointLabel">Select Action Type</h2>
-                    <p>endpoint: <span id="postEndpoint">endpoint here</span></p>
-                    <input value="1" type="number" id="familyTreeId" name="familyTreeId" placeholder="Family Tree ID" required />
-                    <input value="6" type="number" id="familyNodeId" name="familyNodeId" placeholder="Family Node ID" required />
-            
-                    <div id="dynamicFields"></div>
-     
-                    <button type="submit">Submit</button>
-                </form>
+                <div class="tabs">
+                    <div class="tab active" id="detailsTab">Details</div>
+                    <div class="tab" id="imagesTab">Images</div>
+                    <div class="tab" id="notesTab">Notes</div>
+                </div>
+
+                <div id="detailsContent" class="tab-content">
+                    <button
+                    id="modeType"
+                    style="font-size: 25px; margin: 5px; padding: 5px;background-color: tomato;"
+                  >edit</button>
+                    <form id="familyTreeForm">
+                        <h2 id="endpointLabel">Select Action Type</h2>
+                        <p>endpoint: <span id="postEndpoint">endpoint here</span></p>
+                        <input value="1" type="number" id="familyTreeId" name="familyTreeId" placeholder="Family Tree ID" required />
+                        <input value="6" type="number" id="familyNodeId" name="familyNodeId" placeholder="Family Node ID" required />
+                        <div id="dynamicFields"></div>
+                        <button type="submit">Submit</button>
+                    </form>
+                    <!-- <div class="form-container">
+
+                        <form id="familyTreeForm">
+                            <h2 id="endpointLabel">Select Action Type</h2>
+                            <p>endpoint: <span id="postEndpoint">endpoint here</span></p>
+                            <input value="1" type="number" id="familyTreeId" name="familyTreeId" placeholder="Family Tree ID" required />
+                            <input value="6" type="number" id="familyNodeId" name="familyNodeId" placeholder="Family Node ID" required />
+                    
+                            <div id="dynamicFields"></div>
+             
+                            <button type="submit">Submit</button>
+                        </form>
+                    </div> -->
+                </div>
+
+                <div id="imagesContent" class="tab-content hidden">
+                    <form id="imagesForm">
+                        <label for="imageUpload">Upload Image:</label>
+                        <input type="file" id="imageUpload" name="imageUpload" accept="image/*" />
+                        <button type="submit">Upload Image</button>
+                    </form>
+                </div>
+
+                <div id="notesContent" class="tab-content hidden">
+                    <form id="notesForm">
+                        <label for="noteText">Add Note:</label>
+                        <textarea id="noteText" name="noteText" placeholder="Write your note here..."></textarea>
+                        <button type="submit">Save Note</button>
+                    </form>
+                </div>
             </div>
-    <script type="module" src="/src/main.ts"></script>
+        </div>
+    </div>
+
+
+        <script type="module" src="/src/main.ts"></script>
+
 </body>
 </html>

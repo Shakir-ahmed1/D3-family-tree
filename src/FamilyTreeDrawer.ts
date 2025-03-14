@@ -2,6 +2,7 @@ import * as d3 from "d3";
 import { DrawableNode } from "./node.interface";
 import { ND } from "./dataManager";
 import { Gender } from "./dtos/gender.enum";
+import { FamilyTree } from "./formsManager";
 export class FamilyTreeDrawer {
     private width = 800;
     private height = 800;
@@ -42,6 +43,7 @@ export class FamilyTreeDrawer {
     private familyTreeGroup = this.svg.append("g").attr("class", "familyTree").attr('opacity', 1).attr('transform', 'translate(0,0)');
     descendantsGroup = this.familyTreeGroup.append("g").attr("class", "descendants");
     private currentMode = 'view';
+    private rawFetchedData;
 
     // edit mode
     private fetchedEditModeParents: DrawableNode | undefined;
@@ -72,7 +74,7 @@ export class FamilyTreeDrawer {
     // descendantsGroupEditMode = this.familyTreeGroup.append("g").attr("class", "descendantsEditMode");
     private fadeInAnimationDurationEditMode = 1000;
     private fadeOutAnimationDurationEditMode = 1000;
-
+    private formManager = new FamilyTree();
 
 
 
@@ -80,7 +82,7 @@ export class FamilyTreeDrawer {
     ) {
         const modeButton = document.getElementById('modeType')
         modeButton.addEventListener('click', (event) => {
-            this.toggleModes()
+            this.currentMode = this.toggleModes()
         });
 
     }
@@ -152,6 +154,7 @@ export class FamilyTreeDrawer {
     fetchData(fetchedNodesArray: any, rootId: number, setData: boolean) {
         if (setData) {
             ND.setData(fetchedNodesArray)
+            this.rawFetchedData = fetchedNodesArray
         }
         this.currentMode = document.getElementById('modeType')?.textContent
         console.log('MMM', this.currentMode)
@@ -164,6 +167,7 @@ export class FamilyTreeDrawer {
     fetchDataEditMode(fetchedNodesArray: any, rootId: number, setData: boolean) {
         if (setData) {
             ND.setData(fetchedNodesArray)
+            this.rawFetchedData = fetchedNodesArray
         }
         this.currentMode = document.getElementById('modeType')?.textContent
 
@@ -627,10 +631,13 @@ export class FamilyTreeDrawer {
             // .delay(this.fadeInAnimationDuration)
             .attr("opacity", 1);
     }
+
     modeController(rootId) {
-        this.currentMode = document.getElementById('modeType')?.textContent
-        const modeButton = document.getElementById('modeType')
-        modeButton.textContent = 'view'
+        this.currentMode = this.formManager.displayNodeDetails()
+        let nodeData = ND.data.familyNodes.find(item=>{
+            return item.id === this.currentEditModeNodeId
+        })
+        this.formManager.infoDisplayer(nodeData, this.currentEditModeNodeId)
         this.preProcessData(rootId);
 
         // if (this.currentMode === 'view') {
@@ -643,13 +650,13 @@ export class FamilyTreeDrawer {
     toggleModes(nodeId?: number) {
         const modeButton = document.getElementById('modeType')
         modeButton.textContent === "view" ? modeButton.textContent = "edit" : modeButton.textContent = "view"
-        this.currentMode = document.getElementById('modeType')?.textContent
-        if (this.currentMode === 'view') {
+        if (modeButton?.textContent === 'view') {
             this.preProcessData(nodeId ? nodeId : this.currentEditModeNodeId);
-
-        } else if (this.currentMode === 'edit') {
+            
+        } else if (modeButton?.textContent === 'edit') {
             this.preProcessDataEditMode(nodeId ? nodeId : this.rootNodeId);
         }
+        return modeButton?.textContent
     }
 
 
@@ -661,6 +668,8 @@ export class FamilyTreeDrawer {
             if (d.data.id !== this.rootNodeId) {
                 this.modeController(d.data.id);
                 this.selectEndpoint(d.data.id);
+            } else {
+                this.currentMode = this.formManager.displayNodeDetails()
             }
         };
 
@@ -997,7 +1006,7 @@ export class FamilyTreeDrawer {
 
                 // Simulate selecting the correct actionType and updating the h2 label
                 const actionType = d.data.actionType;
-                this.setActionTypeLabel(actionType, d); // Function to handle label update and field updates
+                this.formManager.setActionTypeLabel(actionType, d, this.currentEditModeNodeId); // Function to handle label update and field updates
             }
 
         });
@@ -1015,7 +1024,7 @@ export class FamilyTreeDrawer {
 
                     // Simulate selecting the correct actionType and updating the h2 label
                     const actionType = d.data.actionType;
-                    this.setActionTypeLabel(actionType, d); // Function to handle label update and field updates
+                    this.formManager.setActionTypeLabel(actionType, d, this.currentEditModeNodeId); // Function to handle label update and field updates
                 }
 
 
@@ -1070,246 +1079,11 @@ export class FamilyTreeDrawer {
         this.oldCurrentEditModeNodeId = this.currentEditModeNodeId;
     }
 
-    // Function to update the h2 label and dynamic fields based on the actionType
-    _setActionTypeLabel(actionType: string | number | null | undefined, node: d3.HierarchyNode<DrawableNode>) {
-        // Update the h2 label with the corresponding actionType
-        const actionTypeLabels = {
-            addParent: { MALE: "Add New Father", FEMALE: "Add New Mother", },
-            addChildOfOneParent: { MALE: "Add Son of One Parent", FEMALE: "Add Daughter of One Parent", },
-            addChildOfTwoParents: { MALE: "Add Son of Two Parents", FEMALE: "Add Daughter of Two Parents", },
-            addPartner: { MALE: "Add New Partner", FEMALE: "Add New Partner", },
-            addPartnerAsParent: { MALE: "Add New Partner as Parent", FEMALE: "Add New Partner as Parent", },
-        };
-        // console.log("action type", actionType);
-        // Update the h2 text with the corresponding action type
-        let label = actionTypeLabels[actionType][node.data.gender] || "Select Action Type";
 
-        document.getElementById('endpointLabel').textContent = label;
-        document.getElementById('gender').value = node.data.gender;
 
-        // Now, handle dynamic fields as before
-        const dynamicFields = document.getElementById('dynamicFields');
-        const endpointFieldMap = {
-            addNewParent: ['otherNodeId'],
-            addExistingParent: ['partnerNodeId', 'partnershipType'],
-            addChildOfTwoParents: ['partnerNodeId', 'partnershipType'],
-            addChildOfOneParent: [],
-            addNewPartner: ['partnershipType'],
-            addExistingPartner: ['partnerNodeId', 'partnershipType'],
-            addNewPartnerAsParent: ['partnershipType', 'childNodeId'],
-            addExistingPartnerAsParent: ['partnerNodeId', 'partnershipType', 'childNodeId'],
-        };
-        const endpointFieldMapNew = {
-            addParent: {
-                new: {
-                    endpoint: 'addNewParent',
-                    label: 'Add new parent',
-                    fields: ['otherNodeId', 'partnerNodeData']
-                },
-                existing: {
-                    endpoint: 'addExistingParent',
-                    label: 'add existing parent',
-                    fields: ['partnershipType', 'partnerNodeId']
-                },
-            },
-            addChildOfTwoParents: {
-                new: {
-                    endpoint: 'addChildOfTwoParents',
-                    label: 'add child of two parents',
-                    fields: ['partnerNodeId', 'partnershipType', 'childNodeData']
-                }
-            },
-            addChildOfOneParent: {
-                new: {
-                    endpoint: 'addChildOfOneParent',
-                    label: 'add child of one parent',
-                    fields: ['childNodeData']
-                }
-            },
-            addPartner: {
-                new: {
-                    endpoint: 'addNewPartner',
-                    label: 'add new partner',
-                    fields: ['partnershipType', 'partnerNodeData']
-                },
-                existing: {
-                    endpoint: 'addExistingPartner',
-                    label: 'Add existing partner',
-                    fields: ['partnershipType', 'partnerNodeId']
-                },
-            },
-            addPartnerAsParent: {
-                new: {
-                    endpoint: 'addNewPartnerAsParent',
-                    label: 'Add new partner as a parent',
-                    fields: ['partnershipType', 'childNodeId', 'partnerNodeData',]
-                },
-                existing: {
-                    endpoint: 'addExistingPartnerAsParent',
-                    label: 'Add existing partner as Parent',
-                    fields: ['partnershipType', 'childNodeId', 'partnerNodeId']
-                },
-            }
-        };
 
-        // Clear the dynamic fields first
-        dynamicFields.innerHTML = '';
 
-        // Get the fields for the selected actionType and create corresponding input elements
-        const fields = endpointFieldMap[actionType] || [];
-        fields.forEach((field: string) => {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.name = field;
-            input.placeholder = field;
-            input.required = true;
-            dynamicFields.appendChild(input);
-        });
-    }
-    setActionTypeLabel(actionType, node) {
-
-        const dynamicFields = document.getElementById('dynamicFields');
-        document.getElementById('familyNodeId').value = this.currentEditModeNodeId;
-
-        dynamicFields.innerHTML = '';
-        const endpointFieldMapNew = {
-            addParent: {
-                new: {
-                    endpoint: 'addNewParent',
-                    label: { MALE: "Add New Father", FEMALE: "Add New Mother" },
-                    fields: ['partnerNodeData']
-                },
-                existing: {
-                    endpoint: 'addExistingParent',
-                    label: { MALE: "Add Exiting Father", FEMALE: "Add Exiting Mother" },
-                    fields: ['partnershipType', 'partnerNodeId']
-                },
-            },
-            addChildOfTwoParents: {
-                new: {
-                    endpoint: 'addChildOfTwoParents',
-                    label: { MALE: "Add Son of Two Parents", FEMALE: "Add Daughter of Two Parents" },
-                    fields: ['partnerNodeId', 'partnershipType', 'childNodeData']
-                }
-            },
-            addChildOfOneParent: {
-                new: {
-                    endpoint: 'addChildOfOneParent',
-                    label: { MALE: "Add Son of One Parent", FEMALE: "Add Daughter of One Parent" },
-                    fields: ['childNodeData']
-                }
-            },
-            addPartner: {
-                new: {
-                    endpoint: 'addNewPartner',
-                    label: { MALE: "Add New Partner", FEMALE: "Add New Partner" },
-                    fields: ['partnershipType', 'partnerNodeData']
-                },
-                existing: {
-                    endpoint: 'addExistingPartner',
-                    label: { MALE: "Add Existing Partner", FEMALE: "Add Existing Partner" },
-                    fields: ['partnershipType', 'partnerNodeId']
-                },
-            },
-            addPartnerAsParent: {
-                new: {
-                    endpoint: 'addNewPartnerAsParent',
-                    label: { MALE: "Add New Partner as Parent", FEMALE: "Add New Partner as Parent" },
-                    fields: ['partnershipType', 'childNodeId', 'partnerNodeData',]
-                },
-                existing: {
-                    endpoint: 'addExistingPartnerAsParent',
-                    label: { MALE: "Add Existing Partner as Parent", FEMALE: "Add Existing Partner as Parent" },
-                    fields: ['partnershipType', 'childNodeId', 'partnerNodeId']
-                },
-            }
-        };
-
-        const actionOptions = endpointFieldMapNew[actionType];
-
-        if (!actionOptions) return;
-
-        // Create dropdown for selecting between 'new' and 'existing' if both exist
-        if (actionOptions.new && actionOptions.existing) {
-            const select = document.createElement('select');
-            select.id = 'actionOptionSelect';
-
-            ['existing', 'new'].forEach(option => {
-                const opt = document.createElement('option');
-                opt.value = option;
-                opt.textContent = actionOptions[option].label[node.data.gender];
-                select.appendChild(opt);
-            });
-
-            select.addEventListener('change', () => {
-                const label = endpointFieldMapNew[actionType][select.value].label[node.data.gender];
-                document.getElementById('endpointLabel').textContent = label;
-                document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][select.value].endpoint;
-                generateFields(select.value)
-            });
-            dynamicFields.appendChild(select);
-            const label = endpointFieldMapNew[actionType]['existing'].label[node.data.gender];
-            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType]['existing'].endpoint;
-            document.getElementById('endpointLabel').textContent = label;
-
-            generateFields('existing'); // Default selection
-        } else {
-            const option = actionOptions.new ? 'new' : 'existing';
-            const label = endpointFieldMapNew[actionType][option].label[node.data.gender];
-            document.getElementById('endpointLabel').textContent = label;
-            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][option].endpoint;
-
-            generateFields(option);
-        }
-
-        function generateFields(option) {
-            const fields = actionOptions[option].fields;
-            dynamicFields.querySelectorAll('.dynamic-input').forEach(el => el.remove());
-
-            fields.forEach(field => {
-                if (field.includes('Data')) {
-                    const h2 = document.createElement('h2');
-                    h2.textContent = field;
-                    h2.className = 'dynamic-input';
-                    dynamicFields.appendChild(h2);
-
-                    ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach(name => {
-                        const input = document.createElement('input');
-                        input.type = name.includes('Date') ? 'date' : name === 'ownedById' ? 'number' : 'text';
-                        input.id = name;
-                        input.name = name;
-                        input.placeholder = name.replace(/([A-Z])/g, ' $1').trim();
-                        input.required = true;
-                        input.className = 'dynamic-input';
-                        input.required = false
-                        if (name === 'gender') {
-                            input.value = node.data.gender
-                        }
-                        dynamicFields.appendChild(input);
-                    });
-                } else if (field.endsWith('Id')) {
-                    const input = document.createElement('input');
-                    input.type = 'number';
-                    input.name = field;
-                    input.placeholder = field;
-                    input.required = true;
-                    input.className = 'dynamic-input';
-                    dynamicFields.appendChild(input);
-                } else {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.name = field;
-                    input.placeholder = field;
-                    input.required = true;
-                    input.className = 'dynamic-input';
-                    dynamicFields.appendChild(input);
-                }
-            });
-        }
-    }
-
-    // Sample call (replace with actual data)
-    // setActionTypeLabel('addParent', { data: { gender: 'MALE' } });
+    // Sample call (replace with actual data)this.formManager.setActionTypeLabel('addParent', { data: { gender: 'MALE' } });
 
 
     private getNodeColor(d: d3.HierarchyNode<DrawableNode>): string {

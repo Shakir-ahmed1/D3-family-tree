@@ -14,7 +14,7 @@ export class NodeData {
   constructor() {
   }
 
-  private data: CustomFlatData = {
+  data: CustomFlatData = {
     familyNodes: [],
     parents: []
   }

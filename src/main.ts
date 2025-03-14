@@ -1,9 +1,11 @@
 import { ND } from "./dataManager";
 import { CreateNewPrimaryFamilyNodeInterface } from "./dtos/create-new-primary-family-node.dto";
 import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
+import { FamilyTree } from "./formsManager";
 import { requestActions } from './relations-structure'
 import { FamilyTreeService } from "./services";
 
+// Initialize the FamilyTree class
 
 const drawer = new FamilyTreeDrawer();
 let nodesArray;

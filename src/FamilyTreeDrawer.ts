@@ -2,7 +2,8 @@ import * as d3 from "d3";
 import { DrawableNode } from "./node.interface";
 import { ND } from "./dataManager";
 import { Gender } from "./dtos/gender.enum";
-import { FamilyTree } from "./formsManager";
+import { HtmlElementsManager } from "./htmlElementsManager";
+import { nodeManagmentService } from "./services/nodeManagmentService";
 export class FamilyTreeDrawer {
     private width = 800;
     private height = 800;
@@ -15,7 +16,7 @@ export class FamilyTreeDrawer {
     private oldJointData: d3.HierarchyNode<DrawableNode>[] = [];
     private NODE_RADIUS = 40; // Change this to scale node size
     private verticalSpacing = this.NODE_RADIUS * 3.3; // Space between generations
-    private horizontalSpacing = this.NODE_RADIUS * 3; // Space between siblings/spouses
+    private horizontalSpacing = this.NODE_RADIUS * 2.5; // Space between siblings/spouses
     private widthPadding = 4 * this.NODE_RADIUS;
     private heightPadding = 4 * this.NODE_RADIUS;
     private descTreeLayout = d3.tree<DrawableNode>().nodeSize([this.horizontalSpacing, this.verticalSpacing]);
@@ -74,7 +75,7 @@ export class FamilyTreeDrawer {
     // descendantsGroupEditMode = this.familyTreeGroup.append("g").attr("class", "descendantsEditMode");
     private fadeInAnimationDurationEditMode = 1000;
     private fadeOutAnimationDurationEditMode = 1000;
-    private formManager = new FamilyTree();
+    private formManager = new HtmlElementsManager();
 
 
 
@@ -107,8 +108,8 @@ export class FamilyTreeDrawer {
         this.parentNodes.forEach(item => {
             item.data.catag = 'editAnce'
         })
-        const foundParentCurrent = this.parentNodes.find(item => item.data.id === this.currentEditModeNodeId)
-        const foundChildCurrent = this.childNodes.find(item => item.data.id === this.currentEditModeNodeId)
+        const foundParentCurrent = this.parentNodes.find(item => item.data.id === this.rootNodeId)
+        const foundChildCurrent = this.childNodes.find(item => item.data.id === this.rootNodeId)
         this.childNodes.forEach(item => {
             item.data.catag = 'editDesc'
         })
@@ -118,7 +119,7 @@ export class FamilyTreeDrawer {
             foundChildCurrent.data.catag = 'editAnce'
         }
 
-        this.jointNodeEditMode = [...this.childNodes, ...this.parentNodes.filter(item => item.data.id !== this.currentEditModeNodeId)]
+        this.jointNode = [...this.childNodes, ...this.parentNodes.filter(item => item.data.id !== this.rootNodeId)]
     }
 
     private adjustPostioning() {
@@ -144,7 +145,7 @@ export class FamilyTreeDrawer {
     }
     private drawNodesEditMode() {
         this.adjustPostioningEditMode()
-        this.custPrint(this.jointNodeEditMode)
+        this.custPrint(this.jointNode)
         this.drawDescMarriageLinesEditMode();
         this.drawDescParentChildLineEditMode();
         this.drawDescNodesEditMode();
@@ -192,6 +193,17 @@ export class FamilyTreeDrawer {
 
                 this.updateTreeDrawing(rootId)
 
+            } else {
+                // console.log("Hey HOw")
+                // const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
+                // const descendantsData = ND.customBuildDescendantsHiararchy(rootId);
+                // const editModeParents = ND.customBuildParent(rootId)
+                // const editModeChildren = ND.customBuildChildren(rootId)
+
+                // this.fetchedDesendants = descendantsData;
+                // this.fetchedAncestors = ancestorsData;
+
+                // this.updateTreeDrawing(rootId)
             }
         } else {
             const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
@@ -262,7 +274,7 @@ export class FamilyTreeDrawer {
     }
     private joinTreeEditMode() {
         // search the position of the root node in the descendants
-        let childRootPossiton = this.childNodes.find(item => item.data.id === this.currentEditModeNodeId);
+        let childRootPossiton = this.childNodes.find(item => item.data.id === this.rootNodeId);
         if (!childRootPossiton) throw new Error('root node wasn\'t found in descendants');
         const childRootX: number = childRootPossiton.x as number;
         const childRootY: number = childRootPossiton.y as number;
@@ -280,7 +292,7 @@ export class FamilyTreeDrawer {
                 return node;
             }) as d3.HierarchyNode<DrawableNode>[];
         // find the root in the parentstors
-        let parentRootPossiton = this.parentNodes.find(item => item.data.id === this.currentEditModeNodeId);
+        let parentRootPossiton = this.parentNodes.find(item => item.data.id === this.rootNodeId);
         if (!parentRootPossiton) throw new Error('root node wasn\'t found in ancsestors');
         const parentRootX: number = parentRootPossiton.x as number;
         const parentRootY: number = parentRootPossiton.y as number;
@@ -291,11 +303,11 @@ export class FamilyTreeDrawer {
             return node;
         });
         if (this.oldJointDataEditMode.length > 0 && this.oldRootNodeId) {
-            const oldRootNode = this.oldJointDataEditMode.find(item => item.data.id === this.currentEditModeNodeId) as d3.HierarchyNode<DrawableNode>;;
-            const newRootNode = this.jointNodeEditMode.find(item => item.data.id === this.currentEditModeNodeId) as d3.HierarchyNode<DrawableNode>;
+            const oldRootNode = this.oldJointDataEditMode.find(item => item.data.id === this.rootNodeId) as d3.HierarchyNode<DrawableNode>;;
+            const newRootNode = this.jointNode.find(item => item.data.id === this.rootNodeId) as d3.HierarchyNode<DrawableNode>;
             const rootOffSetX = newRootNode?.x as number + oldRootNode?.x as number
             const rootOffSetY = newRootNode?.y as number + oldRootNode?.y as number
-            this.jointNodeEditMode.forEach(item => {
+            this.jointNode.forEach(item => {
                 item.x = item.x as number + rootOffSetX
                 item.y = item.y as number + rootOffSetY
             })
@@ -357,7 +369,7 @@ export class FamilyTreeDrawer {
         //     `)
         const treeLeftPadding = 2 * (this.NODE_RADIUS) * this.scaleFactorEditMode;
         const treeTopPadding = 2 * (this.NODE_RADIUS) * this.scaleFactorEditMode;
-        this.jointNodeEditMode.forEach(item => {
+        this.jointNode.forEach(item => {
             item.x = (this.scaleFactorEditMode * (item.x as number)) + treeLeftPadding;
             item.y = (this.scaleFactorEditMode * (item.y as number)) + treeTopPadding;
         })
@@ -401,13 +413,13 @@ export class FamilyTreeDrawer {
         })
     }
     private centerTreeEditMode() {
-        this.minTreeXEditMode = d3.min(this.jointNodeEditMode, d => d.x) ?? 0;
-        this.maxTreeXEditMode = d3.max(this.jointNodeEditMode, d => d.x) ?? 0;
-        this.minTreeYEditMode = d3.min(this.jointNodeEditMode, d => d.y) ?? 0;
-        this.maxTreeYEditMode = d3.max(this.jointNodeEditMode, d => d.y) ?? 0;
+        this.minTreeXEditMode = d3.min(this.jointNode, d => d.x) ?? 0;
+        this.maxTreeXEditMode = d3.max(this.jointNode, d => d.x) ?? 0;
+        this.minTreeYEditMode = d3.min(this.jointNode, d => d.y) ?? 0;
+        this.maxTreeYEditMode = d3.max(this.jointNode, d => d.y) ?? 0;
         this.offSetXEditMode = - this.minTreeXEditMode;
         this.offSetYEditMode = - this.minTreeYEditMode;
-        this.jointNodeEditMode.forEach(item => {
+        this.jointNode.forEach(item => {
             item.x = this.offSetXEditMode + (item.x as number)
             item.y = this.offSetYEditMode + (item.y as number)
         })
@@ -634,10 +646,10 @@ export class FamilyTreeDrawer {
 
     modeController(rootId) {
         this.currentMode = this.formManager.displayNodeDetails()
-        let nodeData = ND.data.familyNodes.find(item=>{
-            return item.id === this.currentEditModeNodeId
+        let nodeData = ND.data.familyNodes.find(item => {
+            return item.id === rootId
         })
-        this.formManager.infoDisplayer(nodeData, this.currentEditModeNodeId)
+        this.formManager.infoDisplayer(nodeData, rootId)
         this.preProcessData(rootId);
 
         // if (this.currentMode === 'view') {
@@ -651,8 +663,8 @@ export class FamilyTreeDrawer {
         const modeButton = document.getElementById('modeType')
         modeButton.textContent === "view" ? modeButton.textContent = "edit" : modeButton.textContent = "view"
         if (modeButton?.textContent === 'view') {
-            this.preProcessData(nodeId ? nodeId : this.currentEditModeNodeId);
-            
+            this.preProcessData(nodeId ? nodeId : this.rootNodeId);
+
         } else if (modeButton?.textContent === 'edit') {
             this.preProcessDataEditMode(nodeId ? nodeId : this.rootNodeId);
         }
@@ -767,11 +779,11 @@ export class FamilyTreeDrawer {
     drawDescMarriageLinesEditMode() {
         // 1. DATA JOIN (Key by a combination of spouse IDs)
         const lines = this.descendantsGroupEditMode.selectAll("line.marriage-line")
-            .data(this.jointNodeEditMode.filter(d => {
+            .data(this.jointNode.filter(d => {
                 if (d.data.catag === 'editDesc') {
                     return d.data.type === "spouse" && d.data.target;
                 } else if (d.data.catag === 'editAnce') {
-                    const spouse = this.jointNodeEditMode.find(n => n.data.id === d.data.target);
+                    const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                     return spouse !== undefined; // Check if spouse exists
                 } else {
                     throw new Error('data must have a .catag property set either to "editDesc" or "editAnce"')
@@ -783,7 +795,7 @@ export class FamilyTreeDrawer {
                     const otherSpouseId = Math.max(d.data.id, d.data.target);
                     return `${spouseId}-${otherSpouseId}`;
                 } else if (d.data.catag === 'editAnce') {
-                    const spouse = this.jointNodeEditMode.find(n => n.data.id === d.data.target);
+                    const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                     // console.log("sssssspouse", spouse)
                     if (spouse) {
                         const spouseId = Math.min(d.data.id, spouse.data.id); // Use spouse ID directly
@@ -806,11 +818,11 @@ export class FamilyTreeDrawer {
             .attr("x1", d => d.x ?? 0)
             .attr("y1", d => d.y ?? 0)
             .attr("x2", d => {
-                const spouse = this.jointNodeEditMode.find(n => n.data.id === d.data.target);
+                const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                 return spouse?.x ?? 0;
             })
             .attr("y2", d => {
-                const spouse = this.jointNodeEditMode.find(n => n.data.id === d.data.target);
+                const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                 return spouse?.y ?? 0;
             })
             .attr("opacity", 1);
@@ -823,11 +835,11 @@ export class FamilyTreeDrawer {
         enter.attr("x1", d => d.x ?? 0)
             .attr("y1", d => d.y ?? 0)
             .attr("x2", d => {
-                const spouse = this.jointNodeEditMode.find(n => n.data.id === d.data.target && n.data.type === 'child');
+                const spouse = this.jointNode.find(n => n.data.id === d.data.target && n.data.type === 'child');
                 return spouse?.x ?? 0;
             })
             .attr("y2", d => {
-                const spouse = this.jointNodeEditMode.find(n => n.data.id === d.data.target && n.data.type === 'child');
+                const spouse = this.jointNode.find(n => n.data.id === d.data.target && n.data.type === 'child');
                 return spouse?.y ?? 0;
             });
         enter.transition()
@@ -835,10 +847,10 @@ export class FamilyTreeDrawer {
             // .delay(this.fadeInAnimationDurationEditMode)
             .attr("opacity", 1);
         // Midpoint calculation (do this AFTER data join and transitions)
-        this.jointNodeEditMode.forEach(d => {
+        this.jointNode.forEach(d => {
             if (d.data.catag === 'editDesc') {
                 if (d.data.type === "spouse" && d.data.target) {
-                    const spouse = this.jointNodeEditMode.find(n => n.data.id === d.data.target);
+                    const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                     if (spouse) {
                         d.marriageMidpoint = {
                             x: ((d.x ?? 0) + (spouse.x ?? 0)) / 2,
@@ -848,7 +860,7 @@ export class FamilyTreeDrawer {
                     }
                 }
             } else if (d.data.catag === 'editAnce') {
-                const spouse = this.jointNodeEditMode.find(n => n.data.id === d.data.target);
+                const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                 if (spouse) {
                     d.marriageMidpoint = {
                         x: ((d.x ?? 0) + (spouse.x ?? 0)) / 2,
@@ -865,7 +877,7 @@ export class FamilyTreeDrawer {
     drawDescParentChildLineEditMode() {
         // 1. DATA JOIN (Key by a combination of parent and child IDs)
         const paths = this.descendantsGroupEditMode.selectAll("path.child-link")
-            .data(this.jointNodeEditMode.filter(d => d.data.type === "child"), d => {
+            .data(this.jointNode.filter(d => d.data.type === "child"), d => {
                 let key = "";
                 if (d.data.mother && d.data.father) {
                     const motherId = Math.min(d.data.mother, d.data.father);
@@ -890,16 +902,16 @@ export class FamilyTreeDrawer {
                 if (d.data.catag === 'editDesc') {
                     let pathD = "";
                     if (d.data.mother && d.data.father) {
-                        const mother = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
-                        const father = this.jointNodeEditMode.find(n => n.data.uuid === d.data.father);
+                        const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
+                        const father = this.jointNode.find(n => n.data.uuid === d.data.father);
                         let theSpouse = (mother.data.type === 'spouse') ? mother : father;
                         if (mother && father && theSpouse.marriageMidpoint !== undefined) {
                             pathD = `M${theSpouse.x}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
                         }
                     } else if (d.data.mother || d.data.father) {
                         let pr;
-                        if (d.data.father) pr = this.jointNodeEditMode.find(n => n.data.uuid === d.data.father);
-                        if (d.data.mother) pr = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
+                        if (d.data.father) pr = this.jointNode.find(n => n.data.uuid === d.data.father);
+                        if (d.data.mother) pr = this.jointNode.find(n => n.data.uuid === d.data.mother);
                         if (pr && pr.x !== undefined && pr.y !== undefined && d && d.y !== undefined && d.x !== undefined) {
                             pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
                         }
@@ -909,15 +921,15 @@ export class FamilyTreeDrawer {
                     let pathD = "";
                     let parent;
                     if (d.data.mother && d.data.father) {
-                        const mother = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
-                        const father = this.jointNodeEditMode.find(n => n.data.uuid === d.data.father);
+                        const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
+                        const father = this.jointNode.find(n => n.data.uuid === d.data.father);
                         if (mother && father && mother.marriageMidpoint !== undefined) {
                             parent = (mother.data.type === 'spouse') ? mother : father;
                         }
                     } else if (d.data.mother) {
-                        parent = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
+                        parent = this.jointNode.find(n => n.data.uuid === d.data.mother);
                     } else if (d.data.father) {
-                        parent = this.jointNodeEditMode.find(n => n.data.uuid === d.data.father);
+                        parent = this.jointNode.find(n => n.data.uuid === d.data.father);
                     }
                     if (parent && d) {
                         const midY = (parent.y + d.y) / 2;
@@ -940,16 +952,16 @@ export class FamilyTreeDrawer {
             if (d.data.catag === 'editDesc') {
                 let pathD = "";
                 if (d.data.mother && d.data.father) {
-                    const mother = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
-                    const father = this.jointNodeEditMode.find(n => n.data.uuid === d.data.father);
+                    const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
+                    const father = this.jointNode.find(n => n.data.uuid === d.data.father);
                     let theSpouse = (mother?.data?.type === 'spouse') ? mother : father;
                     if (mother && father && theSpouse.marriageMidpoint !== undefined) {
                         pathD = `M${theSpouse.x}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
                     }
                 } else if (d.data.mother || d.data.father) {
                     let pr;
-                    if (d.data.father) pr = this.jointNodeEditMode.find(n => n.data.uuid === d.data.father);
-                    if (d.data.mother) pr = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
+                    if (d.data.father) pr = this.jointNode.find(n => n.data.uuid === d.data.father);
+                    if (d.data.mother) pr = this.jointNode.find(n => n.data.uuid === d.data.mother);
                     if (pr && pr.x !== undefined && pr.y !== undefined && d && d.y !== undefined && d.x !== undefined) {
                         pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
                     }
@@ -961,16 +973,16 @@ export class FamilyTreeDrawer {
                 // console.log("ddddddddd", d.data)
                 if (d.data.mother && d.data.father) {
 
-                    const mother = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
-                    const father = this.jointNodeEditMode.find(n => n.data.uuid === d.data.father);
+                    const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
+                    const father = this.jointNode.find(n => n.data.uuid === d.data.father);
                     if (mother && father && mother.marriageMidpoint !== undefined) {
                         parent = (mother.data.type === 'spouse') ? mother : father;
                     }
                     // console.log("parent-----", parent)
                 } else if (d.data.mother) {
-                    parent = this.jointNodeEditMode.find(n => n.data.uuid === d.data.mother);
+                    parent = this.jointNode.find(n => n.data.uuid === d.data.mother);
                 } else if (d.data.father) {
-                    parent = this.jointNodeEditMode.find(n => n.data.uuid === d.data.father);
+                    parent = this.jointNode.find(n => n.data.uuid === d.data.father);
                 }
                 if (parent && d) {
                     const midY = (parent.y + d.y) / 2;
@@ -987,26 +999,26 @@ export class FamilyTreeDrawer {
             .attr("opacity", 1);
     }
     drawDescNodesEditMode() {
-        const rootNode = this.jointNodeEditMode.find(item => item.data.id === this.currentEditModeNodeId);
+        const rootNode = this.jointNode.find(item => item.data.id === this.rootNodeId);
         const strokeWidth = 3;
 
         const node = this.descendantsGroupEditMode.selectAll("g.node")
-            .data(this.jointNodeEditMode.filter(d => d.data.type !== 'root'), d => d.data.id);
+            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id);
 
-        node.transition().duration(this.fadeInAnimationDurationEditMode)
+
+            node.transition().duration(this.fadeInAnimationDurationEditMode)
             .attr("transform", d => `translate(${d.x},${d.y}) scale(${this.scaleFactorEditMode})`)
             .attr('opacity', 1);
         node.on('click', (_event, d) => {
             // When a node is clicked, check for the actionType and update the h2 label
-
-            if (d.data.mode !== 'edit' && d.data.id !== this.currentEditModeNodeId) {
+            if (d.data.mode !== 'edit' && d.data.id !== this.rootNodeId) {
                 // this.preProcessDataEditMode(d.data.id);
                 this.modeController(d.data.id)
             } else {
 
                 // Simulate selecting the correct actionType and updating the h2 label
                 const actionType = d.data.actionType;
-                this.formManager.setActionTypeLabel(actionType, d, this.currentEditModeNodeId); // Function to handle label update and field updates
+                this.formManager.setActionTypeLabel(actionType, d, this.rootNodeId); // Function to handle label update and field updates
             }
 
         });
@@ -1017,14 +1029,14 @@ export class FamilyTreeDrawer {
             .on('click', (_event, d) => {
                 // When a node is clicked, check for the actionType and update the h2 label
 
-                if (d.data.mode !== 'edit' && d.data.id !== this.currentEditModeNodeId) {
+                if (d.data.mode !== 'edit') {
                     // this.preProcessDataEditMode(d.data.id);
                     this.modeController(d.data.id)
                 } else {
 
                     // Simulate selecting the correct actionType and updating the h2 label
                     const actionType = d.data.actionType;
-                    this.formManager.setActionTypeLabel(actionType, d, this.currentEditModeNodeId); // Function to handle label update and field updates
+                    this.formManager.setActionTypeLabel(actionType, d, this.rootNodeId); // Function to handle label update and field updates
                 }
 
 
@@ -1033,7 +1045,7 @@ export class FamilyTreeDrawer {
         const circles = enter.append("circle")
             .attr("r", this.NODE_RADIUS)
             .attr("stroke", "#999")
-            .attr("stroke-width", d => (d.data.id === this.currentEditModeNodeId ? strokeWidth * 5 : strokeWidth))
+            .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth))
             .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
 
         this.descendantsGroupEditMode.selectAll("circle")
@@ -1041,7 +1053,7 @@ export class FamilyTreeDrawer {
 
             .duration(300)
             .ease(d3.easeLinear)
-            .attr("stroke-width", d => (d.data.id === this.currentEditModeNodeId ? strokeWidth * 5 : strokeWidth));
+            .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth));
 
         enter.append("text")
             .attr("dy", this.NODE_RADIUS + 20)
@@ -1058,7 +1070,7 @@ export class FamilyTreeDrawer {
             .attr("transform", d => `translate(${d.x},${d.y}) scale(${this.scaleFactorEditMode})`);
 
         if (this.oldCurrentEditModeNodeId && this.oldJointData) {
-            const foundOldRoot = this.jointNodeEditMode.find(item => item.data.id === this.oldCurrentEditModeNodeId);
+            const foundOldRoot = this.jointNode.find(item => item.data.id === this.oldCurrentEditModeNodeId);
             node.exit().transition()
                 .duration(this.fadeOutAnimationDurationEditMode)
 
@@ -1076,7 +1088,7 @@ export class FamilyTreeDrawer {
         }
 
         // Store the previous root node ID for reference in the next update
-        this.oldCurrentEditModeNodeId = this.currentEditModeNodeId;
+        this.oldCurrentEditModeNodeId = this.rootNodeId;
     }
 
 
@@ -1299,25 +1311,7 @@ export class FamilyTreeDrawer {
             .attr("fill", "#F44336") // Red for delete
             .style("cursor", "pointer")
             .on("click", async (_event, d) => {
-                const deleteUri = `http://localhost:3000/api/family-tree/1/node/${d.data.id}`
-                try {
-                    const
-                        response = await fetch(deleteUri, {
-                            method: 'DELETE',
-                            headers: {
-                                'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
-                                'Content-Type': 'application/json',
-                            },
-                        });
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return await response.json();
-                } catch (error) {
-                    console.error('Error fetching nodes array:', error);
-                    alert('Failed to fetch data. Check console for details.');
-                    return null;
-                }
+                await nodeManagmentService.deleteNode(1, d.data.id)
             });
     }
     renewTreeData(desc: DrawableNode, ance: DrawableNode) {
@@ -1352,7 +1346,7 @@ export class FamilyTreeDrawer {
     updateTreeDrawingEditMode(rootNodeId: number) {
         this.renewTreeDataEditMode(this.fetchedEditModeChildren as DrawableNode, this.fetchedEditModeParents as DrawableNode);
         this.oldRootNodeId = this.rootNodeId;
-        this.currentEditModeNodeId = rootNodeId
+        this.rootNodeId = rootNodeId
 
         this.drawNodesEditMode()
     }

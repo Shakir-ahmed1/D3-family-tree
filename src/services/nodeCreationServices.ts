@@ -1,7 +1,7 @@
-import { CreateChildOfOneParentInterface, CreateChildOfTwoParentsInterface } from "./dtos/child/create-child.dto";
-import { CreateNewPrimaryFamilyNodeInterface } from "./dtos/create-new-primary-family-node.dto";
-import { CreateExistingParentInterface, CreateNewParentInterface } from "./dtos/parent/create-parent.dto";
-import { CreateExistingPartnerAsParentInterface, CreateExistingPartnerInterface, CreateNewPartnerAsParentInterface, CreateNewPartnerInterface } from "./dtos/spouse/create-partner.dto";
+import { CreateChildOfOneParentInterface, CreateChildOfTwoParentsInterface } from "../dtos/child/create-child.dto";
+import { CreateNewPrimaryFamilyNodeInterface } from "../dtos/create-new-primary-family-node.dto";
+import { CreateExistingParentInterface, CreateNewParentInterface } from "../dtos/parent/create-parent.dto";
+import { CreateExistingPartnerAsParentInterface, CreateExistingPartnerInterface, CreateNewPartnerAsParentInterface, CreateNewPartnerInterface } from "../dtos/spouse/create-partner.dto";
 
 
 // Base API URL

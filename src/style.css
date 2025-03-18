@@ -126,3 +126,28 @@ h5 {
 .form-container form button:hover {
     background-color: #218838;
 }
+
+.tabs {
+    display: flex;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+.tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+}
+.tab.active {
+    background: #fff;
+    border-bottom: none;
+    font-weight: bold;
+}
+.tab-content {
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+.hidden {
+    display: none;
+}

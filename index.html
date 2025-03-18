@@ -5,52 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reusable Family Tree with Tabs</title>
     <link rel="stylesheet" href="src/style.css" />
-    <style>
-        .tabs {
-            display: flex;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
-        .tab {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            background: #f0f0f0;
-            border: 1px solid #ccc;
-        }
-        .tab.active {
-            background: #fff;
-            border-bottom: none;
-            font-weight: bold;
-        }
-        .tab-content {
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-        .hidden {
-            display: none;
-        }
-    </style>
+
 </head>
 <body>
     <h5>Family Trees</h5>
     <div class="main">
-        <div class="sidebar">
-            <form id="apiForm">
-                <label for="apiUrl">API URL:</label>
-                <input type="text" id="apiUrl" placeholder="Enter API URL" value="http://localhost:3000/api/family-tree/1/relations" />
-                <label for="bearerToken">Bearer Token:</label>
-                <input type="text" id="bearerToken" placeholder="Enter Bearer Token" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8" required />
-                <button type="submit">Fetch Data</button>
-            </form>
-
-            <form id="viewChangeForm">
-                <label for="selfNodeId">Self Node ID:</label>
-                <input type="text" id="selfNodeId" placeholder="Enter Self Node ID" required />
-                <button type="submit">Draw Tree</button>
-            </form>
-        </div>
-
         <div id="treeContainer" style="padding: 50px;">
             <div class="form-container">
                 <div class="tabs">
@@ -72,19 +31,6 @@
                         <div id="dynamicFields"></div>
                         <button type="submit">Submit</button>
                     </form>
-                    <!-- <div class="form-container">
-
-                        <form id="familyTreeForm">
-                            <h2 id="endpointLabel">Select Action Type</h2>
-                            <p>endpoint: <span id="postEndpoint">endpoint here</span></p>
-                            <input value="1" type="number" id="familyTreeId" name="familyTreeId" placeholder="Family Tree ID" required />
-                            <input value="6" type="number" id="familyNodeId" name="familyNodeId" placeholder="Family Node ID" required />
-                    
-                            <div id="dynamicFields"></div>
-             
-                            <button type="submit">Submit</button>
-                        </form>
-                    </div> -->
                 </div>
 
                 <div id="imagesContent" class="tab-content hidden">

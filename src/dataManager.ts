@@ -1,4 +1,5 @@
-import { actionTypes, CustomFlatData, DrawableNode, FamilyNode, genericActionTypes, Parent, temporaryData } from "./node.interface";
+import { Gender } from "./dtos/gender.enum";
+import { actionTypes, CustomFlatData, DrawableNode, FamilyNode, genericActionTypes, Parent, SuggestableActions, SuggestEdits, temporaryData } from "./node.interface";
 import { localStorageManager } from "./storage/storageManager";
 localStorageManager
 let id = -1;
@@ -15,7 +16,7 @@ export class NodeData {
 
   // Setter for 'data'
   set data(value: CustomFlatData) {
-      localStorageManager.setItem('data', value)
+    localStorageManager.setItem('data', value)
   }
 
 
@@ -29,9 +30,15 @@ export class NodeData {
       parents: []
     }
   }
-
-  updateNodeData(familyNodeId) {
-
+  suggestionActionMapper = {
+    addChildOfOneParent: "addChildOfOneParent",
+    addChildOfTwoParents: "addChildOfTwoParents",
+    addExistingParent: "addParent",
+    addNewParent: "addParent",
+    addNewPartner: 'addPartner',
+    addExistingPartner: "addPartner",
+    addNewPartnerAsParent: "addPartnerAsParent",
+    addExistingPartnerAsParent: 'addPartnerAsParent',
   }
   /**
    * returns the node with the given id if found
@@ -524,7 +531,11 @@ export class NodeData {
         actionType: genericActionTypes.addParent
       }
     }
+    const suggestedParents = this.prepareSuggestedParents(startNodeId)
     const displayableParents = []
+    if (suggestedParents.fatherNodes) {
+      displayableParents.push(...suggestedParents.fatherNodes)
+    }
     if (father) {
       if (mother) father.target = mother.id;
       displayableParents.push(father)
@@ -532,6 +543,9 @@ export class NodeData {
     if (mother) {
       if (father) mother.target = father.id
       displayableParents.push(mother)
+    }
+    if (suggestedParents.motherNodes) {
+      displayableParents.push(...suggestedParents.motherNodes)
     }
     console.log("mother father", mother, father)
     const parents: DrawableNode = {
@@ -599,6 +613,7 @@ export class NodeData {
         }
         return customResponse
       })
+      const suggestedDoubledChildren = this.prepareSuggestedDoubledChildren(selfNode.id, item)
       const addDaughter: DrawableNode = {
         id: assignId(),
         uuid: `daughter-${fatherNode.id}-${motherNode.id}`,
@@ -630,7 +645,7 @@ export class NodeData {
         actionType: genericActionTypes.addChildOfTwoParents
 
       }
-      DrawableChildren.push(addSon, addDaughter)
+      DrawableChildren.push(...suggestedDoubledChildren.sonNodes,addSon, addDaughter, ...suggestedDoubledChildren.daughterNodes)
       const currentSpouse: DrawableNode = {
         id: spouseNode.id,
         uuid: `${spouseNode.id}`,
@@ -725,6 +740,7 @@ export class NodeData {
     const singledAddableChildren = this.temporarySingledChildren(foundNode)
     const foundSpouseIds = this.getSpouses(foundNode)
     const foundDoubleParentedChildren = this.simpleGetChildren(foundNode, foundSpouseIds)
+    const suggestedSingledChildren = this.prepareSuggestedSingledChildren(startNodeId)
     let spouseAsParentDrawableTemporary: DrawableNode;
     if (drawableSingledChildren.length > 0) {
       spouseAsParentDrawableTemporary = {
@@ -735,7 +751,7 @@ export class NodeData {
         target: startNodeId,
         mode: 'edit',
         gender: foundNode.gender === 'MALE' ? 'FEMALE' : 'MALE',
-        children: drawableSingledChildren,
+        children: [...drawableSingledChildren],
         actionType: genericActionTypes.addPartnerAsParent,
         catag: 'editDesc',
       }
@@ -757,7 +773,7 @@ export class NodeData {
       gender: foundNode.gender,
       name: foundNode.name,
       type: 'child',
-      children: [...singledAddableChildren],
+      children: [ ...suggestedSingledChildren.sonNodes,...singledAddableChildren, ...suggestedSingledChildren.daughterNodes],
       catag: 'editDesc',
       mode: 'node'
     }
@@ -773,14 +789,15 @@ export class NodeData {
       children: [],
       actionType: genericActionTypes.addPartner,
     }
-
-
-    const customChildren = []
+    const suggestedNewPartnersAsParent= this.prepareSuggestedPartnersAsParent(startNodeId)
+    const asParentNodes = [...suggestedNewPartnersAsParent.maleNodes, spouseAsParentDrawableTemporary, ...suggestedNewPartnersAsParent.femaleNodes]
+    const customChildren = [...suggestedNewPartnersAsParent.maleNodes];
+    // const customChildren = []
     if (foundNode.gender === 'MALE') {
       if (drawableSingledChildren.length > 0) {
         customChildren.push(selfDrawable)
         if (spouseAsParentDrawableTemporary) {
-          customChildren.push(spouseAsParentDrawableTemporary)
+          customChildren.push(...asParentNodes)
         }
         customChildren.push(...foundDoubleParentedChildren, spouseDrawableTemporary)
       } else {
@@ -790,7 +807,7 @@ export class NodeData {
       if (drawableSingledChildren.length > 0) {
         customChildren.push(spouseDrawableTemporary, ...foundDoubleParentedChildren)
         if (spouseAsParentDrawableTemporary) {
-          customChildren.push(spouseAsParentDrawableTemporary)
+          customChildren.push(...asParentNodes)
         }
 
         customChildren.push(selfDrawable)
@@ -812,11 +829,197 @@ export class NodeData {
   }
 
 
+  suggestionData(familyNodeId: number, suggestedAction: actionTypes) {
+    const nodesSuggestions: SuggestEdits[] = this.data.suggestions.filter(item => {
+      return item.selfNode?.id === familyNodeId && item.suggestedAction === suggestedAction;
+    })
+    return nodesSuggestions
+  }
+  prepareSuggestedParents(familyNodeId) {
+    const parentDrawableNodes = {
+      motherNodes: [],
+      fatherNodes: [],
+    }
+    const suggestedNewParents = this.suggestionData(familyNodeId, SuggestableActions.NewParent)
+    const suggestedExistingParents = this.suggestionData(familyNodeId, SuggestableActions.ExistingParent)
 
+
+    suggestedExistingParents.map(item => {
+      const newParent: DrawableNode = {
+        id: item.suggestedNode1.id,
+        gender: item.suggestedNode1.gender,
+        catag: 'suggestAnce',
+        mode: 'edit',
+        name: item.suggestedNode1.name,
+        type: 'suggest',
+        uuid: `${item.suggestedNode1.id}`,
+        actionType: genericActionTypes.addParent,
+        source: `${familyNodeId}`
+      }
+      if (newParent.gender === Gender.FEMALE) {
+        parentDrawableNodes.motherNodes.push(newParent)
+      } else {
+        parentDrawableNodes.fatherNodes.push(newParent)
+      }
+    })
+
+    suggestedNewParents.map(item => {
+      const newParent: DrawableNode = {
+        id: item.suggestedNode1.id,
+        gender: item.suggestedNode1.gender,
+        catag: 'suggestAnce',
+        mode: 'edit',
+        name: item.suggestedNode1.name,
+        type: 'suggest',
+        uuid: `${item.suggestedNode1.id}`,
+        actionType: genericActionTypes.addParent,
+        source: `${familyNodeId}`
+      }
+      if (newParent.gender === Gender.FEMALE) {
+        parentDrawableNodes.motherNodes.push(newParent)
+      } else {
+        parentDrawableNodes.fatherNodes.push(newParent)
+      }
+    })
+    return parentDrawableNodes
+  }
+
+  prepareSuggestedSingledChildren(familyNodeId) {
+    const parentDrawableNodes = {
+      daughterNodes: [],
+      sonNodes: [],
+    }
+    const suggestedSingledChildren = this.suggestionData(familyNodeId, SuggestableActions.ChildOfOneParent)
+    suggestedSingledChildren.map(item => {
+      const newChild: DrawableNode = {
+        id: item.suggestedNode2.id,
+        gender: item.suggestedNode2.gender,
+        catag: 'suggestDesc',
+        mode: 'edit',
+        name: item.suggestedNode2.name,
+        type: 'suggest',
+        uuid: `${item.suggestedNode2.id}`,
+        actionType: genericActionTypes.addChildOfOneParent,
+        source: `${familyNodeId}`
+      }
+      if (newChild.gender === Gender.FEMALE) {
+        parentDrawableNodes.daughterNodes.push(newChild)
+      } else {
+        parentDrawableNodes.sonNodes.push(newChild)
+      }
+    })
+    return parentDrawableNodes
+  }
+  prepareSuggestedDoubledChildren(familyNodeId, partnerId) {
+    const parentDrawableNodes = {
+      daughterNodes: [],
+      sonNodes: [],
+    }
+    const suggestedDoubledChildren = this.suggestionData(familyNodeId, SuggestableActions.ChildOfTwoParents).filter(item=>item.suggestedNode1?.id === partnerId)
+
+    suggestedDoubledChildren.map(item => {
+      const newChild: DrawableNode = {
+        id: item.suggestedNode2.id,
+        gender: item.suggestedNode2.gender,
+        catag: 'suggestDesc',
+        mode: 'edit',
+        name: item.suggestedNode2.name,
+        type: 'suggest',
+        uuid: `${item.suggestedNode2.id}`,
+        actionType: genericActionTypes.addChildOfTwoParents,
+        source: `${partnerId}`
+      }
+      if (newChild.gender === Gender.FEMALE) {
+        parentDrawableNodes.daughterNodes.push(newChild)
+      } else {
+        parentDrawableNodes.sonNodes.push(newChild)
+      }
+    })
+    return parentDrawableNodes
+  }
+  prepareSuggestedPartnersAsParent(familyNodeId) {
+    const parentDrawableNodes = {
+      maleNodes: [],
+      femaleNodes: [],
+    }
+    const suggestedNewPartnersAsParent = this.suggestionData(familyNodeId, SuggestableActions.NewPartnerAsParent)
+    const suggestedExistingPartnersAsParent = this.suggestionData(familyNodeId, SuggestableActions.ExistingPartnerAsParent)
+
+
+    suggestedNewPartnersAsParent.map(item => {
+      const newChild: DrawableNode = {
+        id: item.suggestedNode1.id,
+        gender: item.suggestedNode1.gender,
+        catag: 'suggestDesc',
+        mode: 'edit',
+        name: item.suggestedNode1.name,
+        type: 'suggest',
+        uuid: `${item.suggestedNode1.id}`,
+        actionType: genericActionTypes.addPartnerAsParent,
+        source: `${familyNodeId}`
+      }
+      if (newChild.gender === Gender.FEMALE) {
+        parentDrawableNodes.femaleNodes.push(newChild)
+      } else {
+        parentDrawableNodes.maleNodes.push(newChild)
+      }
+    })
+    return parentDrawableNodes
+  }
+  prepareSuggestedPartner(familyNodeId, partnerId) {
+    const parentDrawableNodes = {
+      daughterNodes: [],
+      sonNodes: [],
+    }
+    const suggestedNewPartner = this.suggestionData(familyNodeId, SuggestableActions.NewPartner)
+    const suggestedExistingPartner = this.suggestionData(familyNodeId, SuggestableActions.ExistingPartner)
+
+
+    suggestedNewPartner.map(item => {
+      const newChild: DrawableNode = {
+        id: item.suggestedNode1.id,
+        gender: item.suggestedNode1.gender,
+        catag: 'suggestDesc',
+        mode: 'edit',
+        name: item.suggestedNode1.name,
+        type: 'suggest',
+        uuid: `${item.suggestedNode1.id}`,
+        actionType: genericActionTypes.addPartnerAsParent,
+        source: `${partnerId}`
+      }
+      if (newChild.gender === Gender.FEMALE) {
+        parentDrawableNodes.daughterNodes.push(newChild)
+      } else {
+        parentDrawableNodes.sonNodes.push(newChild)
+      }
+    })
+    return parentDrawableNodes
+  }
+  organizeSpouses(nodeId1, nodeId2) {
+    const Node1 = this.getNode(nodeId1)
+    const Node2 = this.getNode(nodeId2)
+    let maleNode, femaleNode;
+    if (!(Node1 && Node2)) {
+      throw new Error("Both partners must be defined")
+    }
+    if (Node1.gender === Node2.gender) {
+      throw new Error('Same Gender Spouse Is Invalid')
+    }
+    if (Node1.gender === Gender.FEMALE) {
+      femaleNode = Node1;
+      maleNode = Node2;
+    } else {
+      maleNode = Node1;
+      femaleNode = Node2;
+    }
+    return {
+      femaleNode,
+      maleNode,
+    }
+  }
 }
 
 export const ND = new NodeData()
-
 
 // change node event.
 // get the data for the new root node.

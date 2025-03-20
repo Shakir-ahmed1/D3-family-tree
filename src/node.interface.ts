@@ -31,6 +31,8 @@ export interface Parent {
 export interface CustomFlatData {
     familyNodes: FamilyNode[];
     parents: Parent[];
+    contributors: any[],
+    suggestions: any[],
 }
 
 export interface Relations {
@@ -65,7 +67,7 @@ export enum genericActionTypes {
     addPartnerAsParent = "addPartnerAsParent",
 }
 export interface DrawableNode {
-    catag: 'ance' | 'desc' | 'editDesc' | 'editAnce' | undefined;
+    catag: 'ance' | 'desc' | 'editDesc' | 'editAnce' | 'suggestAnce' | 'suggestDesc' | undefined;
     id: number,
     uuid: string,
     name: string;
@@ -76,7 +78,7 @@ export interface DrawableNode {
     motherId?: number;
     target?: number;
     spouses?: number[];
-    type: 'spouse' | 'child' | 'root' | 'net';
+    type: 'spouse' | 'child' | 'root' | 'net' | 'suggest';
     children?: DrawableNode[]
     source?: string;
     mode: 'edit' | 'node',
@@ -93,4 +95,62 @@ export interface temporaryData {
     motherId?: number;
     source?: string
 
+}
+
+
+export enum SuggestEditStatus {
+    PENDING = "PENDING",
+    REJECTED = "REJECTED",
+    ACCEPTED = "ACCEPTED",
+    CANCELED = "CANCELED",
+}
+
+export interface SuggestEdits {
+    id: number;
+    reason: string; suggestedBy: FamilyTreeMembers;
+    reviewedBy: FamilyTreeMembers;
+    selfNode: FamilyNode;
+    suggestedNode1: FamilyNode;
+    suggestedNode2: FamilyNode;
+    suggestedParentRelationship: Parent;
+    status: SuggestEditStatus;
+    suggestedAction: SuggestableActions;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+
+export enum SuggestableActions {
+    ChildOfOneParent = "ChildOfOneParent",
+    ChildOfTwoParents = "ChildOfTwoParents",
+
+    ExistingParent = "ExistingParent",
+    NewParent = "NewParent",
+
+    NewPartner = 'NewPartner',
+    ExistingPartner = "ExistingPartner",
+    NewPartnerAsParent = "NewPartnerAsParent",
+    ExistingPartnerAsParent = 'ExistingPartnerAsParent',
+
+    DeleteNode = "DeleteNode",
+    UpdateNode = 'UpdateNode'
+}
+
+export enum MemberRole {
+    ADMIN = 'ADMIN',
+    CONTRIBUTER = 'CONTRIBUTER',
+    VIEWER = 'VIEWER',
+}
+
+export interface UserAccounts {
+    id: number;
+    name: string;
+}
+
+export interface FamilyTreeMembers {
+    id: number;
+    role: MemberRole;
+    addedAt: Date;
+    addedBy: FamilyTreeMembers;
+    user: UserAccounts;
 }

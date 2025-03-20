@@ -153,7 +153,6 @@ export class HtmlElementsManager {
                     if (actionType === 'addChildOfTwoParents' && field === 'partnerNodeId') {
                         const partnerId = node.data.motherId === currentNodeId ? node.data.fatherId : node.data.motherId
                         input.value = partnerId;
-                        input.type = 'hidden';
                         const p = document.createElement('p');
                         const partnerNode = ND.getNode(partnerId)
                         p.textContent = `Partner: ${partnerNode.name}`

@@ -67,18 +67,6 @@ export class HtmlElementsManager {
                     fields: ['partnershipType', 'partnerNodeId']
                 },
             },
-            addPartnerAsParent: {
-                new: {
-                    endpoint: 'addNewPartnerAsParent',
-                    label: { MALE: "Add New Partner as Parent", FEMALE: "Add New Partner as Parent" },
-                    fields: ['partnershipType', 'childNodeId', 'partnerNodeData',]
-                },
-                existing: {
-                    endpoint: 'addExistingPartnerAsParent',
-                    label: { MALE: "Add Existing Partner as Parent", FEMALE: "Add Existing Partner as Parent" },
-                    fields: ['partnershipType', 'childNodeId', 'partnerNodeId']
-                },
-            }
         };
 
         const actionOptions = endpointFieldMapNew[actionType];

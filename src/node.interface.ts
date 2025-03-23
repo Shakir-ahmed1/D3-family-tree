@@ -33,6 +33,7 @@ export interface CustomFlatData {
     parents: Parent[];
     contributors: any[],
     suggestions: any[],
+    allowedActions: any[],
 }
 
 export interface Relations {
@@ -65,6 +66,9 @@ export enum genericActionTypes {
     addParent = "addParent",
     addPartner = 'addPartner',
     addPartnerAsParent = "addPartnerAsParent",
+    DeleteNode = "DeleteNode",
+    UpdateNode = 'UpdateNode',
+
 }
 export interface DrawableNode {
     catag: 'ance' | 'desc' | 'editDesc' | 'editAnce' | 'suggestAnce' | 'suggestDesc' | undefined;
@@ -83,6 +87,7 @@ export interface DrawableNode {
     source?: string;
     mode: 'edit' | 'node',
     actionType?: genericActionTypes;
+    isLegal?: boolean;
 }
 export interface temporaryData {
     id: number;

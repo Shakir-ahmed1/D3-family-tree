@@ -321,16 +321,16 @@ export class FamilyTreeDrawer {
         const newList = []
         for (let a of nodes) {
 
-            const newObject = {
-                id: a.data.id,
-                uuid: a.data.uuid,
-                name: a.data.name,
-                mode: a.data.mode,
-                catag: a.data.catag,
-                father: a.data.father,
-                mother: a.data.mother
-            }
-            newList.push((newObject))
+            // const newObject = {
+            //     id: a.data.id,
+            //     uuid: a.data.uuid,
+            //     name: a.data.name,
+            //     mode: a.data.mode,
+            //     catag: a.data.catag,
+            //     father: a.data.father,
+            //     mother: a.data.mother
+            // }
+            newList.push((a.data))
         }
         console.log("custom print", newList)
     }
@@ -1044,6 +1044,10 @@ export class FamilyTreeDrawer {
             .attr('opacity', 1);
         node.on('click', (_event, d) => {
             // When a node is clicked, check for the actionType and update the h2 label
+            if (d.data.isLegal === false) {
+                return
+            }
+
             if (d.data.mode !== 'edit' && d.data.id !== this.rootNodeId) {
                 // this.preProcessDataEditMode(d.data.id);
                 this.modeController(d.data.id)
@@ -1061,6 +1065,9 @@ export class FamilyTreeDrawer {
             .attr('opacity', 0)
             .on('click', (_event, d) => {
                 // When a node is clicked, check for the actionType and update the h2 label
+                if (d.data.isLegal === false) {
+                    return
+                }
 
                 if (d.data.mode !== 'edit') {
                     // this.preProcessDataEditMode(d.data.id);
@@ -1132,8 +1139,10 @@ export class FamilyTreeDrawer {
 
 
     private getNodeColor(d: d3.HierarchyNode<DrawableNode>): string {
+        if (d.data.isLegal === false) {
+            return '#AAA'
+        }
         if (d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc') {
-
             return d.data.gender === "MALE" ? "#9FCC9F" :  // Green (similar to the original blue)
                 d.data.gender === "FEMALE" ? "#B58FCB" : // Violet (similar to the original pink)
                     "#AAA"; // Default gray
@@ -1326,36 +1335,36 @@ export class FamilyTreeDrawer {
         // Action buttons group
         const actionGroup = enter.append("g")
             .attr("class", "node-actions");
+    
         const iconOffset = this.NODE_RADIUS + 5; // Position outside top-right
-        const iconSize = 6; // Equal size for all circles
+        const iconSize = 12; // This controls both circle and text size
         const spacing = 12; // Spacing between circles
-        // Edit Circle
-        actionGroup.append("circle")
-            .attr("r", iconSize)
-            .attr("cx", iconOffset - this.NODE_RADIUS + 5)
-            .attr("cy", -iconOffset)
-            .attr("fill", "#4CAF50") // Green for edit
-            .style("cursor", "pointer")
-            .on("click", (_event, d) => console.log("handle edit", d.data.id));
-        // Suggest Edit Circle
-        actionGroup.append("circle")
-            .attr("r", iconSize)
-            .attr("cx", iconOffset - this.NODE_RADIUS + 5 + spacing)
-            .attr("cy", -iconOffset)
-            .attr("fill", "#FFC107") // Yellow for suggest edit
-            .style("cursor", "pointer")
-            .on("click", (_event, d) => console.log("suggest edit", d.data.id));
-        // Delete Circle
-        actionGroup.append("circle")
+    
+        // Append the circle only if the node type is 'suggest'
+        const suggestGroup = actionGroup.filter(d => d.data.type === 'suggest');
+    
+        // Circle (background)
+        suggestGroup.append("circle")
             .attr("r", iconSize)
             .attr("cx", iconOffset - this.NODE_RADIUS + 5 + 2 * spacing)
             .attr("cy", -iconOffset)
-            .attr("fill", "#F44336") // Red for delete
+            .attr("fill", "#777777") // Gray background
             .style("cursor", "pointer")
-            .on("click", async (_event, d) => {
-                await nodeManagmentService.deleteNode(1, d.data.id)
-            });
+            .on("click", (_event, d) => console.log("handle edit", d.data.id));
+    
+        // Exclamation Mark (!)
+        suggestGroup.append("text")
+            .text("!")
+            .attr("x", iconOffset - this.NODE_RADIUS + 5 + 2 * spacing)
+            .attr("y", -iconOffset + (iconSize / 5)) // Adjust to center text
+            .attr("text-anchor", "middle") // Center align
+            .attr("dominant-baseline", "middle") // Vertically align
+            .attr("font-size", iconSize * 2) // Scale text with circle size
+            .attr("fill", "#ffffff") // White color for contrast
+            .style("pointer-events", "none"); // Prevent text from blocking circle clicks
     }
+    
+    
     renewTreeData(desc: DrawableNode, ance: DrawableNode) {
         this.descRoot = d3.hierarchy<DrawableNode>(desc);
         this.descTreeData = this.descTreeLayout(this.descRoot);

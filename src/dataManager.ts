@@ -37,8 +37,6 @@ export class NodeData {
     addNewParent: "addParent",
     addNewPartner: 'addPartner',
     addExistingPartner: "addPartner",
-    addNewPartnerAsParent: "addPartnerAsParent",
-    addExistingPartnerAsParent: 'addPartnerAsParent',
   }
   /**
    * returns the node with the given id if found
@@ -514,7 +512,8 @@ export class NodeData {
         type: 'child',
         catag: 'editAnce',
         mode: 'edit',
-        actionType: genericActionTypes.addParent
+        actionType: genericActionTypes.addParent,
+        isLegal: this.isAllowedAction(startNodeId, genericActionTypes.addParent)
       }
     }
     if (!mother) {
@@ -528,7 +527,9 @@ export class NodeData {
         type: 'child',
         catag: 'editAnce',
         mode: 'edit',
-        actionType: genericActionTypes.addParent
+        actionType: genericActionTypes.addParent,
+        isLegal: this.isAllowedAction(startNodeId, genericActionTypes.addParent)
+
       }
     }
     const suggestedParents = this.prepareSuggestedParents(startNodeId)
@@ -579,6 +580,30 @@ export class NodeData {
       else return false
     })
   }
+  isAllowedAction(familyNodeId: number, suggestableAction:genericActionTypes) {
+    const mapper = {
+      ChildOfOneParent: genericActionTypes.addChildOfOneParent,
+      ChildOfTwoParents: genericActionTypes.addChildOfTwoParents,
+  
+      ExistingParent: genericActionTypes.addParent,
+      NewParent: genericActionTypes.addParent,
+  
+      NewPartner: genericActionTypes.addPartner,
+      ExistingPartner: genericActionTypes.addPartner,
+      NewPartnerAsParent: genericActionTypes.addPartnerAsParent,
+      ExistingPartnerAsParent: genericActionTypes.addPartnerAsParent,
+      DeleteNode: genericActionTypes.DeleteNode,
+      UpdateNode: genericActionTypes.UpdateNode,
+  }
+  const foundPending = this.data.allowedActions.find(item=>item.id === familyNodeId).pendingSuggestions
+  if (!foundPending) return true
+  const result =  foundPending.find(item=>{
+    console.log("logger", mapper[item], suggestableAction)
+    return mapper[item] === suggestableAction;
+  }) ? false: true
+  console.log("isAllowed", result)
+  return result
+  }
   simpleGetChildren(selfNode: FamilyNode, spouseIds: number[]) {
     const allSpouseAsParents: DrawableNode[] = []
     spouseIds.map(item => {
@@ -627,7 +652,9 @@ export class NodeData {
         motherId: motherNode.id,
         catag: 'editDesc',
         mode: 'edit',
-        actionType: genericActionTypes.addChildOfTwoParents
+        actionType: genericActionTypes.addChildOfTwoParents,
+        isLegal: this.isAllowedAction(selfNode.id, genericActionTypes.addChildOfTwoParents)
+
       }
       const addSon: DrawableNode = {
         id: assignId(),
@@ -642,7 +669,9 @@ export class NodeData {
         motherId: motherNode.id,
         catag: 'editDesc',
         mode: 'edit',
-        actionType: genericActionTypes.addChildOfTwoParents
+        actionType: genericActionTypes.addChildOfTwoParents,
+        isLegal: this.isAllowedAction(selfNode.id, genericActionTypes.addChildOfTwoParents)
+
 
       }
       DrawableChildren.push(...suggestedDoubledChildren.sonNodes,addSon, addDaughter, ...suggestedDoubledChildren.daughterNodes)
@@ -682,6 +711,7 @@ export class NodeData {
       motherId: motherNode ? motherNode.id : undefined,
       mode: 'edit',
       actionType: genericActionTypes.addChildOfOneParent,
+      isLegal: this.isAllowedAction(foundNode.id, genericActionTypes.addChildOfOneParent),
       catag: 'editDesc',
 
     }
@@ -698,6 +728,7 @@ export class NodeData {
       motherId: motherNode ? motherNode.id : undefined,
       mode: 'edit',
       actionType: genericActionTypes.addChildOfOneParent,
+      isLegal: this.isAllowedAction(foundNode.id, genericActionTypes.addChildOfOneParent),
       catag: 'editDesc',
     }
     return [addSon, addDaughter]
@@ -741,42 +772,18 @@ export class NodeData {
     const foundSpouseIds = this.getSpouses(foundNode)
     const foundDoubleParentedChildren = this.simpleGetChildren(foundNode, foundSpouseIds)
     const suggestedSingledChildren = this.prepareSuggestedSingledChildren(startNodeId)
-    let spouseAsParentDrawableTemporary: DrawableNode;
-    if (drawableSingledChildren.length > 0) {
-      spouseAsParentDrawableTemporary = {
-        id: assignId(),
-        uuid: `spouse-as-parent${foundNode.id}`,
-        name: 'Add Spouse',
-        type: 'spouse',
-        target: startNodeId,
-        mode: 'edit',
-        gender: foundNode.gender === 'MALE' ? 'FEMALE' : 'MALE',
-        children: [...drawableSingledChildren],
-        actionType: genericActionTypes.addPartnerAsParent,
-        catag: 'editDesc',
-      }
-      drawableSingledChildren.forEach(item => {
-        if (spouseAsParentDrawableTemporary.gender === 'MALE') {
-          item.father = spouseAsParentDrawableTemporary.uuid
-          item.fatherId = spouseAsParentDrawableTemporary.id
-        } else {
-          item.mother = spouseAsParentDrawableTemporary.uuid
-          item.motherId = spouseAsParentDrawableTemporary.id
 
-        }
-      })
-
-    }
     const selfDrawable: DrawableNode = {
       id: foundNode.id,
       uuid: `${foundNode.id}`,
       gender: foundNode.gender,
       name: foundNode.name,
       type: 'child',
-      children: [ ...suggestedSingledChildren.sonNodes,...singledAddableChildren, ...suggestedSingledChildren.daughterNodes],
+      children: [ ...suggestedSingledChildren.sonNodes,...drawableSingledChildren,...singledAddableChildren, ...suggestedSingledChildren.daughterNodes],
       catag: 'editDesc',
       mode: 'node'
     }
+    const foundSuggestedPartner = this.prepareSuggestedPartners(startNodeId);
     const spouseDrawableTemporary: DrawableNode = {
       id: assignId(),
       uuid: `spouse-${foundNode.id}`,
@@ -788,32 +795,14 @@ export class NodeData {
       catag: 'editDesc',
       children: [],
       actionType: genericActionTypes.addPartner,
+      isLegal: this.isAllowedAction(startNodeId, genericActionTypes.addPartner)
     }
-    const suggestedNewPartnersAsParent= this.prepareSuggestedPartnersAsParent(startNodeId)
-    const asParentNodes = [...suggestedNewPartnersAsParent.maleNodes, spouseAsParentDrawableTemporary, ...suggestedNewPartnersAsParent.femaleNodes]
-    const customChildren = [...suggestedNewPartnersAsParent.maleNodes];
+    const customChildren = [];
     // const customChildren = []
     if (foundNode.gender === 'MALE') {
-      if (drawableSingledChildren.length > 0) {
-        customChildren.push(selfDrawable)
-        if (spouseAsParentDrawableTemporary) {
-          customChildren.push(...asParentNodes)
-        }
-        customChildren.push(...foundDoubleParentedChildren, spouseDrawableTemporary)
-      } else {
-        customChildren.push(selfDrawable, ...foundDoubleParentedChildren, spouseDrawableTemporary)
-      }
+        customChildren.push(selfDrawable, ...foundDoubleParentedChildren, spouseDrawableTemporary, ...foundSuggestedPartner.femaleNodes)
     } else {
-      if (drawableSingledChildren.length > 0) {
-        customChildren.push(spouseDrawableTemporary, ...foundDoubleParentedChildren)
-        if (spouseAsParentDrawableTemporary) {
-          customChildren.push(...asParentNodes)
-        }
-
-        customChildren.push(selfDrawable)
-      } else {
-        customChildren.push(spouseDrawableTemporary, ...foundDoubleParentedChildren, selfDrawable)
-      }
+        customChildren.push(...foundSuggestedPartner.maleNodes,spouseDrawableTemporary, ...foundDoubleParentedChildren, selfDrawable)
     }
     const resultedChildren: DrawableNode = {
       id: 0,
@@ -937,39 +926,10 @@ export class NodeData {
     })
     return parentDrawableNodes
   }
-  prepareSuggestedPartnersAsParent(familyNodeId) {
+  prepareSuggestedPartners(familyNodeId) {
     const parentDrawableNodes = {
       maleNodes: [],
       femaleNodes: [],
-    }
-    const suggestedNewPartnersAsParent = this.suggestionData(familyNodeId, SuggestableActions.NewPartnerAsParent)
-    const suggestedExistingPartnersAsParent = this.suggestionData(familyNodeId, SuggestableActions.ExistingPartnerAsParent)
-
-
-    suggestedNewPartnersAsParent.map(item => {
-      const newChild: DrawableNode = {
-        id: item.suggestedNode1.id,
-        gender: item.suggestedNode1.gender,
-        catag: 'suggestDesc',
-        mode: 'edit',
-        name: item.suggestedNode1.name,
-        type: 'suggest',
-        uuid: `${item.suggestedNode1.id}`,
-        actionType: genericActionTypes.addPartnerAsParent,
-        source: `${familyNodeId}`
-      }
-      if (newChild.gender === Gender.FEMALE) {
-        parentDrawableNodes.femaleNodes.push(newChild)
-      } else {
-        parentDrawableNodes.maleNodes.push(newChild)
-      }
-    })
-    return parentDrawableNodes
-  }
-  prepareSuggestedPartner(familyNodeId, partnerId) {
-    const parentDrawableNodes = {
-      daughterNodes: [],
-      sonNodes: [],
     }
     const suggestedNewPartner = this.suggestionData(familyNodeId, SuggestableActions.NewPartner)
     const suggestedExistingPartner = this.suggestionData(familyNodeId, SuggestableActions.ExistingPartner)
@@ -984,17 +944,18 @@ export class NodeData {
         name: item.suggestedNode1.name,
         type: 'suggest',
         uuid: `${item.suggestedNode1.id}`,
-        actionType: genericActionTypes.addPartnerAsParent,
-        source: `${partnerId}`
+        actionType: genericActionTypes.addPartner,
+        source: `${familyNodeId}`
       }
       if (newChild.gender === Gender.FEMALE) {
-        parentDrawableNodes.daughterNodes.push(newChild)
+        parentDrawableNodes.femaleNodes.push(newChild)
       } else {
-        parentDrawableNodes.sonNodes.push(newChild)
+        parentDrawableNodes.maleNodes.push(newChild)
       }
     })
     return parentDrawableNodes
   }
+
   organizeSpouses(nodeId1, nodeId2) {
     const Node1 = this.getNode(nodeId1)
     const Node2 = this.getNode(nodeId2)

@@ -13,9 +13,9 @@ export interface CreateNewPrimaryFamilyNodeInterface {
 
     nickName: string;
 
-    birthDate: Date;
+    birthDate?: Date;
 
-    deathDate: Date;
+    deathDate?: Date;
 
     ownedById: number;
 }

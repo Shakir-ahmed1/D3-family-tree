@@ -151,3 +151,6 @@ h5 {
 .hidden {
     display: none;
 }
+.form-container form button.delete-button {
+    background-color: red;
+}

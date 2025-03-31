@@ -28,12 +28,51 @@ export interface Parent {
     femaleNode: FamilyNode,
     maleNode: FamilyNode;
 }
+export interface AllowedAction {
+    id: number,
+    pendingSuggestions: string[],
+    relations: string[],
+}
 export interface CustomFlatData {
     familyNodes: FamilyNode[];
     parents: Parent[];
-    contributors: any[],
-    suggestions: any[],
-    allowedActions: any[],
+    contributors: Contributor[],
+    suggestions: SuggestEdits[],
+    allowedActions: AllowedAction[],
+    canContribute: boolean,
+    myInfo: FamilyTreeMembers | undefined
+}
+export interface Contributor {
+    id: number,
+    creators: FamilyTreeMembers[],
+    suggestors: FamilyTreeMembers[],
+    updators: FamilyTreeMembers[],
+}
+export interface FamilyTree {
+    id: 1,
+    name: string,
+    description: string,
+    isPrivate: false,
+    createdAt: string,
+    updatedAt: string,
+}
+
+export interface UserInfo {
+    createdAt: string
+    email: string,
+    id: number,
+    name: string,
+    phone: string,
+    profilePicUrl: string,
+    updatedAt: string,
+}
+
+export interface FamilyTreeMembers {
+    id: number;
+    role: MemberRole;
+    addedAt: Date;
+    addedBy: FamilyTreeMembers;
+    user: UserInfo;
 }
 
 export interface Relations {
@@ -88,6 +127,7 @@ export interface DrawableNode {
     mode: 'edit' | 'node',
     actionType?: genericActionTypes;
     isLegal?: boolean;
+    suggestionId?: number;
 }
 export interface temporaryData {
     id: number;
@@ -112,7 +152,8 @@ export enum SuggestEditStatus {
 
 export interface SuggestEdits {
     id: number;
-    reason: string; suggestedBy: FamilyTreeMembers;
+    reason: string;
+    suggestedBy: FamilyTreeMembers;
     reviewedBy: FamilyTreeMembers;
     selfNode: FamilyNode;
     suggestedNode1: FamilyNode;
@@ -122,6 +163,7 @@ export interface SuggestEdits {
     suggestedAction: SuggestableActions;
     createdAt: Date;
     updatedAt: Date;
+    familyTree: FamilyTree,
 }
 
 
@@ -147,15 +189,3 @@ export enum MemberRole {
     VIEWER = 'VIEWER',
 }
 
-export interface UserAccounts {
-    id: number;
-    name: string;
-}
-
-export interface FamilyTreeMembers {
-    id: number;
-    role: MemberRole;
-    addedAt: Date;
-    addedBy: FamilyTreeMembers;
-    user: UserAccounts;
-}

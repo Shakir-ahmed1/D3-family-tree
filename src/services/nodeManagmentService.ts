@@ -1,15 +1,17 @@
-async function updateData<T>(url: string, data: T, bearerToken): Promise<Response> {
+import { localStorageManager } from "../storage/storageManager";
+
+async function updateData<T>(url: string, data: T, bearerToken: string): Promise<Response> {
     return fetch(url, {
         method: 'PUT',
         headers: {
             'Authorization': bearerToken,
             'Content-Type': 'application/json',
-
         },
         body: JSON.stringify(data),
     });
 }
-async function deleteNode<T>(url: string, bearerToken): Promise<Response> {
+
+async function deleteNodeRequest<T>(url: string, bearerToken: string): Promise<Response> {
     return fetch(url, {
         method: 'DELETE',
         headers: {
@@ -20,70 +22,65 @@ async function deleteNode<T>(url: string, bearerToken): Promise<Response> {
 }
 
 export class NodeManagementService {
-    private bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`
-    constructor() {
+    constructor() {}
 
-    }
-
-
-    async updateNode(familyTreeId, familyNodeId, data) {
-        const updateUrl = `http://localhost:3000/api/family-tree/${familyTreeId}/nodes/${familyNodeId}`
+    async updateNode(familyTreeId: string, familyNodeId: string, data: any) {
+        const updateUrl = `http://localhost:3000/api/family-tree/${familyTreeId}/nodes/${familyNodeId}`;
         try {
-            const
-                response = await updateData(updateUrl, data, this.bearerToken)
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const result =  await response.json();
-            console.log('updating node data successfull', result)
-            return result;
-        } catch (error) {
-            console.error('Error fetching nodes array:', error);
-            alert('Failed to fetch data. Check console for details.');
-            return null;
-        }
+            const bearerToken = localStorageManager.getItem('bearerToken');
+            if (!bearerToken) throw new Error('No bearer token found');
 
-    }
-    async deleteNode(familyTreeId, familyNodeId) {
-        const deleteUri = `http://localhost:3000/api/family-tree/${familyTreeId}/node/${familyNodeId}`
-        try {
-            const
-                response = await deleteNode(deleteUri, this.bearerToken)
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
+            const response = await updateData(updateUrl, data, bearerToken);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
             const result = await response.json();
-            console.log('deleting node data successfull', result)
+            console.log('Updating node successful', result);
             return result;
         } catch (error) {
-            console.error('Error fetching nodes array:', error);
-            alert('Failed to fetch data. Check console for details.');
-            return null;
+            console.error('Error updating node:', error);
+            return { error: 'Failed to update node' };
         }
-
     }
 
-    async fetchNodesArrays(familyTreeId) {
-        const fetchNodesUri = `http://localhost:3000/api/family-tree/${familyTreeId}/relationsHeavy`
+    async deleteNode(familyTreeId: string, familyNodeId: string) {
+        const deleteUri = `http://localhost:3000/api/family-tree/${familyTreeId}/node/${familyNodeId}`;
         try {
+            const bearerToken = localStorageManager.getItem('bearerToken');
+            if (!bearerToken) throw new Error('No bearer token found');
+
+            const response = await deleteNodeRequest(deleteUri, bearerToken);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+            const result = await response.json();
+            console.log('Deleting node successful', result);
+            return result;
+        } catch (error) {
+            console.error('Error deleting node:', error);
+            return { error: 'Failed to delete node' };
+        }
+    }
+
+    async fetchNodesArrays(familyTreeId: string) {
+        const fetchNodesUri = `http://localhost:3000/api/family-tree/${familyTreeId}/relationsHeavy`;
+        try {
+            const bearerToken = localStorageManager.getItem('bearerToken');
+            if (!bearerToken) throw new Error('No bearer token found');
+
             const response = await fetch(fetchNodesUri, {
                 method: 'GET',
                 headers: {
-                    'Authorization': this.bearerToken,
+                    'Authorization': bearerToken,
                     'Content-Type': 'application/json',
                 },
             });
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
             return await response.json();
         } catch (error) {
             console.error('Error fetching nodes array:', error);
-            alert('Failed to fetch data. Check console for details.');
-            return null;
+            return { error: 'Failed to fetch data' };
         }
     }
-    
 }
 
 export const nodeManagmentService = new NodeManagementService();

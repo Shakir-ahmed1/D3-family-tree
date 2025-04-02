@@ -83,7 +83,7 @@ export class FamilyTreeSuggestionService {
         const customData: SuggestChildOfTwoParentsInterface = {
             reason: data.reason,
             childNodeData: constructNodeCreator(data),
-            partnerNodeId: parseInt(data.parentNodeId),
+            partnerNodeId: parseInt(data.partnerNodeId),
             partnershipType: data.partnershipType
         }
         const url = `${API_PREFIX}/${data.familyTreeId}/suggestions/${data.familyNodeId}/child/SuggestChildOfTwoParents`;
@@ -137,11 +137,11 @@ export class FamilyTreeSuggestionService {
 
         return putData(url, customData);
     }
-    async suggestDeleteNode(data) {
+    async suggestDeleteNode(familyTreeId, familyNodeId, data) {
         const customData: SuggestDeleteNodeInteface = {
             reason: data.reason,
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/nodes/${data.familyNodeId}/suggestions/deleteNode`;
+        const url = `${API_PREFIX}/${familyTreeId}/nodes/${familyNodeId}/suggestions/deleteNode`;
 
         return putData(url, customData);
     }

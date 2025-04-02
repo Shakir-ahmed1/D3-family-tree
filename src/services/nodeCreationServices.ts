@@ -68,7 +68,7 @@ export class FamilyTreeService {
     async addChildOfTwoParents(data) {
         const customData: CreateChildOfTwoParentsInterface = {
             childNodeData: constructNodeCreator(data),
-            partnerNodeId: parseInt(data.parentNodeId),
+            partnerNodeId: parseInt(data.partnerNodeId),
             partnershipType: data.partnershipType
         }
         const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/child/ChildOfTwoParents`;

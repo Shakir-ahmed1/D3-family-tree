@@ -22,7 +22,6 @@ export class SuggestionService {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             const result =  await response.json();
-            console.log(`Suggestion ${action} successfully`, result)
             return result;
         } catch (error) {
             console.error('Failed to parform action:', error);

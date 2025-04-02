@@ -22,7 +22,7 @@ function assignId(key: 'doubled-son' | 'doubled-daughter' | 'father' | 'mother' 
 }
 
 export class NodeData {
-  private data: CustomFlatData;
+  data: CustomFlatData;
   setData(fetchedNodesArray: any) {
     this.data = fetchedNodesArray
   }
@@ -625,12 +625,13 @@ export class NodeData {
       canContribute: ${this.canContribute(familyTreeId)},
       `)
   }
-  memberPriviledge(familyTreeId: number, familyNodeId: number): 'view' | 'suggest' | 'create' | 'update' {
+  memberPriviledge(familyTreeId: number, familyNodeId: number): 'view' | 'suggest' | 'create' | 'update'| 'only-create' {
     const canContribute = this.canContribute(familyTreeId)
     if (!canContribute) return 'view'
     const canCreate = this.canCreate(familyTreeId, familyNodeId)
-    if (canCreate) return 'create';
     const canUpdate = this.canUpdate(familyTreeId, familyNodeId)
+    if (canCreate && !canUpdate) return 'only-create';
+    if (canCreate) return 'create';
     if (canUpdate) return 'update'
     const canSuggest = this.canSuggest(familyTreeId, familyNodeId)
     if (canSuggest) return 'suggest'
@@ -677,6 +678,7 @@ export class NodeData {
     }
     const foundPending = this.data.allowedActions.find(item => item.id === familyNodeId)?.relations
     if (!foundPending) return false
+    
     const result = foundPending.find(item => {
       return mapper[item as keyof typeof mapper] === suggestableAction;
     }) ? true : false

@@ -70,7 +70,8 @@ export class HtmlElementsManager {
 
     setActionTypeLabel(actionType: actionTypes, node, currentNodeId) {
         let memberPriviledge = ND.memberPriviledge(1, currentNodeId);
-        const currentMembmerMode = memberPriviledge === 'create' ? 'create' : 'suggest';
+        console.log('MEMBER PRIVILEDGE', memberPriviledge)
+        const currentMembmerMode = (memberPriviledge === 'create' || memberPriviledge === 'only-create') ? 'create' : 'suggest';
         // 'suggest'; // 'create' or 'suggest
         const dynamicFields = document.getElementById('dynamicFields');
         document.getElementById('familyNodeId').value = currentNodeId;
@@ -153,11 +154,12 @@ export class HtmlElementsManager {
 
             generateFields(option);
         }
-        const CreateService = new FamilyTreeService()
         const saveButton = document.createElement('button')
         saveButton.textContent = 'Save Info'
         saveButton.className = 'edit-save'
-        saveButton.addEventListener('click', async function (e) {
+        saveButton.addEventListener('click', async (e) => {
+            const CreateService = new FamilyTreeService()
+            const SuggestionService = new FamilyTreeSuggestionService()
             const endpointServiceMap = {
                 addNewParent: CreateService.addNewParent,
                 addExistingParent: CreateService.addExistingParent,
@@ -167,43 +169,48 @@ export class HtmlElementsManager {
                 addExistingPartner: CreateService.addExistingPartner,
                 addNewPartnerAsParent: CreateService.addNewPartnerAsParent,
                 addExistingPartnerAsParent: CreateService.addExistingPartnerAsParent,
-            };
-            e.preventDefault();
+                suggestNewParent: SuggestionService.suggestNewParent,
+                suggestExistingParent: SuggestionService.suggestExistingParent,
+                suggestChildOfOneParent: SuggestionService.suggestChildOfOneParent,
+                suggestChildOfTwoParents: SuggestionService.suggestChildOfTwoParents,
+                suggestNewPartner: SuggestionService.suggestNewPartner,
+                suggestExistingPartner: SuggestionService.suggestExistingPartner,
+                suggestNewPartnerAsParent: SuggestionService.suggestNewPartnerAsParent,
+                suggestExistingPartnerAsParent: SuggestionService.suggestExistingPartnerAsParent,
+                suggestDeleteNode: SuggestionService.suggestDeleteNode,
+                suggestUpdateNode: SuggestionService.suggestUpdateNode,
+            }; e.preventDefault();
             const familyTreeForm = document.getElementById('familyTreeForm')
             const formData = new FormData(familyTreeForm);
             const endpoint = document.getElementById('postEndpoint')?.textContent;
             const data = Object.fromEntries(formData.entries());
-
-            console.log("this is this", endpoint)
+            console.log('END POINT: ', endpoint)
             if (endpointServiceMap[endpoint]) {
                 try {
-                    console.log("Entry Data", data)
 
                     const response = await endpointServiceMap[endpoint](data);
 
                     const familyTreeId = localStorageManager.getItem('familyTreeId');
                     const nodesArray = await nodeManagmentService.fetchNodesArrays(familyTreeId);
                     if (nodesArray) {
-                        console.log("Fetched Array Data", data);
                         drawer.fetchData(nodesArray, parseInt(data.familyNodeId), true);
                     }
-                    console.log('Success:', response);
                 } catch (error) {
                     console.error('Error:', error);
                 }
 
             }
 
-            const updatedData = {};
-            Object.keys(formData).forEach(key => {
-                if (formData[key].value) {
-                    updatedData[key] = formData[key].value;
-                }
-            });
-            const familyNodeId = localStorageManager.getItem('familyNodeId')
+            // const updatedData = {};
+            // Object.keys(formData).forEach(key => {
+            //     if (formData[key].value) {
+            //         updatedData[key] = formData[key].value;
+            //     }
+            // });
             const familyTreeId = localStorageManager.getItem('familyTreeId')
-            const updatedNode = await nodeManagmentService.updateNode(familyTreeId, familyNodeId, updatedData)
-            createViewMode(updatedNode);
+            const currentData = await ND.getNode(currentNodeId)
+            const memberPriviledge = ND.memberPriviledge(familyTreeId, currentNodeId)
+            this.createViewMode(currentData, memberPriviledge);
         });
         dynamicFields.appendChild(saveButton)
 
@@ -242,6 +249,9 @@ export class HtmlElementsManager {
                         if (name === 'gender') {
                             input.value = node.data.gender
                         }
+                        if (name === 'name' || name === 'gender') {
+                            input.required = true
+                        }
                         dynamicFields.appendChild(input);
                     });
                 } else if (field.endsWith('Id')) {
@@ -272,7 +282,7 @@ export class HtmlElementsManager {
             });
         }
     }
-    displaySuggestionInfo(suggestionBody) {
+    displaySuggestionInfo(suggestionBody, rootNodeId: number) {
         const dynamicFields = document.getElementById('dynamicFields');
         let nodeData;
         if (["ChildOfOneParent", "ChildOfTwoParents"].includes(suggestionBody.suggestedAction)) {
@@ -311,8 +321,20 @@ export class HtmlElementsManager {
 
 
 
-            acceptButton.addEventListener('click', async () => {
+            acceptButton.addEventListener('click', async (e) => {
+                e.preventDefault()
+
                 const updatedNode = await suggestionService.acceptOrRejectSuggestion(suggestionBody.familyTree.id, suggestionBody.id, 'accepted')
+                const familyTreeId = localStorageManager.getItem('familyTreeId')
+                const memberPriviledge = ND.memberPriviledge(familyTreeId, rootNodeId)
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(familyTreeId);
+                if (nodesArray) {
+                    console.log("Fetched Array Data", nodesArray);
+                    drawer.fetchData(nodesArray, rootNodeId, true);
+                }
+                const rootNode = ND.getNode(rootNodeId)
+                console.log("ROOT", rootNodeId, rootNode)
+                this.createViewMode(rootNode, memberPriviledge)
             });
 
             dynamicFields.appendChild(acceptButton);
@@ -320,13 +342,271 @@ export class HtmlElementsManager {
             rejectButton.textContent = 'Reject';
             rejectButton.className = 'dynamic-input';
             dynamicFields.appendChild(rejectButton);
-            rejectButton.addEventListener('click', async () => {
+            rejectButton.addEventListener('click', async (e) => {
+                e.preventDefault()
                 const updatedNode = await suggestionService.acceptOrRejectSuggestion(suggestionBody.familyTree.id, suggestionBody.id, 'rejected')
+                const familyTreeId = localStorageManager.getItem('familyTreeId')
+                const memberPriviledge = ND.memberPriviledge(familyTreeId, rootNodeId)
+
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(familyTreeId);
+                if (nodesArray) {
+                    console.log("Fetched Array Data", nodesArray);
+                    drawer.fetchData(nodesArray, rootNodeId, true);
+                }
+                const rootNode = ND.getNode(rootNodeId)
+                console.log("ROOT", rootNodeId, rootNode)
+                this.createViewMode(rootNode, memberPriviledge)
+    
             });
+            const rootNode = ND.getNode(rootNodeId)
+            console.log("ROOT", rootNodeId, rootNode)
+            const familyTreeId = localStorageManager.getItem('familyTreeId')
+            const memberPriviledge = ND.memberPriviledge(familyTreeId, rootNodeId)
+            // this.createViewMode(rootNode, memberPriviledge)
         };
         reviewSuggestionViewMode(nodeData)
     }
 
+    createViewMode(data, memberPriviledge) {
+        const dynamicFields = document.getElementById('dynamicFields');
+        dynamicFields.innerHTML = '';
+        ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach((key) => {
+            const field = document.createElement('p');
+            field.innerHTML = `<strong>${key}:</strong> ${data[key] || 'N/A'}`;
+            field.className = 'dynamic-input';
+            dynamicFields.appendChild(field);
+        });
+        if (memberPriviledge === 'create' || memberPriviledge === 'update') {
+            const editButton = document.createElement('button');
+            editButton.textContent = 'Edit';
+            editButton.className = 'dynamic-input';
+            editButton.addEventListener('click', () => {
+                drawer.toggleModes(data.id, 'edit')
+                this.createEditMode(data, memberPriviledge)
+            });
+            dynamicFields.appendChild(editButton);
+            const deleteAllowed = ND.isAllowedAction(data.id, genericActionTypes.DeleteNode);
+            // const deleteAllowed = ND.isAllowedAction(nodeData.id, genericActionTypes.DeleteNode);
+            console.log("Delete Allowed", deleteAllowed)
+            const familyTreeId = localStorageManager.getItem('familyTreeId')
+            const canSuggest = ND.canContribute(data.familyTree.id)
+            const canUpdate = ND.canUpdate(familyTreeId, data.id)
+            if (deleteAllowed) {
+                if (canSuggest) {
+                    const deleteButton = document.createElement('button');
+                    if (canUpdate) {
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.addEventListener('click', () => {
+                            drawer.toggleModes(data.id, 'edit')
+                            this.deleteMode(data, memberPriviledge)
+                        });
+                    } else {
+                        deleteButton.textContent = 'Suggest Deletion';
+                        deleteButton.addEventListener('click', () => {
+                            drawer.toggleModes(data.id, 'edit')
+                            this.suggestDeleteMode(data, memberPriviledge)
+                        });
+                    }
+                    deleteButton.className = 'delete-button';
+                    dynamicFields.appendChild(deleteButton);
+                }
+            }
+        } else if (memberPriviledge === 'suggest' || memberPriviledge === 'only-create') {
+            const editButton = document.createElement('button');
+            editButton.textContent = 'Suggest Edit';
+            editButton.className = 'dynamic-input';
+            editButton.addEventListener('click', () => { this.createSuggestionMode(data, memberPriviledge) });
+            dynamicFields.appendChild(editButton);
+        }
+    };
+
+    createEditMode(nodeData, memberPriviledge) {
+        const dynamicFields = document.getElementById('dynamicFields');
+        dynamicFields.innerHTML = '';
+        const formData = {};
+
+        ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach((key) => {
+            const input = document.createElement('input');
+            input.type = (key.includes('Date')) ? 'date' : (key.includes('Id')) ? 'number' : 'text';
+            input.name = key;
+            input.placeholder = key;
+            input.value = nodeData[key] || '';
+            input.className = 'dynamic-input';
+            dynamicFields.appendChild(input);
+            formData[key] = input;
+        });
+
+        const saveButton = document.createElement('button');
+        saveButton.textContent = 'Save';
+        saveButton.className = 'dynamic-input';
+        saveButton.addEventListener('click', async (e) => {
+            e.preventDefault()
+            const updatedData = {};
+            Object.keys(formData).forEach(key => {
+                if (formData[key].value) {
+                    updatedData[key] = formData[key].value;
+                }
+            });
+            await nodeManagmentService.updateNode(nodeData.familyTree.id, nodeData.id, updatedData)
+
+            const nodesArray = await nodeManagmentService.fetchNodesArrays(nodeData.familyTree.id);
+            if (nodesArray) {
+                console.log("Fetched Array Data", nodesArray);
+                drawer.fetchData(nodesArray, nodeData.id, true);
+            }
+            const updatedNode = ND.getNode(nodeData.id)
+            this.createViewMode(updatedNode, memberPriviledge);
+        });
+
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.className = 'dynamic-input';
+        cancelButton.addEventListener('click', () => { this.createViewMode(nodeData, memberPriviledge) });
+
+        dynamicFields.appendChild(saveButton);
+        dynamicFields.appendChild(cancelButton);
+    };
+
+    deleteMode(nodeData, memberPriviledge) {
+        const dynamicFields = document.getElementById('dynamicFields');
+
+        dynamicFields.innerHTML = '';
+        const deleteMessage = document.createElement('p');
+        deleteMessage.innerHTML = `Are you sure you want to delete <b>${nodeData.name}</b>?`;
+        deleteMessage.className = 'delete-message';
+
+
+        const deleteButtonYes = document.createElement('button');
+        deleteButtonYes.textContent = 'Yes';
+        deleteButtonYes.className = 'delete-button';
+        deleteButtonYes.addEventListener('click', async (e) => {
+            e.preventDefault()
+            const deleteNode = await nodeManagmentService.deleteNode(nodeData.familyTree.id, nodeData.id)
+            const previousNodeId = drawer.popRootHistory(nodeData.id)
+
+            const nodesArray = await nodeManagmentService.fetchNodesArrays(nodeData.familyTree.id);
+            if (nodesArray) {
+                drawer.fetchData(nodesArray, previousNodeId, true);
+            }
+            // Return to the previous old node
+        });
+        const deleteButtonNo = document.createElement('button');
+        deleteButtonNo.textContent = 'No';
+        deleteButtonNo.className = 'dynamic-input';
+        deleteButtonNo.addEventListener('click', async () => {
+            this.createViewMode(nodeData, memberPriviledge);
+        });
+
+        dynamicFields.appendChild(deleteMessage);
+        dynamicFields.appendChild(deleteButtonYes);
+        dynamicFields.appendChild(deleteButtonNo);
+    };
+    suggestDeleteMode(nodeData, memberPriviledge) {
+        const dynamicFields = document.getElementById('dynamicFields');
+
+        dynamicFields.innerHTML = '';
+        const familyTreeForm = document.getElementById('familyTreeForm')
+        const formData = new FormData(familyTreeForm);
+
+        const reason = 'reason'
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = reason;
+        input.name = reason;
+        input.placeholder = reason.replace(/([A-Z])/g, ' $1').trim();
+        input.className = 'dynamic-input';
+        input.required = false
+        formData[reason] = input
+        dynamicFields?.append(input)
+        const SuggestDeleteButton = document.createElement('button')
+        SuggestDeleteButton.textContent = 'Suggest Delete';
+        SuggestDeleteButton.className = 'delete-button';
+        SuggestDeleteButton.addEventListener('click', async (e) => {
+            e.preventDefault()
+            const suggestionService = new FamilyTreeSuggestionService()
+            const deletionBody = {};
+            Object.keys(formData).forEach(key => {
+                if (formData[key].value) {
+                    console.log("Form Values", formData[key].value)
+                    deletionBody[key] = formData[key].value;
+                }
+            });
+            console.log("form body", formData)
+            console.log("suggest body", deletionBody)
+            const familyTreeId = localStorageManager.getItem('familyTreeId')
+
+
+            const deleteNode = await suggestionService.suggestDeleteNode(familyTreeId, nodeData.id, deletionBody)
+            // Return to the previous old node
+            this.createViewMode(nodeData, memberPriviledge)
+
+
+        });
+        const deleteButtonNo = document.createElement('button');
+        deleteButtonNo.textContent = 'No';
+        deleteButtonNo.className = 'dynamic-input';
+        deleteButtonNo.addEventListener('click', async () => {
+            this.createViewMode(nodeData, memberPriviledge);
+        });
+
+        dynamicFields.appendChild(SuggestDeleteButton);
+        dynamicFields.appendChild(deleteButtonNo);
+    };
+
+    createSuggestionMode(nodeData, memberPriviledge) {
+        const dynamicFields = document.getElementById('dynamicFields');
+
+        dynamicFields.innerHTML = '';
+        const formData = {};
+        const name = 'reason'
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = name;
+        input.name = name;
+        input.placeholder = name.replace(/([A-Z])/g, ' $1').trim();
+        input.className = 'dynamic-input';
+        input.required = false
+        dynamicFields.appendChild(input);
+
+        ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach((key) => {
+            const input = document.createElement('input');
+            input.type = (key.includes('Date')) ? 'date' : (key.includes('Id')) ? 'number' : 'text';
+            input.name = key;
+            input.placeholder = key;
+            input.value = nodeData[key] || '';
+            input.className = 'dynamic-input';
+            dynamicFields.appendChild(input);
+            formData[key] = input;
+        });
+
+        const saveButton = document.createElement('button');
+        saveButton.textContent = 'Save Suggestion';
+        saveButton.className = 'dynamic-input';
+        saveButton.addEventListener('click', async (e) => {
+
+            e.preventDefault()
+            const suggestionService = new FamilyTreeSuggestionService();
+            const suggestedData = {};
+            Object.keys(formData).forEach(key => {
+                if (formData[key].value) {
+                    console.log("Form Values", formData[key].value)
+                    suggestedData[key] = formData[key].value;
+                }
+            });
+            const familyNodeId = localStorageManager.getItem('familyNodeId')
+            const familyTreeId = localStorageManager.getItem('familyTreeId')
+            console.log("suggested Data", suggestedData)
+            this.createViewMode(nodeData, memberPriviledge);
+        });
+
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.className = 'dynamic-input';
+        cancelButton.addEventListener('click', () => { this.createViewMode(nodeData, memberPriviledge) });
+
+        dynamicFields.appendChild(saveButton);
+        dynamicFields.appendChild(cancelButton);
+    };
     infoDisplayer(nodeData, rootNodeId) {
         const familyTreeId = localStorageManager.getItem('familyTreeId')
         const memberPriviledge = ND.memberPriviledge(familyTreeId, rootNodeId)
@@ -335,193 +615,14 @@ export class HtmlElementsManager {
         document.getElementById('familyNodeId').value = rootNodeId;
 
         dynamicFields.innerHTML = '';
-        const createViewMode = (data) => {
-            dynamicFields.innerHTML = '';
-            ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach((key) => {
-                const field = document.createElement('p');
-                field.innerHTML = `<strong>${key}:</strong> ${data[key] || 'N/A'}`;
-                field.className = 'dynamic-input';
-                dynamicFields.appendChild(field);
-            });
-            if (memberPriviledge === 'create' || memberPriviledge === 'update') {
-                const editButton = document.createElement('button');
-                editButton.textContent = 'Edit';
-                editButton.className = 'dynamic-input';
-                editButton.addEventListener('click', createEditMode);
-                dynamicFields.appendChild(editButton);
-                const deleteAllowed = ND.isAllowedAction(nodeData.id, genericActionTypes.DeleteNode);
-                console.log("Delete Allowed", deleteAllowed)
-                if (deleteAllowed) {
-                    const deleteButton = document.createElement('button');
-                    deleteButton.textContent = 'Delete';
-                    deleteButton.className = 'delete-button';
-                    deleteButton.addEventListener('click', deleteMode);
-                    dynamicFields.appendChild(deleteButton);
-                }
-            } else if (memberPriviledge === 'suggest') {
-                const editButton = document.createElement('button');
-                editButton.textContent = 'Suggest Edit';
-                editButton.className = 'dynamic-input';
-                editButton.addEventListener('click', createSuggestionMode);
-                dynamicFields.appendChild(editButton);
-            }
-        };
-
-        const createEditMode = () => {
-            dynamicFields.innerHTML = '';
-            const formData = {};
-
-            ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach((key) => {
-                const input = document.createElement('input');
-                input.type = (key.includes('Date')) ? 'date' : (key.includes('Id')) ? 'number' : 'text';
-                input.name = key;
-                input.placeholder = key;
-                input.value = nodeData[key] || '';
-                input.className = 'dynamic-input';
-                dynamicFields.appendChild(input);
-                formData[key] = input;
-            });
-
-            const saveButton = document.createElement('button');
-            saveButton.textContent = 'Save';
-            saveButton.className = 'dynamic-input';
-            saveButton.addEventListener('click', async (e) => {
-                e.preventDefault()
-                const updatedData = {};
-                Object.keys(formData).forEach(key => {
-                    if (formData[key].value) {
-                        updatedData[key] = formData[key].value;
-                    }
-                });
-                const updatedNode = await nodeManagmentService.updateNode(nodeData.familyTree.id, nodeData.id, updatedData)
-                nodeData = updatedNode;
-                createViewMode(nodeData);
-            });
-
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = 'Cancel';
-            cancelButton.className = 'dynamic-input';
-            cancelButton.addEventListener('click', () => { createViewMode(nodeData) });
-
-            dynamicFields.appendChild(saveButton);
-            dynamicFields.appendChild(cancelButton);
-        };
-        const deleteMode = () => {
-            dynamicFields.innerHTML = '';
-            const deleteMessage = document.createElement('p');
-            deleteMessage.innerHTML = `Are you sure you want to delete <b>${nodeData.name}</b>?`;
-            deleteMessage.className = 'delete-message';
-
-
-            const deleteButtonYes = document.createElement('button');
-            deleteButtonYes.textContent = 'Yes';
-            deleteButtonYes.className = 'delete-button';
-            deleteButtonYes.addEventListener('click', async () => {
-                const deleteNode = await nodeManagmentService.deleteNode(nodeData.familyTree.id, nodeData.id)
-                // Return to the previous old node
-            });
-            const deleteButtonNo = document.createElement('button');
-            deleteButtonNo.textContent = 'No';
-            deleteButtonNo.className = 'dynamic-input';
-            deleteButtonNo.addEventListener('click', async () => {
-                createViewMode(nodeData);
-            });
-
-            dynamicFields.appendChild(deleteMessage);
-            dynamicFields.appendChild(deleteButtonYes);
-            dynamicFields.appendChild(deleteButtonNo);
-        };
-        const suggestDeleteMode = () => {
-            dynamicFields.innerHTML = '';
-            const formData = {};
-
-            const reason = 'reason'
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.id = reason;
-            input.name = reason;
-            input.placeholder = reason.replace(/([A-Z])/g, ' $1').trim();
-            input.className = 'dynamic-input';
-            input.required = false
-
-            const SuggestDeleteButton = document.createElement('button')
-            SuggestDeleteButton.textContent = 'Suggest Delete';
-            SuggestDeleteButton.className = 'delete-button';
-            SuggestDeleteButton.addEventListener('click', async () => {
-                const suggestionService = new FamilyTreeSuggestionService()
-                const deleteNode = await suggestionService.suggestDeleteNode(nodeData.familyTree.id, nodeData.id)
-                // Return to the previous old node
 
 
 
-            });
-            const deleteButtonNo = document.createElement('button');
-            deleteButtonNo.textContent = 'No';
-            deleteButtonNo.className = 'dynamic-input';
-            deleteButtonNo.addEventListener('click', async () => {
-                createViewMode(nodeData);
-            });
 
-            dynamicFields.appendChild(deleteMessage);
-            dynamicFields.appendChild(SuggestDeleteButton);
-            dynamicFields.appendChild(deleteButtonNo);
-        };
 
-        const createSuggestionMode = () => {
-            dynamicFields.innerHTML = '';
-            const formData = {};
-            const name = 'reason'
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.id = name;
-            input.name = name;
-            input.placeholder = name.replace(/([A-Z])/g, ' $1').trim();
-            input.className = 'dynamic-input';
-            input.required = false
-            dynamicFields.appendChild(input);
-
-            ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach((key) => {
-                const input = document.createElement('input');
-                input.type = (key.includes('Date')) ? 'date' : (key.includes('Id')) ? 'number' : 'text';
-                input.name = key;
-                input.placeholder = key;
-                input.value = nodeData[key] || '';
-                input.className = 'dynamic-input';
-                dynamicFields.appendChild(input);
-                formData[key] = input;
-            });
-
-            const saveButton = document.createElement('button');
-            saveButton.textContent = 'Save Suggestion';
-            saveButton.className = 'dynamic-input';
-            saveButton.addEventListener('click', async (e) => {
-                e.preventDefault()
-                const suggestionService = new FamilyTreeSuggestionService();
-                const suggestedData = {};
-                Object.keys(formData).forEach(key => {
-                    if (formData[key].value) {
-                        console.log("Form Values", formData[key].value)
-                        suggestedData[key] = formData[key].value;
-                    }
-                });
-                const familyNodeId = localStorageManager.getItem('familyNodeId')
-                const familyTreeId = localStorageManager.getItem('familyTreeId')
-                console.log("suggested Data", suggestedData)
-                const updatedNode = await suggestionService.suggestUpdateNode(familyTreeId, familyNodeId,suggestedData)
-                createViewMode(nodeData);
-            });
-
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = 'Cancel';
-            cancelButton.className = 'dynamic-input';
-            cancelButton.addEventListener('click', () => { createViewMode(nodeData) });
-
-            dynamicFields.appendChild(saveButton);
-            dynamicFields.appendChild(cancelButton);
-        };
-
-        createViewMode(nodeData);
+        this.createViewMode(nodeData, memberPriviledge);
     }
+
 
     displayNodeDetails() {
         this.showTab('details')

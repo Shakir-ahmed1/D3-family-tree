@@ -34,7 +34,6 @@ export class NodeManagementService {
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
             const result = await response.json();
-            console.log('Updating node successful', result);
             return result;
         } catch (error) {
             console.error('Error updating node:', error);
@@ -52,7 +51,6 @@ export class NodeManagementService {
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
             const result = await response.json();
-            console.log('Deleting node successful', result);
             return result;
         } catch (error) {
             console.error('Error deleting node:', error);

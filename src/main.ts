@@ -7,6 +7,9 @@ import { FamilyTreeSuggestionService } from "./services/suggestionCreationServic
 // Initialize the FamilyTree class
 localStorageManager.setItem('familyTreeId', 1);
 const bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`
+// const bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMiIsImlhdCI6MTczOTUzNzQwNSwiZXhwIjoxODM5NjIzODA1fQ.VHkjd4KTeFg37uZIWdnXygJdma0aBt7fj9UiTVgaVzU`
+
+
 localStorageManager.setItem('bearerToken', bearerToken)
 // localStorageManager.setItem('bearerToken', bearerToken)
 export const drawer = new FamilyTreeDrawer();
@@ -20,7 +23,6 @@ let fetchedNodesArray: any = null; // To store the fetched data
         nodesArray = await nodeManagmentService.fetchNodesArrays(familyTreeId);
         if (nodesArray) {
             fetchedNodesArray = nodesArray;
-            console.log("Fetched Array Data", nodesArray);
             drawer.fetchData(nodesArray, 6, true);
             // alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
         }

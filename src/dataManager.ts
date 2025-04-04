@@ -21,12 +21,14 @@ function assignId(key: 'doubled-son' | 'doubled-daughter' | 'father' | 'mother' 
   }
 }
 
-export class NodeData {
+export class DataManager {
   data: CustomFlatData;
+  familyTreeId = 0;
   setData(fetchedNodesArray: any) {
     this.data = fetchedNodesArray
   }
-  constructor() {
+  constructor(familyTreeId: number) {
+    this.familyTreeId = familyTreeId;
     this.data = {
       familyNodes: [],
       parents: [],
@@ -487,68 +489,70 @@ export class NodeData {
   customBuildParent(startNodeId: number): DrawableNode {
     const foundNode = this.getNode(startNodeId)
     let mother: DrawableNode | undefined, father: DrawableNode | undefined;
-    if (foundNode.parentRelationship) {
-      const foundParentHood = this.getParentRelationship(foundNode.parentRelationship.id)
-      if (foundParentHood.femaleNode) {
-        const foundMother = this.getNode(foundParentHood.femaleNode.id)
-        mother = {
-          id: foundMother.id,
-          uuid: `${foundMother.id}`,
-          // parents: operatedParents,
-          children: [],
-          name: foundMother.name,
-          gender: foundMother.gender,
-          type: 'child',
-          catag: 'editAnce',
-          mode: 'node'
-        }
-      } else {
-          mother = {
-            id: assignId('mother'),
-            uuid: 'mother',
-            children: [],
-            name: 'Add Mother',
-            gender: 'FEMALE',
-            source: `${startNodeId}`,
-            type: 'child',
-            catag: 'editAnce',
-            mode: 'edit',
-            actionType: genericActionTypes.addParent,
-            isLegal: this.hasNoPendingSuggestion(startNodeId, genericActionTypes.addParent)
-    
-        }
+    let foundParentHood: Parent | undefined;
+    if (foundNode?.parentRelationship?.id) {
+      foundParentHood = this.getParentRelationship(foundNode.parentRelationship.id)
+    }
+    if (foundParentHood?.femaleNode) {
+      const foundMother = this.getNode(foundParentHood.femaleNode.id)
+      mother = {
+        id: foundMother.id,
+        uuid: `${foundMother.id}`,
+        // parents: operatedParents,
+        children: [],
+        name: foundMother.name,
+        gender: foundMother.gender,
+        type: 'child',
+        catag: 'editAnce',
+        mode: 'node'
       }
-      if (foundParentHood.maleNode) {
-        const foundFather = this.getNode(foundParentHood.maleNode.id)
+    } else {
+      mother = {
+        id: assignId('mother'),
+        uuid: 'mother',
+        children: [],
+        name: 'Add Mother',
+        gender: 'FEMALE',
+        source: `${startNodeId}`,
+        type: 'child',
+        catag: 'editAnce',
+        mode: 'edit',
+        actionType: genericActionTypes.addParent,
+        isAllowed: this.isAllowedAction(startNodeId, genericActionTypes.addParent),
+        hasPending: this.hasNoPendingSuggestion(startNodeId, genericActionTypes.addParent)
 
-        father = {
-          id: foundFather.id,
-          uuid: `${foundFather.id}`,
-          children: [],
-          name: foundFather.name,
-          gender: foundFather.gender,
-          type: 'child',
-          catag: 'editAnce',
-          mode: 'node'
-        }
-      } else {
-        father = {
-          id: assignId('father'),
-          uuid: 'father',
-          children: [],
-          name: 'Add Father',
-          gender: 'MALE',
-          source: `${startNodeId}`,
-          type: 'child',
-          catag: 'editAnce',
-          mode: 'edit',
-          actionType: genericActionTypes.addParent,
-          isLegal: this.isAllowedAction(startNodeId, genericActionTypes.addParent)
-        }
       }
     }
+    if (foundParentHood?.maleNode) {
+      const foundFather = this.getNode(foundParentHood.maleNode.id)
 
+      father = {
+        id: foundFather.id,
+        uuid: `${foundFather.id}`,
+        children: [],
+        name: foundFather.name,
+        gender: foundFather.gender,
+        type: 'child',
+        catag: 'editAnce',
+        mode: 'node'
+      }
+    } else {
 
+      father = {
+        id: assignId('father'),
+        uuid: 'father',
+        children: [],
+        name: 'Add Father',
+        gender: 'MALE',
+        source: `${startNodeId}`,
+        type: 'child',
+        catag: 'editAnce',
+        mode: 'edit',
+        actionType: genericActionTypes.addParent,
+        isAllowed: this.isAllowedAction(startNodeId, genericActionTypes.addParent),
+        hasPending: this.hasNoPendingSuggestion(startNodeId, genericActionTypes.addParent)
+      }
+    }
     const suggestedParents = this.prepareSuggestedParents(startNodeId)
     const displayableParents = []
     if (suggestedParents.fatherNodes) {
@@ -596,44 +600,44 @@ export class NodeData {
       else return false
     })
   }
-  canCreate(familyTreeId: number, familyNodeId: number): boolean {
+  canCreate(familyNodeId: number): boolean {
     const foundContribution = this.getContributionByNodeId(familyNodeId)
     const myMemberId = this.data.myInfo?.id
     const result = foundContribution.creators.find(item => item.id === myMemberId)
     return result ? true : false;
   }
-  canUpdate(familyTreeId: number, familyNodeId: number): boolean {
+  canUpdate(familyNodeId: number): boolean {
     const foundContribution = this.getContributionByNodeId(familyNodeId)
     const myMemberId = this.data.myInfo?.id
     const result = foundContribution.updators.find(item => item.id === myMemberId)
     return result ? true : false;
   }
-  canSuggest(familyTreeId: number, familyNodeId: number): boolean {
+  canSuggest(familyNodeId: number): boolean {
     const foundContribution = this.getContributionByNodeId(familyNodeId)
     const myMemberId = this.data.myInfo?.id
     const result = foundContribution.suggestors.find(item => item.id === myMemberId)
     return result ? true : false;
   }
-  canContribute(familyTreeId: number): boolean {
+  canContribute(): boolean {
     return this.data.canContribute
   }
-  testContribution(familyTreeId: number, familyNodeId: number) {
+  testContribution(familyNodeId: number) {
     console.log(`
-      canUpdate: ${this.canUpdate(familyTreeId, familyNodeId)},
-      canCreate: ${this.canUpdate(familyTreeId, familyNodeId)},
-      canSuggest: ${this.canUpdate(familyTreeId, familyNodeId)},
-      canContribute: ${this.canContribute(familyTreeId)},
+      canUpdate: ${this.canUpdate(familyNodeId)},
+      canCreate: ${this.canUpdate(familyNodeId)},
+      canSuggest: ${this.canUpdate(familyNodeId)},
+      canContribute: ${this.canContribute()},
       `)
   }
-  memberPriviledge(familyTreeId: number, familyNodeId: number): 'view' | 'suggest' | 'create' | 'update'| 'only-create' {
-    const canContribute = this.canContribute(familyTreeId)
+  memberPriviledge(familyTreeId: number, familyNodeId: number): 'view' | 'suggest' | 'create' | 'update' | 'only-create' {
+    const canContribute = this.canContribute()
     if (!canContribute) return 'view'
-    const canCreate = this.canCreate(familyTreeId, familyNodeId)
-    const canUpdate = this.canUpdate(familyTreeId, familyNodeId)
+    const canCreate = this.canCreate(familyNodeId)
+    const canUpdate = this.canUpdate(familyNodeId)
     if (canCreate && !canUpdate) return 'only-create';
     if (canCreate) return 'create';
     if (canUpdate) return 'update'
-    const canSuggest = this.canSuggest(familyTreeId, familyNodeId)
+    const canSuggest = this.canSuggest(familyNodeId)
     if (canSuggest) return 'suggest'
     return 'view'
   }
@@ -678,7 +682,7 @@ export class NodeData {
     }
     const foundPending = this.data.allowedActions.find(item => item.id === familyNodeId)?.relations
     if (!foundPending) return false
-    
+
     const result = foundPending.find(item => {
       return mapper[item as keyof typeof mapper] === suggestableAction;
     }) ? true : false
@@ -732,7 +736,8 @@ export class NodeData {
         catag: 'editDesc',
         mode: 'edit',
         actionType: genericActionTypes.addChildOfTwoParents,
-        isLegal: this.hasNoPendingSuggestion(selfNode.id, genericActionTypes.addChildOfTwoParents)
+        isAllowed: this.isAllowedAction(selfNode.id, genericActionTypes),
+        hasPending: this.hasNoPendingSuggestion(selfNode.id, genericActionTypes.addChildOfTwoParents)
 
       }
       const addSon: DrawableNode = {
@@ -749,7 +754,8 @@ export class NodeData {
         catag: 'editDesc',
         mode: 'edit',
         actionType: genericActionTypes.addChildOfTwoParents,
-        isLegal: this.hasNoPendingSuggestion(selfNode.id, genericActionTypes.addChildOfTwoParents)
+        isAllowed: this.isAllowedAction(selfNode.id, genericActionTypes),
+        hasPending: this.hasNoPendingSuggestion(selfNode.id, genericActionTypes.addChildOfTwoParents)
 
 
       }
@@ -790,7 +796,8 @@ export class NodeData {
       motherId: motherNode ? motherNode.id : undefined,
       mode: 'edit',
       actionType: genericActionTypes.addChildOfOneParent,
-      isLegal: this.hasNoPendingSuggestion(foundNode.id, genericActionTypes.addChildOfOneParent),
+      isAllowed: this.isAllowedAction(foundNode.id, genericActionTypes),
+      hasPending: this.hasNoPendingSuggestion(foundNode.id, genericActionTypes.addChildOfOneParent),
       catag: 'editDesc',
 
     }
@@ -807,7 +814,8 @@ export class NodeData {
       motherId: motherNode ? motherNode.id : undefined,
       mode: 'edit',
       actionType: genericActionTypes.addChildOfOneParent,
-      isLegal: this.hasNoPendingSuggestion(foundNode.id, genericActionTypes.addChildOfOneParent),
+      isAllowed: this.isAllowedAction(foundNode.id, genericActionTypes),
+      hasPending: this.hasNoPendingSuggestion(foundNode.id, genericActionTypes.addChildOfOneParent),
       catag: 'editDesc',
     }
     return [addSon, addDaughter]
@@ -874,7 +882,8 @@ export class NodeData {
       catag: 'editDesc',
       children: [],
       actionType: genericActionTypes.addPartner,
-      isLegal: this.hasNoPendingSuggestion(startNodeId, genericActionTypes.addPartner)
+      isAllowed: this.isAllowedAction(startNodeId, genericActionTypes.addPartner),
+      hasPending: this.hasNoPendingSuggestion(startNodeId, genericActionTypes.addPartner)
     }
     const customChildren = [];
     // const customChildren = []
@@ -1055,10 +1064,3 @@ export class NodeData {
 
 }
 
-export const ND = new NodeData()
-
-// change node event.
-// get the data for the new root node.
-// identify which nodes from the previous drawing need to stay.
-// // those who stayed get resized and repositioned. and those who are not needed fade out
-// // those who are new get displayed (fade in)

@@ -8,5 +8,4 @@ export interface CreateChildOfOneParentInterface {
 export interface CreateChildOfTwoParentsInterface {
     partnerNodeId: number;
     childNodeData: CreateNewPrimaryFamilyNodeInterface;
-    partnershipType: RelationshipType;
 }

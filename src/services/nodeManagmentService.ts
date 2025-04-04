@@ -24,7 +24,7 @@ async function deleteNodeRequest<T>(url: string, bearerToken: string): Promise<R
 export class NodeManagementService {
     constructor() {}
 
-    async updateNode(familyTreeId: string, familyNodeId: string, data: any) {
+    async updateNode(familyTreeId: number, familyNodeId: number, data: any) {
         const updateUrl = `http://localhost:3000/api/family-tree/${familyTreeId}/nodes/${familyNodeId}`;
         try {
             const bearerToken = localStorageManager.getItem('bearerToken');
@@ -41,7 +41,7 @@ export class NodeManagementService {
         }
     }
 
-    async deleteNode(familyTreeId: string, familyNodeId: string) {
+    async deleteNode(familyTreeId: number, familyNodeId: number) {
         const deleteUri = `http://localhost:3000/api/family-tree/${familyTreeId}/node/${familyNodeId}`;
         try {
             const bearerToken = localStorageManager.getItem('bearerToken');
@@ -58,7 +58,7 @@ export class NodeManagementService {
         }
     }
 
-    async fetchNodesArrays(familyTreeId: string) {
+    async fetchNodesArrays(familyTreeId: number) {
         const fetchNodesUri = `http://localhost:3000/api/family-tree/${familyTreeId}/relationsHeavy`;
         try {
             const bearerToken = localStorageManager.getItem('bearerToken');
@@ -73,7 +73,9 @@ export class NodeManagementService {
             });
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
-            return await response.json();
+            const fetchedData = await response.json();
+            console.log("Fetched Data", fetchedData)
+            return fetchedData
         } catch (error) {
             console.error('Error fetching nodes array:', error);
             return { error: 'Failed to fetch data' };

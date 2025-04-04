@@ -10,17 +10,3 @@ export interface CreateExistingPartnerInterface {
     otherNodeId: number;
     partnershipType: RelationshipType;
 }
-
-export interface CreateNewPartnerAsParentInterface {
-    otherNodeData: CreateNewPrimaryFamilyNodeInterface;
-    partnershipType: RelationshipType;
-    childNodeId: number;
-
-}
-
-export interface CreateExistingPartnerAsParentInterface {
-    otherNodeId: number;
-    partnershipType: RelationshipType;
-    childNodeId: number;
-
-}

@@ -51,8 +51,8 @@ export class FamilyTreeSuggestionService {
     constructor() {
     }
 
-    async suggestNewParent(data) {
-        const url = `${API_PREFIX}/${data.familyTreeId}/suggestions/${data.familyNodeId}/parent/SuggestNewParent`;
+    async suggestNewParent(familyTreeId: number, familyNodeId: number, data) {
+        const url = `${API_PREFIX}/${familyTreeId}/suggestions/${familyNodeId}/parent/SuggestNewParent`;
         const nodeData = constructNodeCreator(data)
         const customData: SuggestNewParentInterface = {
             reason: data.reason,
@@ -61,76 +61,55 @@ export class FamilyTreeSuggestionService {
         return postData(url, customData);
     }
 
-    async suggestExistingParent(data) {
+    async suggestExistingParent(familyTreeId: number, familyNodeId: number, data) {
         const customData: SuggestExistingParentInterface = {
             reason: data.reason,
-            parentNodeId: parseInt(data.parentNodeId)
+            parentNodeId: parseInt(data.targetNodeId)
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/suggestions/${data.familyNodeId}/parent/SuggestExitingParent`;
+        const url = `${API_PREFIX}/${familyTreeId}/suggestions/${familyNodeId}/parent/SuggestExitingParent`;
         return postData(url, customData);
     }
 
-    async suggestChildOfOneParent(data) {
+    async suggestChildOfOneParent(familyTreeId: number, familyNodeId: number, data) {
         const customData: SuggestChildOfOneParentInterface = {
             reason: data.reason,
             childNodeData: constructNodeCreator(data)
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/suggestions/${data.familyNodeId}/child/SuggestChildOfOneParent`;
+        const url = `${API_PREFIX}/${familyTreeId}/suggestions/${familyNodeId}/child/SuggestChildOfOneParent`;
         return postData(url, customData);
     }
 
-    async suggestChildOfTwoParents(data) {
+    async suggestChildOfTwoParents(familyTreeId: number, familyNodeId: number, data) {
         const customData: SuggestChildOfTwoParentsInterface = {
             reason: data.reason,
             childNodeData: constructNodeCreator(data),
-            partnerNodeId: parseInt(data.partnerNodeId),
+            partnerNodeId: parseInt(data.targetNodeId),
             partnershipType: data.partnershipType
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/suggestions/${data.familyNodeId}/child/SuggestChildOfTwoParents`;
+        const url = `${API_PREFIX}/${familyTreeId}/suggestions/${familyNodeId}/child/SuggestChildOfTwoParents`;
         return postData(url, customData);
     }
 
-    async suggestNewPartner(data) {
+    async suggestNewPartner(familyTreeId: number, familyNodeId: number, data) {
         const customData: SuggestNewPartnerInterface = {
             reason: data.reason,
             otherNodeData: constructNodeCreator(data),
             partnershipType: data.partnershipType
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/suggestions/${data.familyNodeId}/spouse/SuggestNewPartner`;
+        const url = `${API_PREFIX}/${familyTreeId}/suggestions/${familyNodeId}/spouse/SuggestNewPartner`;
         return postData(url, customData);
     }
 
-    async suggestExistingPartner(data) {
+    async suggestExistingPartner(familyTreeId: number, familyNodeId: number, data) {
         const customData: SuggestExistingPartnerInterface = {
             reason: data.reason,
-            otherNodeId: parseInt(data.otherNodeId),
+            otherNodeId: parseInt(data.targetNodeId),
             partnershipType: data.partnershipType
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/suggestions/${data.familyNodeId}/spouse/SuggestExistingPartner`;
+        const url = `${API_PREFIX}/${familyTreeId}/suggestions/${familyNodeId}/spouse/SuggestExistingPartner`;
         return postData(url, customData);
     }
 
-    async suggestNewPartnerAsParent(data) {
-        const customData: SuggestNewPartnerAsParentInterface = {
-            reason: data.reason,
-            childNodeId: parseInt(data.childNodeId),
-            otherNodeData: constructNodeCreator(data),
-            partnershipType: data.partnershipType
-        }
-        const url = `${API_PREFIX}/${data.familyTreeId}/suggestions/${data.familyNodeId}/spouse/SuggestNewPartnerAsParent`;
-        return postData(url, customData);
-    }
-
-    async suggestExistingPartnerAsParent(data) {
-        const customData: SuggestExistingPartnerAsParentInterface = {
-            reason: data.reason,
-            childNodeId: parseInt(data.childNodeId),
-            otherNodeId: parseInt(data.otherNodeId),
-            partnershipType: data.partnershipType,
-        }
-        const url = `${API_PREFIX}/${data.familyTreeId}/suggestions/${data.familyNodeId}/spouse/SuggestExistingPartnerAsParent`;
-        return postData(url, customData);
-    }
     async suggestUpdateNode(familyTreeId: number, familyNodeId: number, data) {
         const customData: SuggestUpdateNodeInteface = constructNodeCreator(data)
         const url = `${API_PREFIX}/${familyTreeId}/nodes/${familyNodeId}/suggestions/updateNode`;
@@ -146,3 +125,4 @@ export class FamilyTreeSuggestionService {
         return putData(url, customData);
     }
 }
+export const suggestionCreationService = new FamilyTreeSuggestionService()

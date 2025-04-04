@@ -1,14 +1,430 @@
-import { ND, NodeData } from "./dataManager";
-import { drawer } from "./main";
-import { actionTypes, genericActionTypes } from "./node.interface";
-import { FamilyTreeService } from "./services/nodeCreationServices";
+import { timeFormatLocale } from "d3";
+import { drawer, ND } from "./main";
+import { actionTypes, FamilyNode, FamilyTreeMembers, genericActionTypes } from "./node.interface";
+import { nodeCreationService } from "./services/nodeCreationServices";
 import { nodeManagmentService } from "./services/nodeManagmentService";
-import { FamilyTreeSuggestionService } from "./services/suggestionCreationService";
-import { SuggestionService, suggestionService } from "./services/suggestionService";
-import { localStorageManager } from "./storage/storageManager";
+import { suggestionCreationService } from "./services/suggestionCreationService";
+import { suggestionService } from "./services/suggestionService";
+import { userService } from "./services/user.service";
+
+
+
+
+
+
+
+function otherNodeDetails(familyNode: FamilyNode) {
+    const wrapper = document.createElement('div');
+
+    // Create the title and toggle button container
+    const titleWrapper = document.createElement('div');
+    titleWrapper.style.display = 'flex';
+    titleWrapper.style.alignItems = 'center';
+    titleWrapper.style.cursor = 'pointer';
+    titleWrapper.style.width = '100%';
+
+    const title = document.createElement('p');
+    title.textContent = 'Other details';
+    title.style.fontSize = '20px';
+    title.style.margin = '0';
+    title.style.flexShrink = '0';
+
+    const line = document.createElement('hr');
+    line.style.flexGrow = '1';
+    line.style.marginLeft = '10px';
+
+    titleWrapper.appendChild(title);
+    titleWrapper.appendChild(line);
+    wrapper.appendChild(titleWrapper);
+
+    // Content container (initially hidden)
+    const contentWrapper = document.createElement('div');
+    contentWrapper.style.display = 'none';
+    contentWrapper.style.marginLeft = '30px';
+
+    function memberFormer(title: string, member: any) {
+        const membersContainer = document.createElement('div');
+        membersContainer.style.border = 'gray 1px solid';
+        membersContainer.style.display = 'flex';
+        membersContainer.style.alignItems = 'center';
+        membersContainer.style.paddingLeft = '10px';
+
+        const creatorsTitle = document.createElement('p');
+        creatorsTitle.textContent = title + ':';
+        creatorsTitle.style.marginRight = '20px';
+
+        membersContainer.appendChild(creatorsTitle);
+
+        const memberElement = createUserProfileElement(member);
+        membersContainer.appendChild(memberElement);
+
+        return membersContainer;
+    }
+
+    function formatDate(dateString: string) {
+        const date = new Date(dateString);
+        return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function createInfoRow(label: string, value: string) {
+        const infoRow = document.createElement('div');
+        infoRow.style.display = 'flex';
+        infoRow.style.alignItems = 'center';
+
+        const labelElement = document.createElement('p');
+        labelElement.textContent = `${label}:`;
+        labelElement.style.marginRight = '10px';
+        labelElement.style.fontWeight = 'bold';
+
+        const valueElement = document.createElement('p');
+        valueElement.textContent = value;
+
+        infoRow.appendChild(labelElement);
+        infoRow.appendChild(valueElement);
+
+        return infoRow;
+    }
+
+    if (familyNode.ownedBy) {
+        contentWrapper.appendChild(memberFormer('Owned by', familyNode.ownedBy));
+    }
+    if (familyNode.createdBy) {
+        contentWrapper.appendChild(memberFormer('Created by', familyNode.createdBy));
+    }
+    if (familyNode.suggestedBy) {
+        contentWrapper.appendChild(memberFormer('Suggested by', familyNode.suggestedBy));
+    }
+
+    if (familyNode.createdAt) {
+        contentWrapper.appendChild(createInfoRow('Created at', formatDate(familyNode.createdAt)));
+    }
+    if (familyNode.updatedAt) {
+        contentWrapper.appendChild(createInfoRow('Updated at', formatDate(familyNode.updatedAt)));
+    }
+
+    wrapper.appendChild(contentWrapper);
+
+    // Toggle functionality
+    titleWrapper.addEventListener('click', (e) => {
+        e.preventDefault();
+        contentWrapper.style.display = contentWrapper.style.display === 'none' ? 'block' : 'none';
+    });
+
+    return wrapper;
+}
+
+
+
+
+
+
+
+
+
+
+// Colors for background selection
+const backgroundColors = ["#1E1E1E", "#2C3E50", "#34495E", "#8E44AD", "#C0392B", "#16A085", "#D35400", "#2980B9"]
+
+Math.floor(Math.random() * 8)
+
+// Function to generate a temporary profile picture
+function generateTemporaryProfilePicture(userName) {
+    const firstLetter = userName.charAt(0).toUpperCase();
+    const colorIndex = userName.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % 8;
+    const bgColor1 = backgroundColors[colorIndex];
+    const bgColor2 = backgroundColors[(colorIndex + 3) % 8]; // Second color for gradient
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 80;
+    canvas.height = 80;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+        // Create gradient background
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, bgColor1);
+        gradient.addColorStop(1, bgColor2);
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Add text
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "60px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(firstLetter, canvas.width / 2, canvas.height / 2);
+    }
+
+    return canvas.toDataURL();
+}
+
+function createUserProfileElement(familyTreeMember) {
+    if (!familyTreeMember || !familyTreeMember.user) {
+        console.error("Invalid familyTreeMember object");
+        return null;
+    }
+
+    const container = document.createElement("div");
+    container.style.display = "flex";
+    container.style.alignItems = "center";
+    container.style.gap = "10px";
+    container.style.padding = '10px 2px'
+
+    // Create name element
+    const nameElement = document.createElement("span");
+    nameElement.textContent = familyTreeMember.user.name;
+    nameElement.style.fontSize = "16px";
+    nameElement.style.fontWeight = "bold";
+
+    // Create profile picture element
+    const profilePic = document.createElement("img");
+    profilePic.alt = `${familyTreeMember.user.name}'s profile picture`;
+    profilePic.style.width = "40px"; // 5x relative size
+    profilePic.style.height = "40px";
+    profilePic.style.borderRadius = "50%";
+    profilePic.style.objectFit = "cover";
+
+    // Fetch profile picture from UserService
+    userService.getUserProfilePicture(familyTreeMember.user.id)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("No profile picture available");
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            profilePic.src = URL.createObjectURL(blob);
+        })
+        .catch(() => {
+            // Generate temporary profile picture if the user has no profile picture
+            profilePic.src = generateTemporaryProfilePicture(familyTreeMember.user.name);
+        });
+
+    // Append elements in order
+    container.appendChild(profilePic);
+    container.appendChild(nameElement);
+
+    return container;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// function createUserProfileElement(familyTreeMember: FamilyTreeMembers | undefined): HTMLDivElement | null {
+//     if (!familyTreeMember || !familyTreeMember.user) {
+//         console.error("Invalid familyTreeMember object");
+//         return null;
+//     }
+
+//     const container = document.createElement("div");
+//     container.style.display = "flex";
+//     container.style.alignItems = "center";
+//     container.style.gap = "10px";
+//     container.style.marginBottom = '40px'
+//     container.style.paddingTop = '10px'
+//     container.style.paddingBottom = '10px'
+
+//     // Create name element
+//     const nameElement = document.createElement("span");
+//     nameElement.textContent = familyTreeMember.user.name;
+//     nameElement.style.fontSize = "14px";
+//     nameElement.style.fontWeight = "bold";
+
+//     // Create profile picture element
+//     const profilePic = document.createElement("img");
+//     profilePic.alt = `${familyTreeMember.user.name}'s profile picture`;
+//     profilePic.style.width = "50px"; // 5x relative size
+//     profilePic.style.height = "50px";
+//     profilePic.style.borderRadius = "50%";
+//     profilePic.style.objectFit = "cover";
+
+//     // Fetch profile picture from UserService
+//     userService.getUserProfilePicture(familyTreeMember.user.id)
+//         .then(response => response.blob())
+//         .then(blob => {
+//             profilePic.src = URL.createObjectURL(blob);
+//         })
+//         .catch(error => {
+//             console.error("Error fetching profile picture:", error);
+//             profilePic.src = "default-profile.png"; // Fallback image
+//         });
+//     // Append elements in order
+//     container.appendChild(profilePic);
+//     container.appendChild(nameElement);
+
+//     return container;
+// }
+function contributorDetailElement(title: string, contributors: FamilyTreeMembers[]) {
+    const wrapper = document.createElement('div')
+    const creatorsTitle = document.createElement('p')
+    creatorsTitle.textContent = title
+    wrapper.appendChild(creatorsTitle)
+    contributors.map(item => {
+        const creator = createUserProfileElement(item)
+        wrapper.appendChild(creator)
+    })
+    return wrapper
+
+}
+function contributorsElementGenerator(contributors) {
+    const contributionWrapper = document.createElement('div');
+
+    // Create the title and toggle button container
+    const titleWrapper = document.createElement('div');
+    titleWrapper.style.display = 'flex';
+    titleWrapper.style.alignItems = 'center';
+    titleWrapper.style.cursor = 'pointer';
+    titleWrapper.style.width = '100%';
+
+    const title = document.createElement('p');
+    title.textContent = 'Contributors';
+    title.style.fontSize = '20px';
+    title.style.margin = '0';
+    title.style.flexShrink = '0'; // Ensures the text stays on the left
+
+    // const toggleButton = document.createElement('button');
+    // toggleButton.textContent = '[+]';
+    // toggleButton.style.border = 'none';
+    // toggleButton.style.background = 'none';
+    // toggleButton.style.cursor = 'pointer';
+    // toggleButton.style.fontSize = '18px';
+
+    const line = document.createElement('hr');
+    line.style.flexGrow = '1';
+    line.style.marginLeft = '10px';
+
+    titleWrapper.appendChild(title);
+    titleWrapper.appendChild(line);
+    // titleWrapper.appendChild(toggleButton);
+    contributionWrapper.appendChild(titleWrapper);
+
+    const contentWrapper = document.createElement('div');
+    contentWrapper.style.display = 'none'; // Initially hidden
+    contentWrapper.style.marginLeft = '30px'
+
+    if (contributors) {
+        contentWrapper.appendChild(contributorDetailElement('creators', contributors.creators));
+        contentWrapper.appendChild(document.createElement('hr'));
+        contentWrapper.appendChild(contributorDetailElement('updators', contributors.updators));
+        contentWrapper.appendChild(document.createElement('hr'));
+        contentWrapper.appendChild(contributorDetailElement('creators', contributors.creators));
+    }
+
+    contributionWrapper.appendChild(contentWrapper);
+
+    // Toggle functionality
+    contributionWrapper.addEventListener('click', (e) => {
+        e.preventDefault()
+        if (contentWrapper.style.display === 'none') {
+            contentWrapper.style.display = 'block';
+            // toggleButton.textContent = '[-]';
+        } else {
+            contentWrapper.style.display = 'none';
+            // toggleButton.textContent = '[+]';
+        }
+    });
+
+    return contributionWrapper;
+}
+
+
+
+
+
+
+function createDropdown(nodes: { id: string, name: string }[], identifier, message): HTMLSelectElement {
+    // Create a select element
+    const select = document.createElement("select");
+
+    // Create and append the default option
+    select.id = identifier
+    select.name = identifier
+    select.className = 'dynamic-input'
+    const defaultOption = document.createElement("option");
+    defaultOption.textContent = message;
+    defaultOption.value = "";
+    select.appendChild(defaultOption);
+
+    // Create and append options for each node
+    nodes.forEach(node => {
+        const option = document.createElement("option");
+        option.value = `${node.id}`;
+        option.textContent = node.name;
+        select.appendChild(option);
+    });
+
+    // Add an event listener to capture selection
+    select.addEventListener("change", () => {
+        if (select.value) {
+            console.log("Selected Node ID:", select.value);
+        }
+    });
+
+    return select;
+}
+
+// Example usage
+
 
 export class HtmlElementsManager {
-    constructor() {
+    private familyTreeId: number;
+    public nodeManager;
+    private relationType = [
+        { id: 'UNKNOWN', name: 'UNKNOWN' },
+        { id: 'EX', name: 'EX' },
+        { id: 'FRIEND', name: 'FRIEND' },
+        { id: 'MAIN', name: 'MAIN' },
+    ]
+    constructor(familyTreeId: number) {
+        this.familyTreeId = familyTreeId;
+        this.nodeManager = ND
         this.initTabs();
     }
 
@@ -26,50 +442,8 @@ export class HtmlElementsManager {
         document.getElementById(`${tab}Tab`).classList.add('active');
     }
 
-    // async suggestionHandler() {
-
-    //     const SuggestionService = new FamilyTreeSuggestionService()
-    //     const endpointServiceMap = {
-    //         suggestNewParent: SuggestionService.suggestNewParent,
-    //         suggestExistingParent: SuggestionService.suggestExistingParent,
-    //         suggestChildOfOneParent: SuggestionService.suggestChildOfOneParent,
-    //         suggestChildOfTwoParents: SuggestionService.suggestChildOfTwoParents,
-    //         suggestNewPartner: SuggestionService.suggestNewPartner,
-    //         suggestExistingPartner: SuggestionService.suggestExistingPartner,
-    //         suggestNewPartnerAsParent: SuggestionService.suggestNewPartnerAsParent,
-    //         suggestExistingPartnerAsParent: SuggestionService.suggestExistingPartnerAsParent,
-    //         suggestDeleteNode: SuggestionService.suggestDeleteNode,
-    //         suggestUpdateNode: SuggestionService.suggestUpdateNode,
-    //     };
-
-    //     const formData = new FormData(this);
-    //     const endpoint = document.getElementById('postEndpoint')?.textContent;
-    //     const data = Object.fromEntries(formData.entries());
-
-    //     console.log("this is this", endpoint)
-    //     if (endpointServiceMap[endpoint]) {
-    //         try {
-    //             console.log("Entry Data", data)
-
-    //             const response = await endpointServiceMap[endpoint](data);
-
-    //             const familyTreeId = localStorageManager.getItem('familyTreeId');
-    //             nodesArray = await nodeManagmentService.fetchNodesArrays(familyTreeId);
-    //             if (nodesArray) {
-    //                 console.log("Fetched Array Data", data);
-    //                 drawer.fetchData(nodesArray, parseInt(data.familyNodeId), true);
-    //                 // alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
-    //             }
-    //             console.log('Success:', response);
-    //         } catch (error) {
-    //             console.error('Error:', error);
-    //         }
-
-    //     }
-    // }
-
     setActionTypeLabel(actionType: actionTypes, node, currentNodeId) {
-        let memberPriviledge = ND.memberPriviledge(1, currentNodeId);
+        let memberPriviledge = this.nodeManager.memberPriviledge(1, currentNodeId);
         console.log('MEMBER PRIVILEDGE', memberPriviledge)
         const currentMembmerMode = (memberPriviledge === 'create' || memberPriviledge === 'only-create') ? 'create' : 'suggest';
         // 'suggest'; // 'create' or 'suggest
@@ -87,14 +461,14 @@ export class HtmlElementsManager {
                 existing: {
                     endpoint: { create: 'addExistingParent', suggest: 'suggestExistingParent' },
                     label: { create: { MALE: "Add Exiting Father", FEMALE: "Add Exiting Mother" }, suggest: { MALE: "Suggest Exiting Father", FEMALE: "Suggest Exiting Mother" } },
-                    fields: ['partnershipType', 'partnerNodeId']
+                    fields: ['partnershipType', 'targetNodeId']
                 },
             },
             addChildOfTwoParents: {
                 new: {
                     endpoint: { create: 'addChildOfTwoParents', suggest: 'suggestChildOfTwoParents' },
                     label: { create: { MALE: "Add Son of Two Parents", FEMALE: "Add Daughter of Two Parents" }, suggest: { MALE: "Suggest Son of Two Parents", FEMALE: "Suggest Daughter of Two Parents" } },
-                    fields: ['partnerNodeId', 'partnershipType', 'childNodeData']
+                    fields: ['targetNodeId', 'childNodeData']
                 }
             },
             addChildOfOneParent: {
@@ -113,108 +487,12 @@ export class HtmlElementsManager {
                 existing: {
                     endpoint: { create: 'addExistingPartner', suggest: 'suggestExistingPartner' },
                     label: { create: { MALE: "Add Existing Partner", FEMALE: "Add Existing Partner" }, suggest: { MALE: "Suggest Existing Partner", FEMALE: "Suggest Existing Partner" } },
-                    fields: ['partnershipType', 'partnerNodeId']
+                    fields: ['partnershipType', 'targetNodeId']
                 },
             },
         };
-
-        const actionOptions = endpointFieldMapNew[actionType];
-
-        if (!actionOptions) return;
-
-        // Create dropdown for selecting between 'new' and 'existing' if both exist
-        if (actionOptions.new && actionOptions.existing) {
-            const select = document.createElement('select');
-            select.id = 'actionOptionSelect';
-
-            ['existing', 'new'].forEach(option => {
-                const opt = document.createElement('option');
-                opt.value = option;
-                opt.textContent = actionOptions[option].label[currentMembmerMode][node.data.gender];
-                select.appendChild(opt);
-            });
-
-            select.addEventListener('change', () => {
-                const label = endpointFieldMapNew[actionType][select.value].label[currentMembmerMode][node.data.gender];
-                document.getElementById('endpointLabel').textContent = label;
-                document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][select.value].endpoint[currentMembmerMode];
-                generateFields(select.value)
-            });
-            dynamicFields.appendChild(select);
-            const label = endpointFieldMapNew[actionType]['existing'].label[currentMembmerMode][node.data.gender];
-            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType]['existing'].endpoint[currentMembmerMode];
-            document.getElementById('endpointLabel').textContent = label;
-
-            generateFields('existing'); // Default selection
-        } else {
-            const option = actionOptions.new ? 'new' : 'existing';
-            const label = endpointFieldMapNew[actionType][option].label[currentMembmerMode][node.data.gender];
-            document.getElementById('endpointLabel').textContent = label;
-            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][option].endpoint[currentMembmerMode];
-
-            generateFields(option);
-        }
-        const saveButton = document.createElement('button')
-        saveButton.textContent = 'Save Info'
-        saveButton.className = 'edit-save'
-        saveButton.addEventListener('click', async (e) => {
-            const CreateService = new FamilyTreeService()
-            const SuggestionService = new FamilyTreeSuggestionService()
-            const endpointServiceMap = {
-                addNewParent: CreateService.addNewParent,
-                addExistingParent: CreateService.addExistingParent,
-                addChildOfOneParent: CreateService.addChildOfOneParent,
-                addChildOfTwoParents: CreateService.addChildOfTwoParents,
-                addNewPartner: CreateService.addNewPartner,
-                addExistingPartner: CreateService.addExistingPartner,
-                addNewPartnerAsParent: CreateService.addNewPartnerAsParent,
-                addExistingPartnerAsParent: CreateService.addExistingPartnerAsParent,
-                suggestNewParent: SuggestionService.suggestNewParent,
-                suggestExistingParent: SuggestionService.suggestExistingParent,
-                suggestChildOfOneParent: SuggestionService.suggestChildOfOneParent,
-                suggestChildOfTwoParents: SuggestionService.suggestChildOfTwoParents,
-                suggestNewPartner: SuggestionService.suggestNewPartner,
-                suggestExistingPartner: SuggestionService.suggestExistingPartner,
-                suggestNewPartnerAsParent: SuggestionService.suggestNewPartnerAsParent,
-                suggestExistingPartnerAsParent: SuggestionService.suggestExistingPartnerAsParent,
-                suggestDeleteNode: SuggestionService.suggestDeleteNode,
-                suggestUpdateNode: SuggestionService.suggestUpdateNode,
-            }; e.preventDefault();
-            const familyTreeForm = document.getElementById('familyTreeForm')
-            const formData = new FormData(familyTreeForm);
-            const endpoint = document.getElementById('postEndpoint')?.textContent;
-            const data = Object.fromEntries(formData.entries());
-            console.log('END POINT: ', endpoint)
-            if (endpointServiceMap[endpoint]) {
-                try {
-
-                    const response = await endpointServiceMap[endpoint](data);
-
-                    const familyTreeId = localStorageManager.getItem('familyTreeId');
-                    const nodesArray = await nodeManagmentService.fetchNodesArrays(familyTreeId);
-                    if (nodesArray) {
-                        drawer.fetchData(nodesArray, parseInt(data.familyNodeId), true);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                }
-
-            }
-
-            // const updatedData = {};
-            // Object.keys(formData).forEach(key => {
-            //     if (formData[key].value) {
-            //         updatedData[key] = formData[key].value;
-            //     }
-            // });
-            const familyTreeId = localStorageManager.getItem('familyTreeId')
-            const currentData = await ND.getNode(currentNodeId)
-            const memberPriviledge = ND.memberPriviledge(familyTreeId, currentNodeId)
-            this.createViewMode(currentData, memberPriviledge);
-        });
-        dynamicFields.appendChild(saveButton)
-
-        function generateFields(option) {
+        const generateFields = (option) => {
+            console.log("I am GENERAT FIELDS")
             const fields = actionOptions[option].fields;
             dynamicFields.querySelectorAll('.dynamic-input').forEach(el => el.remove());
 
@@ -254,18 +532,23 @@ export class HtmlElementsManager {
                         }
                         dynamicFields.appendChild(input);
                     });
-                } else if (field.endsWith('Id')) {
+                } else if (field === 'targetNodeId' && actionType !== actionTypes.addChildOfTwoParents) {
+                    dynamicFields.appendChild(createDropdown(this.nodeManager.data.familyNodes, 'targetNodeId', 'select Existing Node'))
+                } else if (field === 'partnershipType') {
+                    dynamicFields.appendChild(createDropdown(this.relationType, 'partnershipType', 'select relationship Status'))
+                }
+                else if (field.endsWith('Id')) {
                     const input = document.createElement('input');
                     input.type = 'number';
                     input.name = field;
                     input.placeholder = field;
                     input.required = true;
                     input.className = 'dynamic-input';
-                    if (actionType === 'addChildOfTwoParents' && field === 'partnerNodeId') {
+                    if (actionType === 'addChildOfTwoParents' && field === 'targetNodeId') {
                         const partnerId = node.data.motherId === currentNodeId ? node.data.fatherId : node.data.motherId
                         input.value = partnerId;
                         const p = document.createElement('p');
-                        const partnerNode = ND.getNode(partnerId)
+                        const partnerNode = this.nodeManager.getNode(partnerId)
                         p.textContent = `Partner: ${partnerNode.name}`
                         dynamicFields?.appendChild(p)
                     }
@@ -280,7 +563,100 @@ export class HtmlElementsManager {
                     dynamicFields.appendChild(input);
                 }
             });
+
+
+            const saveButton = document.createElement('button')
+            saveButton.textContent = 'Save Info'
+            saveButton.className = 'dynamic-input'
+            saveButton.addEventListener('click', async (e) => {
+                const endpointServiceMap = {
+                    addNewParent: nodeCreationService.addNewParent,
+                    addExistingParent: nodeCreationService.addExistingParent,
+                    addChildOfOneParent: nodeCreationService.addChildOfOneParent,
+                    addChildOfTwoParents: nodeCreationService.addChildOfTwoParents,
+                    addNewPartner: nodeCreationService.addNewPartner,
+                    addExistingPartner: nodeCreationService.addExistingPartner,
+                    suggestNewParent: suggestionCreationService.suggestNewParent,
+                    suggestExistingParent: suggestionCreationService.suggestExistingParent,
+                    suggestChildOfOneParent: suggestionCreationService.suggestChildOfOneParent,
+                    suggestChildOfTwoParents: suggestionCreationService.suggestChildOfTwoParents,
+                    suggestNewPartner: suggestionCreationService.suggestNewPartner,
+                    suggestExistingPartner: suggestionCreationService.suggestExistingPartner,
+                    suggestDeleteNode: suggestionCreationService.suggestDeleteNode,
+                    suggestUpdateNode: suggestionCreationService.suggestUpdateNode,
+                }; e.preventDefault();
+                const familyTreeForm = document.getElementById('familyTreeForm')
+                const formData = new FormData(familyTreeForm);
+                const endpoint = document.getElementById('postEndpoint')?.textContent;
+                const data = Object.fromEntries(formData.entries());
+                console.log('END POINT: ', endpoint)
+                if (endpointServiceMap[endpoint]) {
+                    try {
+
+                        const response = await endpointServiceMap[endpoint](this.familyTreeId, data.familyNodeId, data);
+
+                        const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+                        if (nodesArray) {
+                            drawer.fetchData(nodesArray, parseInt(data.familyNodeId), true);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+
+                }
+
+                // const updatedData = {};
+                // Object.keys(formData).forEach(key => {
+                //     if (formData[key].value) {
+                //         updatedData[key] = formData[key].value;
+                //     }
+                // });
+                const currentData = await this.nodeManager.getNode(currentNodeId)
+                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, currentNodeId)
+                this.createViewMode(currentData, memberPriviledge);
+            });
+            dynamicFields.appendChild(saveButton)
         }
+
+        const actionOptions = endpointFieldMapNew[actionType];
+
+        if (!actionOptions) return;
+
+        // Create dropdown for selecting between 'new' and 'existing' if both exist
+        if (actionOptions.new && actionOptions.existing) {
+            const select = document.createElement('select');
+            select.id = 'actionOptionSelect';
+
+            ['existing', 'new'].forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = actionOptions[option].label[currentMembmerMode][node.data.gender];
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', () => {
+                const label = endpointFieldMapNew[actionType][select.value].label[currentMembmerMode][node.data.gender];
+                document.getElementById('endpointLabel').textContent = label;
+                document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][select.value].endpoint[currentMembmerMode];
+                generateFields(select.value)
+            });
+            dynamicFields.appendChild(select);
+            const label = endpointFieldMapNew[actionType]['existing'].label[currentMembmerMode][node.data.gender];
+            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType]['existing'].endpoint[currentMembmerMode];
+            document.getElementById('endpointLabel').textContent = label;
+
+            generateFields('existing'); // Default selection
+        } else {
+            const option = actionOptions.new ? 'new' : 'existing';
+            const label = endpointFieldMapNew[actionType][option].label[currentMembmerMode][node.data.gender];
+            document.getElementById('endpointLabel').textContent = label;
+            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][option].endpoint[currentMembmerMode];
+
+            generateFields(option);
+        }
+
+
+
     }
     displaySuggestionInfo(suggestionBody, rootNodeId: number) {
         const dynamicFields = document.getElementById('dynamicFields');
@@ -324,15 +700,14 @@ export class HtmlElementsManager {
             acceptButton.addEventListener('click', async (e) => {
                 e.preventDefault()
 
-                const updatedNode = await suggestionService.acceptOrRejectSuggestion(suggestionBody.familyTree.id, suggestionBody.id, 'accepted')
-                const familyTreeId = localStorageManager.getItem('familyTreeId')
-                const memberPriviledge = ND.memberPriviledge(familyTreeId, rootNodeId)
-                const nodesArray = await nodeManagmentService.fetchNodesArrays(familyTreeId);
+                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'accepted')
+                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
                     console.log("Fetched Array Data", nodesArray);
                     drawer.fetchData(nodesArray, rootNodeId, true);
                 }
-                const rootNode = ND.getNode(rootNodeId)
+                const rootNode = this.nodeManager.getNode(rootNodeId)
                 console.log("ROOT", rootNodeId, rootNode)
                 this.createViewMode(rootNode, memberPriviledge)
             });
@@ -344,24 +719,22 @@ export class HtmlElementsManager {
             dynamicFields.appendChild(rejectButton);
             rejectButton.addEventListener('click', async (e) => {
                 e.preventDefault()
-                const updatedNode = await suggestionService.acceptOrRejectSuggestion(suggestionBody.familyTree.id, suggestionBody.id, 'rejected')
-                const familyTreeId = localStorageManager.getItem('familyTreeId')
-                const memberPriviledge = ND.memberPriviledge(familyTreeId, rootNodeId)
+                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'rejected')
+                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
-                const nodesArray = await nodeManagmentService.fetchNodesArrays(familyTreeId);
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
                     console.log("Fetched Array Data", nodesArray);
                     drawer.fetchData(nodesArray, rootNodeId, true);
                 }
-                const rootNode = ND.getNode(rootNodeId)
+                const rootNode = this.nodeManager.getNode(rootNodeId)
                 console.log("ROOT", rootNodeId, rootNode)
                 this.createViewMode(rootNode, memberPriviledge)
-    
+
             });
-            const rootNode = ND.getNode(rootNodeId)
+            const rootNode = this.nodeManager.getNode(rootNodeId)
             console.log("ROOT", rootNodeId, rootNode)
-            const familyTreeId = localStorageManager.getItem('familyTreeId')
-            const memberPriviledge = ND.memberPriviledge(familyTreeId, rootNodeId)
+            const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
             // this.createViewMode(rootNode, memberPriviledge)
         };
         reviewSuggestionViewMode(nodeData)
@@ -385,12 +758,15 @@ export class HtmlElementsManager {
                 this.createEditMode(data, memberPriviledge)
             });
             dynamicFields.appendChild(editButton);
-            const deleteAllowed = ND.isAllowedAction(data.id, genericActionTypes.DeleteNode);
-            // const deleteAllowed = ND.isAllowedAction(nodeData.id, genericActionTypes.DeleteNode);
+            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
+            dynamicFields.appendChild(contributors);
+            const details = otherNodeDetails(this.nodeManager.getNode(data.id))
+            dynamicFields.appendChild(details)
+            const deleteAllowed = this.nodeManager.isAllowedAction(data.id, genericActionTypes.DeleteNode);
+            // const deleteAllowed = this.nodeManager.isAllowedAction(nodeData.id, genericActionTypes.DeleteNode);
             console.log("Delete Allowed", deleteAllowed)
-            const familyTreeId = localStorageManager.getItem('familyTreeId')
-            const canSuggest = ND.canContribute(data.familyTree.id)
-            const canUpdate = ND.canUpdate(familyTreeId, data.id)
+            const canSuggest = this.nodeManager.canContribute()
+            const canUpdate = this.nodeManager.canUpdate(data.id)
             if (deleteAllowed) {
                 if (canSuggest) {
                     const deleteButton = document.createElement('button');
@@ -417,6 +793,11 @@ export class HtmlElementsManager {
             editButton.className = 'dynamic-input';
             editButton.addEventListener('click', () => { this.createSuggestionMode(data, memberPriviledge) });
             dynamicFields.appendChild(editButton);
+            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
+            dynamicFields.appendChild(contributors);
+            const details = otherNodeDetails(this.nodeManager.getNode(data.id))
+            dynamicFields.appendChild(details)
+
         }
     };
 
@@ -447,14 +828,14 @@ export class HtmlElementsManager {
                     updatedData[key] = formData[key].value;
                 }
             });
-            await nodeManagmentService.updateNode(nodeData.familyTree.id, nodeData.id, updatedData)
+            await nodeManagmentService.updateNode(this.familyTreeId, nodeData.id, updatedData)
 
-            const nodesArray = await nodeManagmentService.fetchNodesArrays(nodeData.familyTree.id);
+            const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
                 console.log("Fetched Array Data", nodesArray);
                 drawer.fetchData(nodesArray, nodeData.id, true);
             }
-            const updatedNode = ND.getNode(nodeData.id)
+            const updatedNode = this.nodeManager.getNode(nodeData.id)
             this.createViewMode(updatedNode, memberPriviledge);
         });
 
@@ -481,10 +862,10 @@ export class HtmlElementsManager {
         deleteButtonYes.className = 'delete-button';
         deleteButtonYes.addEventListener('click', async (e) => {
             e.preventDefault()
-            const deleteNode = await nodeManagmentService.deleteNode(nodeData.familyTree.id, nodeData.id)
+            const deleteNode = await nodeManagmentService.deleteNode(this.familyTreeId, nodeData.id)
             const previousNodeId = drawer.popRootHistory(nodeData.id)
 
-            const nodesArray = await nodeManagmentService.fetchNodesArrays(nodeData.familyTree.id);
+            const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
                 drawer.fetchData(nodesArray, previousNodeId, true);
             }
@@ -523,7 +904,6 @@ export class HtmlElementsManager {
         SuggestDeleteButton.className = 'delete-button';
         SuggestDeleteButton.addEventListener('click', async (e) => {
             e.preventDefault()
-            const suggestionService = new FamilyTreeSuggestionService()
             const deletionBody = {};
             Object.keys(formData).forEach(key => {
                 if (formData[key].value) {
@@ -533,10 +913,9 @@ export class HtmlElementsManager {
             });
             console.log("form body", formData)
             console.log("suggest body", deletionBody)
-            const familyTreeId = localStorageManager.getItem('familyTreeId')
 
 
-            const deleteNode = await suggestionService.suggestDeleteNode(familyTreeId, nodeData.id, deletionBody)
+            const deleteNode = await suggestionCreationService.suggestDeleteNode(this.familyTreeId, nodeData.id, deletionBody)
             // Return to the previous old node
             this.createViewMode(nodeData, memberPriviledge)
 
@@ -585,7 +964,7 @@ export class HtmlElementsManager {
         saveButton.addEventListener('click', async (e) => {
 
             e.preventDefault()
-            const suggestionService = new FamilyTreeSuggestionService();
+            // const suggestionService = new FamilyTreeSuggestionService(this.familyTreeId);
             const suggestedData = {};
             Object.keys(formData).forEach(key => {
                 if (formData[key].value) {
@@ -593,8 +972,6 @@ export class HtmlElementsManager {
                     suggestedData[key] = formData[key].value;
                 }
             });
-            const familyNodeId = localStorageManager.getItem('familyNodeId')
-            const familyTreeId = localStorageManager.getItem('familyTreeId')
             console.log("suggested Data", suggestedData)
             this.createViewMode(nodeData, memberPriviledge);
         });
@@ -608,8 +985,7 @@ export class HtmlElementsManager {
         dynamicFields.appendChild(cancelButton);
     };
     infoDisplayer(nodeData, rootNodeId) {
-        const familyTreeId = localStorageManager.getItem('familyTreeId')
-        const memberPriviledge = ND.memberPriviledge(familyTreeId, rootNodeId)
+        const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
         const dynamicFields = document.getElementById('dynamicFields');
         document.getElementById('familyNodeId').value = rootNodeId;
@@ -622,7 +998,6 @@ export class HtmlElementsManager {
 
         this.createViewMode(nodeData, memberPriviledge);
     }
-
 
     displayNodeDetails() {
         this.showTab('details')

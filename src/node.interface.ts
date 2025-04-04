@@ -14,6 +14,10 @@ export interface FamilyNode {
     isSecondary: boolean;
     isFounder: boolean;
     parentRelationship: Parent;
+    ownedBy: FamilyTreeMembers;
+    suggestedBy: FamilyTreeMembers;
+    createdBy: FamilyTreeMembers;
+    updatedBy: FamilyTreeMembers;
 }
 export interface HrDataChild {
     id: number,
@@ -126,7 +130,8 @@ export interface DrawableNode {
     source?: string;
     mode: 'edit' | 'node',
     actionType?: genericActionTypes;
-    isLegal?: boolean;
+    hasPending?: boolean;
+    isAllowed?: boolean;
     suggestionId?: number;
 }
 export interface temporaryData {

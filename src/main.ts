@@ -1,29 +1,35 @@
 import { localStorageManager } from "./storage/storageManager";
 import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
-import { FamilyTreeService } from "./services/nodeCreationServices";
 import { nodeManagmentService } from "./services/nodeManagmentService";
-import { FamilyTreeSuggestionService } from "./services/suggestionCreationService"
+import { CustomFlatData } from "./node.interface";
+import { DataManager } from "./dataManager";
 
 // Initialize the FamilyTree class
-localStorageManager.setItem('familyTreeId', 1);
-const bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`
-// const bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMiIsImlhdCI6MTczOTUzNzQwNSwiZXhwIjoxODM5NjIzODA1fQ.VHkjd4KTeFg37uZIWdnXygJdma0aBt7fj9UiTVgaVzU`
+// USER 1
+// const bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`
+
+// USER 2
+const bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMiIsImlhdCI6MTczOTUzNzQwNSwiZXhwIjoxODM5NjIzODA1fQ.VHkjd4KTeFg37uZIWdnXygJdma0aBt7fj9UiTVgaVzU`
 
 
 localStorageManager.setItem('bearerToken', bearerToken)
-// localStorageManager.setItem('bearerToken', bearerToken)
-export const drawer = new FamilyTreeDrawer();
-let nodesArray;
-let fetchedNodesArray: any = null; // To store the fetched data
+
+const familyTreeId = 1
+export const ND = new DataManager(familyTreeId);
+export const drawer = new FamilyTreeDrawer(familyTreeId);
+
 
 // Automatically fetch the nodes when the script loads
 (async () => {
     try {
-        const familyTreeId = localStorageManager.getItem('familyTreeId');
-        nodesArray = await nodeManagmentService.fetchNodesArrays(familyTreeId);
+        let nodesArray: CustomFlatData = await nodeManagmentService.fetchNodesArrays(familyTreeId);
         if (nodesArray) {
-            fetchedNodesArray = nodesArray;
-            drawer.fetchData(nodesArray, 6, true);
+            const founderNode = nodesArray.familyNodes.find(item => item.isFounder);
+            if (founderNode) {
+                drawer.fetchData(nodesArray, founderNode.id as number, true);
+            } else {
+                throw new Error('Founder Node Not Found')
+            }
             // alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
         }
     } catch (error) {
@@ -32,27 +38,25 @@ let fetchedNodesArray: any = null; // To store the fetched data
 })();
 
 
-const CreateService = new FamilyTreeService()
-const SuggestionService = new FamilyTreeSuggestionService()
 
+const sizeManagerForm = document.getElementById("sizeManager") as HTMLFormElement;
 
-const endpointServiceMap = {
-        addNewParent: CreateService.addNewParent,
-        addExistingParent: CreateService.addExistingParent,
-        addChildOfOneParent: CreateService.addChildOfOneParent,
-        addChildOfTwoParents: CreateService.addChildOfTwoParents,
-        addNewPartner: CreateService.addNewPartner,
-        addExistingPartner: CreateService.addExistingPartner,
-        addNewPartnerAsParent: CreateService.addNewPartnerAsParent,
-        addExistingPartnerAsParent: CreateService.addExistingPartnerAsParent,
-        suggestNewParent: SuggestionService.suggestNewParent,
-        suggestExistingParent: SuggestionService.suggestExistingParent,
-        suggestChildOfOneParent: SuggestionService.suggestChildOfOneParent,
-        suggestChildOfTwoParents: SuggestionService.suggestChildOfTwoParents,
-        suggestNewPartner: SuggestionService.suggestNewPartner,
-        suggestExistingPartner: SuggestionService.suggestExistingPartner,
-        suggestNewPartnerAsParent: SuggestionService.suggestNewPartnerAsParent,
-        suggestExistingPartnerAsParent: SuggestionService.suggestExistingPartnerAsParent,
-        suggestDeleteNode: SuggestionService.suggestDeleteNode,
-        suggestUpdateNode: SuggestionService.suggestUpdateNode,
-};
+if (sizeManagerForm) {
+    sizeManagerForm.addEventListener("submit", (event) => {
+        event.preventDefault(); // Prevent default form submission
+
+        const sizeInput = document.getElementById("size") as HTMLInputElement;
+
+        const size = parseInt(sizeInput.value, 10);
+
+        // Call the updateSVGSize method:
+        if (drawer) { // ensure drawer is defined
+            drawer.updateSVGSize(size);
+        } else {
+            console.error("drawer is undefined");
+        }
+    });
+} else {
+    console.error("Size manager form not found.");
+}
+

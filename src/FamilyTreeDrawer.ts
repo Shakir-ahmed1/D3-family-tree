@@ -1,11 +1,41 @@
 import * as d3 from "d3";
 import { DrawableNode } from "./node.interface";
-import { ND } from "./dataManager";
+import { DataManager } from "./dataManager";
 import { HtmlElementsManager } from "./htmlElementsManager";
-import { localStorageManager } from "./storage/storageManager";
+import { ND } from "./main";
 export class FamilyTreeDrawer {
-    private width = 800;
-    private height = 800;
+    private colors = {
+        suggestionMale: '#9FCC9F',
+        suggestionFemale: '#B58FCB',
+        nodeMale: '#9FC0CC',
+        nodeFemale: '#D8A5AD',
+        nodeDefault: '#AAA',
+        actionUpdate: '#FFD700',
+        actionCreate: '#2E8B57',
+        actionSuggest: '#D2691E',
+        actionOnlyCreate: '#FFD700',
+        actionTextColor: "#ffffff",
+        lineMarriage: "#000",
+        lineParentChild: "#ccc",
+        circlularStroke: "#999",
+        editNodeBackground: "#f0f0f0"
+    }
+    private values = {
+        svgWidth: 800,
+        svgHeight: 800,
+        nodeRadius: 40,
+        nodesVerticalSpacingFactor: 3.3,
+        nodesHorizontalSpacingFactor: 3,
+        svgWidthPaddingFactor: 4,
+        svgHeightPaddingFactor: 4,
+        fadeInAnimationDuration: 1000,
+        fadeOutAnimationDuration: 1000,
+        fadeInAnimationDurationEditMode: 1000,
+        fadeOutAnimationDurationEditMode: 1000
+    }
+    private sourceData: any
+    private width = this.values.svgWidth;
+    private height = this.values.svgHeight;
     private minTreeX: number = 0;
     private minTreeY: number = 0;
     private maxTreeX: number = 0;
@@ -14,11 +44,11 @@ export class FamilyTreeDrawer {
     private fetchedDesendants: DrawableNode | undefined;
     private fetchedAncestors: DrawableNode | undefined;
     private oldJointData: d3.HierarchyNode<DrawableNode>[] = [];
-    private NODE_RADIUS = 40; // Change this to scale node size
-    private verticalSpacing = this.NODE_RADIUS * 3.3; // Space between generations
-    private horizontalSpacing = this.NODE_RADIUS * 3; // Space between siblings/spouses
-    private widthPadding = 4 * this.NODE_RADIUS;
-    private heightPadding = 4 * this.NODE_RADIUS;
+    private NODE_RADIUS = this.values.nodeRadius; // Change this to scale node size
+    private verticalSpacing = this.NODE_RADIUS * this.values.nodesVerticalSpacingFactor; // Space between generations
+    private horizontalSpacing = this.NODE_RADIUS * this.values.nodesVerticalSpacingFactor; // Space between siblings/spouses
+    private widthPadding = this.values.svgWidthPaddingFactor * this.NODE_RADIUS;
+    private heightPadding = this.values.svgHeightPaddingFactor * this.NODE_RADIUS;
     private descTreeLayout = d3.tree<DrawableNode>().nodeSize([this.horizontalSpacing, this.verticalSpacing]);
     private descRoot: d3.HierarchyNode<DrawableNode> | undefined;
     private descTreeData: d3.HierarchyPointNode<DrawableNode> | undefined;
@@ -30,14 +60,15 @@ export class FamilyTreeDrawer {
     private anceNodes: d3.HierarchyNode<DrawableNode>[] = [];
     private rootNodeId: number | undefined;
     private containerClassName: string = '#treeContainer';
-    private fadeInAnimationDuration = 1000;
-    private fadeOutAnimationDuration = 1000;
+    private fadeInAnimationDuration = this.values.fadeInAnimationDuration;
+    private fadeOutAnimationDuration = this.values.fadeOutAnimationDuration;
     private oldRootNodeId: number | undefined;
     private offSetX = 0;
     private offSetY = 0;
     private scaleFactor = 0.5;
     private svg = d3.select('body').select(this.containerClassName)
         .append('svg')
+        .attr('class', 'svgContainer')
         .attr("width", this.width)
         .attr("height", this.height)
         .append("g");
@@ -73,22 +104,33 @@ export class FamilyTreeDrawer {
 
     descendantsGroupEditMode = this.descendantsGroup
     // descendantsGroupEditMode = this.familyTreeGroup.append("g").attr("class", "descendantsEditMode");
-    private fadeInAnimationDurationEditMode = 1000;
-    private fadeOutAnimationDurationEditMode = 1000;
-    private formManager = new HtmlElementsManager();
-    private familyTreeId: number;
+    private fadeInAnimationDurationEditMode = this.values.fadeInAnimationDurationEditMode;
+    private fadeOutAnimationDurationEditMode = this.values.fadeOutAnimationDurationEditMode;
+    private formManager: HtmlElementsManager | undefined;
+    familyTreeId: number;
+    nodeManager;
 
-
-
-    constructor(
-    ) {
-        this.familyTreeId = 1
-
+    constructor(familyTreeId: number) {
+        this.familyTreeId = familyTreeId
+        this.nodeManager = ND;
+        this.formManager = new HtmlElementsManager(this.familyTreeId)
         const modeButton = document.getElementById('modeType')
         modeButton.addEventListener('click', (event) => {
             this.currentMode = this.toggleModes()
         });
 
+    }
+    updateSVGSize(size: number) {
+        this.width = size
+        this.height = size
+
+        d3.select('.svgContainer')
+            .transition()
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .duration(this.fadeInAnimationDuration)
+            ;
+        this.fetchData(this.sourceData, this.rootNodeId, false)
     }
     private attachNodes() {
         this.anceNodes.forEach(item => {
@@ -108,14 +150,10 @@ export class FamilyTreeDrawer {
         this.jointNode = [...this.descNodes, ...this.anceNodes.filter(item => item.data.id !== this.rootNodeId)]
     }
     private attachNodesEditMode() {
-        // this.parentNodes.forEach(item => {
-        //     item.data.catag = 'editAnce'
-        // })
+
         const foundParentCurrent = this.parentNodes.find(item => item.data.id === this.rootNodeId)
         const foundChildCurrent = this.childNodes.find(item => item.data.id === this.rootNodeId)
-        // this.childNodes.forEach(item => {
-        //     item.data.catag = 'editDesc'
-        // })
+
         if (foundChildCurrent && foundParentCurrent) {
             foundChildCurrent.data.father = foundParentCurrent.data.father
             foundChildCurrent.data.mother = foundParentCurrent.data.mother
@@ -157,29 +195,26 @@ export class FamilyTreeDrawer {
     }
 
     fetchData(fetchedNodesArray: any, rootId: number, setData: boolean) {
+        this.sourceData = fetchedNodesArray;
         if (setData) {
-            ND.setData(fetchedNodesArray)
+            this.nodeManager.setData(fetchedNodesArray)
         }
-        localStorageManager.setItem('familyNodeId', rootId)
         this.currentMode = document.getElementById('modeType')?.textContent
-        this.memberPriviledge = ND.memberPriviledge(this.familyTreeId, rootId)
+        this.memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootId)
 
         if (this.currentMode === 'view') {
             this.preProcessData(rootId)
         } else {
             this.preProcessDataEditMode(rootId)
         }
-        // this.nodeDetailDisplayer()
     }
-    private preProcessData(rootId: number) {
+    private preProcessData(rootId: number): void {
 
         if (this.jointNode && this.rootNodeId) {
             const foundCurrentRoot = this.jointNode.find(item => item.data.id === rootId)
             if (foundCurrentRoot) {
-                const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
-                const descendantsData = ND.customBuildDescendantsHiararchy(rootId);
-                const editModeParents = ND.customBuildParent(rootId)
-                const editModeChildren = ND.customBuildChildren(rootId)
+                const ancestorsData = this.nodeManager.customBuildAncestorsHierarchy(rootId, undefined);
+                const descendantsData = this.nodeManager.customBuildDescendantsHiararchy(rootId);
 
                 this.fetchedDesendants = descendantsData;
                 this.fetchedAncestors = ancestorsData;
@@ -188,10 +223,10 @@ export class FamilyTreeDrawer {
 
             } else {
                 // console.log("Hey HOw")
-                // const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
-                // const descendantsData = ND.customBuildDescendantsHiararchy(rootId);
-                // const editModeParents = ND.customBuildParent(rootId)
-                // const editModeChildren = ND.customBuildChildren(rootId)
+                // const ancestorsData = this.nodeManager.customBuildAncestorsHierarchy(rootId, undefined);
+                // const descendantsData = this.nodeManager.customBuildDescendantsHiararchy(rootId);
+                // const editModeParents = this.nodeManager.customBuildParent(rootId)
+                // const editModeChildren = this.nodeManager.customBuildChildren(rootId)
 
                 // this.fetchedDesendants = descendantsData;
                 // this.fetchedAncestors = ancestorsData;
@@ -199,10 +234,8 @@ export class FamilyTreeDrawer {
                 // this.updateTreeDrawing(rootId)
             }
         } else {
-            const ancestorsData = ND.customBuildAncestorsHierarchy(rootId, undefined);
-            const descendantsData = ND.customBuildDescendantsHiararchy(rootId);
-            const editModeParents = ND.customBuildParent(rootId)
-            const editModeChildren = ND.customBuildChildren(rootId)
+            const ancestorsData = this.nodeManager.customBuildAncestorsHierarchy(rootId, undefined);
+            const descendantsData = this.nodeManager.customBuildDescendantsHiararchy(rootId);
 
             this.fetchedDesendants = descendantsData;
             this.fetchedAncestors = ancestorsData;
@@ -211,14 +244,8 @@ export class FamilyTreeDrawer {
         }
     }
     private preProcessDataEditMode(rootId: number) {
-        ND.suggestionData(6)
-
-        const editModeParents = ND.customBuildParent(rootId)
-        const editModeChildren = ND.customBuildChildren(rootId)
-
-
-        // this.fetchedEditModeParents = editModeParents;
-        // this.fetchedEditModeChildren = editModeChildren;
+        const editModeParents = this.nodeManager.customBuildParent(rootId)
+        const editModeChildren = this.nodeManager.customBuildChildren(rootId)
         this.fetchedEditModeParents = editModeParents;
         this.fetchedEditModeChildren = editModeChildren;
         this.updateTreeDrawingEditMode(rootId)
@@ -232,7 +259,6 @@ export class FamilyTreeDrawer {
         const descRootX: number = descRootPossiton.x as number;
         const descRootY: number = descRootPossiton.y as number;
         // Reposition the descendants relative to the root
-        // this.custPrint(this.descNodes)
         this.descNodes = this.descNodes.map(node => {
             node.y = node.y as number - descRootY;
             node.x = node.x as number - descRootX;
@@ -459,8 +485,8 @@ export class FamilyTreeDrawer {
         // 4. ENTER (Create new lines)
         const enter = lines.enter().append("line")
             .attr("class", "marriage-line")
-            .attr("stroke", "#000")
-            .attr("stroke-width", 2)
+            .attr("stroke", this.colors.lineMarriage)
+            .attr("stroke-width", 2 * this.scaleFactor)
             .attr("opacity", 0);
         enter.attr("x1", d => d.x ?? 0)
             .attr("y1", d => d.y ?? 0)
@@ -575,8 +601,8 @@ export class FamilyTreeDrawer {
         const enter = paths.enter().append("path")
             .attr("class", "child-link")
             .attr("fill", "none")
-            .attr("stroke", "#ccc")
-            .attr("stroke-width", 1.5)
+            .attr("stroke", this.colors.lineParentChild)
+            .attr("stroke-width", 1.5 * this.scaleFactor)
             .attr("opacity", 0);
         enter.attr("d", d => { // Set 'd' attribute for new paths
             if (d.data.catag === 'desc') {
@@ -626,9 +652,8 @@ export class FamilyTreeDrawer {
             .attr("opacity", 1);
     }
 
-    modeController(rootId) {
-        ND.testContribution(1, rootId)
-        this.memberPriviledge = ND.memberPriviledge(this.familyTreeId, rootId)
+    modeController(rootId: number) {
+        this.memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootId)
         this.currentMode = this.formManager.displayNodeDetails()
         // this.nodeDetailDisplayer()
         this.preProcessData(rootId);
@@ -642,22 +667,26 @@ export class FamilyTreeDrawer {
     }
     toggleModes(nodeId?: number, manualMode?: string) {
         const modeButton = document.getElementById('modeType')
-        if (manualMode) {
-            modeButton.textContent = manualMode
+        const oldButtonContent = modeButton?.textContent
+        if (manualMode === 'edit' && oldButtonContent === 'edit') {
+            return oldButtonContent;
         } else {
-            modeButton.textContent === "view" ? modeButton.textContent = "edit" : modeButton.textContent = "view"
-        }
-        if (modeButton?.textContent === 'view') {
-            this.preProcessData(nodeId ? nodeId : this.rootNodeId);
+            if (manualMode) {
+                modeButton.textContent = manualMode
+            } else {
+                modeButton.textContent === "view" ? modeButton.textContent = "edit" : modeButton.textContent = "view"
+            }
+            if (modeButton?.textContent === 'view') {
+                this.preProcessData(nodeId ? nodeId : this.rootNodeId);
 
-        } else if (modeButton?.textContent === 'edit') {
-            this.preProcessDataEditMode(nodeId ? nodeId : this.rootNodeId);
+            } else if (modeButton?.textContent === 'edit') {
+                this.preProcessDataEditMode(nodeId ? nodeId : this.rootNodeId);
+            }
+            return modeButton?.textContent
         }
-        return modeButton?.textContent
-
     }
     nodeDetailDisplayer() {
-        let nodeData = ND.data.familyNodes.find(item => {
+        let nodeData = this.nodeManager.data.familyNodes.find(item => {
             return item.id === this.rootNodeId
         })
         this.formManager.infoDisplayer(nodeData, this.rootNodeId)
@@ -667,7 +696,8 @@ export class FamilyTreeDrawer {
         const rootNode = this.jointNode.find(item => item.data.id === this.rootNodeId);
         const strokeWidth = 3;
 
-        const handleClick = (_event, d) => {
+        const handleClick = (_event: any, d: d3.HierarchyNode<DrawableNode>) => {
+
             if (d.data.id !== this.rootNodeId) {
                 this.modeController(d.data.id);
                 this.selectEndpoint(d.data.id);
@@ -685,9 +715,9 @@ export class FamilyTreeDrawer {
             .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id);
         node.on('click', handleClick);
         node.selectAll(".node-circle")
-        .attr("fill", d => {
-            return this.getCustomColor(d)
-        });
+            .attr("fill", d => {
+                return this.getCustomColor(d)
+            });
         node.transition()
             .duration(this.fadeInAnimationDuration)
             .attr("transform", d => `translate(${d.x},${d.y}) scale(${this.scaleFactor})`)
@@ -701,7 +731,7 @@ export class FamilyTreeDrawer {
 
         const circles = enter.append("circle")
             .attr("r", this.NODE_RADIUS)
-            .attr("stroke", "#999")
+            .attr("stroke", this.colors.circlularStroke)
             .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth))
             .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
 
@@ -832,8 +862,8 @@ export class FamilyTreeDrawer {
         // 4. ENTER (Create new lines)
         const enter = lines.enter().append("line")
             .attr("class", "marriage-line")
-            .attr("stroke", "#000")
-            .attr("stroke-width", 2)
+            .attr("stroke", this.colors.lineMarriage)
+            .attr("stroke-width", 2 * this.scaleFactor)
             .attr("opacity", 0);
         enter.attr("x1", d => d.x ?? 0)
             .attr("y1", d => d.y ?? 0)
@@ -972,8 +1002,8 @@ export class FamilyTreeDrawer {
         const enter = paths.enter().append("path")
             .attr("class", "child-link")
             .attr("fill", "none")
-            .attr("stroke", "#ccc")
-            .attr("stroke-width", 1.5)
+            .attr("stroke", this.colors.lineParentChild)
+            .attr("stroke-width", 1.5 * this.scaleFactor)
             .attr("opacity", 0);
         enter.attr("d", d => { // Set 'd' attribute for new paths
             if (d.data.catag === 'editDesc') {
@@ -1047,10 +1077,9 @@ export class FamilyTreeDrawer {
     }
 
 
-    private getCustomColor(d) {
+    private getCustomColor(d: unknown) {
         const foundNode = this.jointNode.find(item => item.data.id === d.data.id)
         const color = this.getNodeColor(foundNode)
-        console.log("ABC", foundNode.data.id, color, foundNode?.data.catag, foundNode.data)
         return color
     }
 
@@ -1058,18 +1087,17 @@ export class FamilyTreeDrawer {
         const rootNode = this.jointNode.find(item => item.data.id === this.rootNodeId);
         const strokeWidth = 3;
 
-        const handleClick = (_event, d) => {
+        const handleClick = (_event: any, d: d3.HierarchyNode<DrawableNode>) => {
             // When a node is clicked, check for the actionType and update the h2 label
-            // if (d.data.isLegal === false) {
-            //     return
-            // }
+            if (d.data.hasPending === false && d.data.mode === 'edit' && d.data.type !== 'suggest' && this.memberPriviledge !== 'suggest') {
+                return
+            }
             if (d.data.mode !== 'edit' && d.data.id !== this.rootNodeId) {
-
                 // if (d.data.mode !== 'edit') { // WORKING ON CLICK IF CONDITION
                 // this.preProcessDataEditMode(d.data.id);
                 this.modeController(d.data.id)
             } else if (d.data.type === 'suggest') {
-                const foundSuggestion = ND.getSuggestion(d.data.suggestionId)
+                const foundSuggestion = this.nodeManager.getSuggestion(d.data.suggestionId)
                 this.formManager.displaySuggestionInfo(foundSuggestion, this.rootNodeId)
             }
             else {
@@ -1099,8 +1127,16 @@ export class FamilyTreeDrawer {
         foundCircles.transition()
             .duration(this.fadeInAnimationDurationEditMode)
             .attr('fill', d => this.getCustomColor(d)); // Update existing node colors
+
+        node.select(".dynamic-color-nodes")
+            .transition()
+            .attr("fill", d => {
+                const color = this.getCustomColor(d)
+                return color;
+            })
+
         console.log('Found Circles', foundCircles)
-        node.selectAll("text[dy='60'][text-anchor='middle']").filter(d => d.data.id > 0 && !['suggestDesc', 'suggestAnce'].includes(d.data.catag)).text(d => ND.getNode(d.data.id).name);
+        node.selectAll("text[dy='60'][text-anchor='middle']").filter(d => d.data.id > 0 && !['suggestDesc', 'suggestAnce'].includes(d.data.catag)).text(d => this.nodeManager.getNode(d.data.id).name);
         node.on('click', handleClick);
 
         const enter = node.enter().append("g")
@@ -1111,7 +1147,7 @@ export class FamilyTreeDrawer {
 
         enter.append("circle")
             .attr("r", this.NODE_RADIUS)
-            .attr("stroke", "#999")
+            .attr("stroke", this.colors.circlularStroke)
             .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth))
             .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>)); // Set initial node colors
 
@@ -1158,43 +1194,42 @@ export class FamilyTreeDrawer {
 
     private getNodeColor(d: d3.HierarchyNode<DrawableNode>): string {
         // console.log("current Priviledge", this.memberPriviledge)
-        console.log("")
         if (this.memberPriviledge === 'suggest') {
             if (d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc' || d.data.mode === 'edit') {
-                return d.data.gender === "MALE" ? "#9FCC9F" :  // Green (similar to the original blue)
-                    d.data.gender === "FEMALE" ? "#B58FCB" : // Violet (similar to the original pink)
-                        "#AAA"; // Default gray
+                return d.data.gender === "MALE" ? this.colors.suggestionMale :  // Green (similar to the original blue)
+                    d.data.gender === "FEMALE" ? this.colors.suggestionFemale : // Violet (similar to the original pink)
+                        this.colors.nodeDefault; // Default gray
             } else {
-                return d.data.gender === "MALE" ? "#9FC0CC" :
-                    d.data.gender === "FEMALE" ? "#D8A5AD" : "#AAA";
+                return d.data.gender === "MALE" ? this.colors.nodeMale :
+                    d.data.gender === "FEMALE" ? this.colors.nodeFemale : this.colors.nodeDefault;
             }
 
         } else if (this.memberPriviledge === 'update') {
             if (d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc') {
-                return d.data.gender === "MALE" ? "#9FCC9F" :  // Green (similar to the original blue)
-                    d.data.gender === "FEMALE" ? "#B58FCB" : // Violet (similar to the original pink)
-                        "#AAA"; // Default gray
+                return d.data.gender === "MALE" ? this.colors.suggestionMale :  // Green (similar to the original blue)
+                    d.data.gender === "FEMALE" ? this.colors.suggestionFemale : // Violet (similar to the original pink)
+                        this.colors.nodeDefault; // Default gray
             } else {
-                return d.data.gender === "MALE" ? "#9FC0CC" :
-                    d.data.gender === "FEMALE" ? "#D8A5AD" : "#AAA";
+                return d.data.gender === "MALE" ? this.colors.nodeMale :
+                    d.data.gender === "FEMALE" ? this.colors.nodeFemale : this.colors.nodeDefault;
             }
         } else if (this.memberPriviledge === 'create') {
-            if (d.data.isLegal === false) {
-                return '#AAA'
+            if (d.data.hasPending === false) {
+                return this.colors.nodeDefault
             }
             if (d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc') {
-                return d.data.gender === "MALE" ? "#9FCC9F" :  // Green (similar to the original blue)
-                    d.data.gender === "FEMALE" ? "#B58FCB" : // Violet (similar to the original pink)
-                        "#AAA"; // Default gray
+                return d.data.gender === "MALE" ? this.colors.suggestionMale :  // Green (similar to the original blue)
+                    d.data.gender === "FEMALE" ? this.colors.suggestionFemale : // Violet (similar to the original pink)
+                        this.colors.nodeDefault; // Default gray
             } else {
-                return d.data.gender === "MALE" ? "#9FC0CC" :
-                    d.data.gender === "FEMALE" ? "#D8A5AD" : "#AAA";
+                return d.data.gender === "MALE" ? this.colors.nodeMale :
+                    d.data.gender === "FEMALE" ? this.colors.nodeFemale : this.colors.nodeDefault;
             }
 
 
         } else {
-            return d.data.gender === "MALE" ? "#9FC0CC" :
-                d.data.gender === "FEMALE" ? "#D8A5AD" : "#AAA";
+            return d.data.gender === "MALE" ? this.colors.nodeMale :
+                d.data.gender === "FEMALE" ? this.colors.nodeFemale : this.colors.nodeDefault;
 
         }
 
@@ -1303,6 +1338,9 @@ export class FamilyTreeDrawer {
                 .append("g")
                 .attr("transform", `translate(${centerX}, ${centerY})`);
 
+            // console.log("found paths",foundPaths)
+
+
             if (d.data.mode !== 'edit' || d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc') {
                 // ✅ Normal Node with Profile Picture
                 nodeGroup.append("circle")
@@ -1357,23 +1395,27 @@ export class FamilyTreeDrawer {
 
             } else if (d.data.mode === 'edit') {
                 // ✅ Edit Node with Plus Icon
+
                 nodeGroup.append("circle")
                     .attr("r", outerRadius)
-                    .attr("fill", "#f0f0f0") // Gray background for edit mode
+                    .attr("fill", this.colors.editNodeBackground) // Gray background for edit mode
                     .attr("stroke", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>))
                     .attr("stroke-width", 2);
 
                 // Group for the plus icon (centered inside the node)
+                nodeGroup.select('g')
                 const iconGroup = nodeGroup.append("g")
                     .attr("transform", `translate(0,0) scale(${outerRadius / 12})`);
 
                 iconGroup.append("circle")
+                    .attr('class', "dynamic-color-nodes")
                     .attr("r", 12)
                     .attr("cx", 0)
                     .attr("cy", 0)
                     .style("fill", "rgba(0,0,0,0)");
 
                 iconGroup.append("path")
+                    .attr('class', "dynamic-color-nodes")
                     .attr("d", "M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z")
                     .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>))
                     .attr("transform", "translate(-12,-12)"); // Center the plus icon inside the node
@@ -1381,19 +1423,19 @@ export class FamilyTreeDrawer {
         });
     }
     actionCircleColor(d: string) {
-        const type = ND.memberPriviledge(this.familyTreeId, d.data.id);
+        const type = this.nodeManager.memberPriviledge(this.familyTreeId, d.data.id);
         console.log("Member privilege", type);
 
-        if (type === 'update') return '#FFD700'; // Bright Yellow - Represents active change
-        if (type === 'create') return '#2E8B57'; // Deep Green - Symbolizes growth and new additions
-        if (type === 'suggest') return '#D2691E'; // Dark Orange - Encourages consideration and discussion
-        if (type === 'only-create') return '#FFD700'; // Soft Yellow - Highlights a limited action
+        if (type === 'update') return this.colors.actionUpdate; // Bright Yellow - Represents active change
+        if (type === 'create') return this.colors.actionCreate; // Deep Green - Symbolizes growth and new additions
+        if (type === 'suggest') return this.colors.actionSuggest; // Dark Orange - Encourages consideration and discussion
+        if (type === 'only-create') return this.colors.actionOnlyCreate; // Soft Yellow - Highlights a limited action
 
         return 'none';
     }
 
     // actionIcon(d: string) {
-    //     const type = ND.memberPriviledge(this.familyTreeId, d.data.id);
+    //     const type = this.nodeManager.memberPriviledge(this.familyTreeId, d.data.id);
     //     console.log("Member privilege", type);
 
     //     if (type === 'update') return '✎'; // Pencil - Represents editing
@@ -1404,7 +1446,7 @@ export class FamilyTreeDrawer {
     //     return ''; // Default: No icon
     // }
     actionIcon(d: string) {
-        const type = ND.memberPriviledge(this.familyTreeId, d.data.id);
+        const type = this.nodeManager.memberPriviledge(this.familyTreeId, d.data.id);
         console.log("Member privilege", type);
 
         if (type === 'update') return '✎'; // Edit - Pencil symbol
@@ -1428,7 +1470,7 @@ export class FamilyTreeDrawer {
         const spacing = 12; // Spacing between circles
 
         // Append the circle only if the node type is 'suggest'
-        const suggestGroup = actionGroup.filter(d => ND.canContribute(this.familyTreeId) && d.data.mode === 'node');
+        const suggestGroup = actionGroup.filter(d => this.nodeManager.canContribute(this.familyTreeId) && d.data.mode === 'node');
 
         // Circle (background)
         suggestGroup.append("circle")
@@ -1437,7 +1479,10 @@ export class FamilyTreeDrawer {
             .attr("cy", -iconOffset)
             .attr("fill", d => this.actionCircleColor(d)) // Gray background
             .style("cursor", "pointer")
-            .on("click", (_event, d) => console.log("handle edit", d.data.id));
+            .on("click", (_event, d) => {
+
+                this.toggleModes(d.data.id, 'edit')
+            });
 
         // Exclamation Mark (!)
         suggestGroup.append("text")
@@ -1447,7 +1492,7 @@ export class FamilyTreeDrawer {
             .attr("text-anchor", "middle") // Center align
             .attr("dominant-baseline", "middle") // Vertically align
             .attr("font-size", iconSize * 1.6) // Scale text with circle size
-            .attr("fill", "#ffffff") // White color for contrast
+            .attr("fill", this.colors.actionTextColor) // White color for contrast
             .style("pointer-events", "none"); // Prevent text from blocking circle clicks
     }
 
@@ -1472,12 +1517,11 @@ export class FamilyTreeDrawer {
         this.parentNodes = this.parentTreeData.descendants().filter(item => item.data.type !== 'root');
 
     }
-
     pushRootHistory() {
         this.rootHistory.push(this.rootNodeId)
     }
-    popRootHistory(poppedNodeId) {
-        let nodeDatas = ND.data.familyNodes;
+    popRootHistory(poppedNodeId: undefined) {
+        let nodeDatas = this.nodeManager.data.familyNodes;
 
         while (this.rootHistory.length > 0) {
             const current = this.rootHistory.pop()

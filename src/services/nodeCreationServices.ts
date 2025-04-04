@@ -36,11 +36,11 @@ function constructNodeCreator(allData): CreateNewPrimaryFamilyNodeInterface {
     return newNode;
 }
 
-export class FamilyTreeService {
+class FamilyTreeService {
     constructor() {
     }
-    async addNewParent(data) {
-        const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/parent/NewParent`;
+    async addNewParent(familyTreeId: number, familyNodeId: number, data) {
+        const url = `${API_PREFIX}/${familyTreeId}/relations/${familyNodeId}/parent/NewParent`;
         const nodeData = constructNodeCreator(data)
         const customData: CreateNewParentInterface = {
             parentNodeData: nodeData
@@ -48,68 +48,50 @@ export class FamilyTreeService {
         return postData(url, customData, localStorageManager.getItem('bearerToken'));
     }
 
-    async addExistingParent(data) {
+    async addExistingParent(familyTreeId: number, familyNodeId: number, data) {
         const customData: CreateExistingParentInterface = {
-            parentNodeId: parseInt(data.parentNodeId)
+            parentNodeId: parseInt(data.targetNodeId)
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/parent/ExitingParent`;
+        const url = `${API_PREFIX}/${familyTreeId}/relations/${familyNodeId}/parent/ExitingParent`;
         return postData(url, customData, localStorageManager.getItem('bearerToken'));
     }
 
-    async addChildOfOneParent(data) {
+    async addChildOfOneParent(familyTreeId: number, familyNodeId: number, data) {
 
         const customData: CreateChildOfOneParentInterface = {
             childNodeData: constructNodeCreator(data)
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/child/ChildOfOneParent`;
+        const url = `${API_PREFIX}/${familyTreeId}/relations/${familyNodeId}/child/ChildOfOneParent`;
         return postData(url, customData, localStorageManager.getItem('bearerToken'));
     }
 
-    async addChildOfTwoParents(data) {
+    async addChildOfTwoParents(familyTreeId: number, familyNodeId: number, data) {
         const customData: CreateChildOfTwoParentsInterface = {
             childNodeData: constructNodeCreator(data),
-            partnerNodeId: parseInt(data.partnerNodeId),
-            partnershipType: data.partnershipType
+            partnerNodeId: parseInt(data.targetNodeId),
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/child/ChildOfTwoParents`;
+        const url = `${API_PREFIX}/${familyTreeId}/relations/${familyNodeId}/child/ChildOfTwoParents`;
         return postData(url, customData, localStorageManager.getItem('bearerToken'));
     }
 
-    async addNewPartner(data) {
+    async addNewPartner(familyTreeId: number, familyNodeId: number, data) {
         const customData: CreateNewPartnerInterface = {
             otherNodeData: constructNodeCreator(data),
             partnershipType: data.partnershipType
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/spouse/NewPartner`;
+        const url = `${API_PREFIX}/${familyTreeId}/relations/${familyNodeId}/spouse/NewPartner`;
         return postData(url, customData, localStorageManager.getItem('bearerToken'));
     }
 
-    async addExistingPartner(data) {
+    async addExistingPartner(familyTreeId: number, familyNodeId: number, data) {
         const customData: CreateExistingPartnerInterface = {
-            otherNodeId: parseInt(data.otherNodeId),
+            otherNodeId: parseInt(data.targetNodeId),
             partnershipType: data.partnershipType
         }
-        const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/spouse/ExistingPartner`;
+        const url = `${API_PREFIX}/${familyTreeId}/relations/${familyNodeId}/spouse/ExistingPartner`;
         return postData(url, customData, localStorageManager.getItem('bearerToken'));
     }
 
-    async addNewPartnerAsParent(data) {
-        const customData: CreateNewPartnerAsParentInterface = {
-            childNodeId: parseInt(data.childNodeId),
-            otherNodeData: constructNodeCreator(data),
-            partnershipType: data.partnershipType
-        }
-        const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/spouse/NewPartnerAsParent`;
-        return postData(url, customData, localStorageManager.getItem('bearerToken'));
-    }
-
-    async addExistingPartnerAsParent(data) {
-        const customData: CreateExistingPartnerAsParentInterface = {
-            childNodeId: parseInt(data.childNodeId),
-            otherNodeId: parseInt(data.otherNodeId),
-            partnershipType: data.partnershipType,
-        }
-        const url = `${API_PREFIX}/${data.familyTreeId}/relations/${data.familyNodeId}/spouse/ExistingPartnerAsParent`;
-        return postData(url, customData, localStorageManager.getItem('bearerToken'));
-    }
 }
+
+export const nodeCreationService = new FamilyTreeService()

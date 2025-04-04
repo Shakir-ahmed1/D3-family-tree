@@ -4,6 +4,20 @@
     box-sizing: border-box;
 }
 
+.buttonPrimary {
+    padding: 2px;
+    margin: 1px;
+    background-color: green;
+    color: white
+}
+
+.buttonSecondary {
+    padding: 2px;
+    margin: 1px;
+    background-color: red;
+    color: white
+}
+
 body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -20,7 +34,8 @@ h5 {
 .main {
     display: flex;
     width: 100%;
-    height: calc(100vh - 50px); /* Adjust for header height */
+    height: calc(100vh - 50px);
+    /* Adjust for header height */
 }
 
 /* Sidebar styles */
@@ -132,6 +147,7 @@ h5 {
     cursor: pointer;
     margin-bottom: 10px;
 }
+
 .tab {
     flex: 1;
     padding: 10px;
@@ -139,18 +155,45 @@ h5 {
     background: #f0f0f0;
     border: 1px solid #ccc;
 }
+
 .tab.active {
     background: #fff;
     border-bottom: none;
     font-weight: bold;
 }
+
 .tab-content {
     border: 1px solid #ccc;
     padding: 10px;
 }
+
 .hidden {
     display: none;
 }
+
 .form-container form button.delete-button {
     background-color: red;
+}
+
+.old-data {
+    background-color: lightcoral;
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    /* Thicker line for better visibility */
+    text-decoration-color: black;
+    /* Enhances contrast */
+    font-style: italic;
+    /* Makes text italic */
+    font-weight: bold;
+    /* Keeps text prominent */
+    display: inline-block;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.new-data {
+    background-color: greenyellow;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-weight: bold;
 }

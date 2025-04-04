@@ -62,6 +62,11 @@ export class DataManager {
     if (!foundSuggestions) throw Error(`node with id ${id} was not found`)
     return foundSuggestions;
   }
+  getNodeSuggestions(id: number): SuggestEdits[] {
+    const foundSuggestions = this.data.suggestions.filter(item => id === item.selfNode.id)
+    if (!foundSuggestions) throw Error(`node with id ${id} was not found`)
+    return foundSuggestions;
+  }
   getContributionByNodeId(id: number): Contributor {
     const foundContribution = this.data.contributors.find(item => {
       return id === item.id

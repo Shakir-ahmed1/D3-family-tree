@@ -11,6 +11,8 @@ import { DataManager } from "./dataManager";
 // USER 2
 const bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMiIsImlhdCI6MTczOTUzNzQwNSwiZXhwIjoxODM5NjIzODA1fQ.VHkjd4KTeFg37uZIWdnXygJdma0aBt7fj9UiTVgaVzU`
 
+// user 3
+// const bearerToken = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMyIsImlhdCI6MTczOTU0MDE5OCwiZXhwIjoxODM5NjI2NTk4fQ.QD7mCMTLSKXawnPkjbEiQFGiy_FCXiyCWuh1Eg5zz0c'
 
 localStorageManager.setItem('bearerToken', bearerToken)
 
@@ -20,22 +22,7 @@ export const drawer = new FamilyTreeDrawer(familyTreeId);
 
 
 // Automatically fetch the nodes when the script loads
-(async () => {
-    try {
-        let nodesArray: CustomFlatData = await nodeManagmentService.fetchNodesArrays(familyTreeId);
-        if (nodesArray) {
-            const founderNode = nodesArray.familyNodes.find(item => item.isFounder);
-            if (founderNode) {
-                drawer.fetchData(nodesArray, founderNode.id as number, true);
-            } else {
-                throw new Error('Founder Node Not Found')
-            }
-            // alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
-        }
-    } catch (error) {
-        console.error("Failed to fetch data:", error);
-    }
-})();
+
 
 
 

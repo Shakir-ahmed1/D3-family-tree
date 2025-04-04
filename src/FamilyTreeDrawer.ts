@@ -3,6 +3,7 @@ import { DrawableNode } from "./node.interface";
 import { DataManager } from "./dataManager";
 import { HtmlElementsManager } from "./htmlElementsManager";
 import { ND } from "./main";
+import { nodeManagmentService } from "./services/nodeManagmentService";
 export class FamilyTreeDrawer {
     private colors = {
         suggestionMale: '#9FCC9F',
@@ -111,9 +112,29 @@ export class FamilyTreeDrawer {
     nodeManager;
 
     constructor(familyTreeId: number) {
+        this.intialize(familyTreeId)
+    }
+    async intialize(familyTreeId: number) {
         this.familyTreeId = familyTreeId
         this.nodeManager = ND;
-        this.formManager = new HtmlElementsManager(this.familyTreeId)
+        let tempRootId;
+        try {
+            let nodesArray: CustomFlatData = await nodeManagmentService.fetchNodesArrays(familyTreeId);
+            if (nodesArray) {
+                const founderNode = nodesArray.familyNodes.find(item => item.isFounder);
+                tempRootId = founderNode.id
+                this.nodeManager.setData(nodesArray)
+                this.formManager = new HtmlElementsManager(this.familyTreeId, tempRootId)
+                if (founderNode) {
+                    this.fetchData(nodesArray, founderNode.id as number, true);
+                } else {
+                    throw new Error('Founder Node Not Found')
+                }
+                // alert('Data fetched successfully. You can now set Self Node ID to draw the tree.');
+            }
+        } catch (error) {
+            console.error("Failed to fetch data:", error);
+        }
         const modeButton = document.getElementById('modeType')
         modeButton.addEventListener('click', (event) => {
             this.currentMode = this.toggleModes()
@@ -666,6 +687,10 @@ export class FamilyTreeDrawer {
         // }
     }
     toggleModes(nodeId?: number, manualMode?: string) {
+        console.log('log manager is here', this.nodeManager.canContribute())
+        if (!this.nodeManager.canContribute()) {
+            return 'view'
+        }
         const modeButton = document.getElementById('modeType')
         const oldButtonContent = modeButton?.textContent
         if (manualMode === 'edit' && oldButtonContent === 'edit') {
@@ -1083,6 +1108,12 @@ export class FamilyTreeDrawer {
         return color
     }
 
+    updateNodesNameText() {
+        const node = this.descendantsGroupEditMode.selectAll("g.node")
+            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id);
+        node.selectAll("text[dy='60'][text-anchor='middle']").filter(d => d.data.id > 0 && !['suggestDesc', 'suggestAnce'].includes(d.data.catag)).text(d => this.nodeManager.getNode(d.data.id).name);
+
+    }
     private drawDescNodesEditMode() {
         const rootNode = this.jointNode.find(item => item.data.id === this.rootNodeId);
         const strokeWidth = 3;

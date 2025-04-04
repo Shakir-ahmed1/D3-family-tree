@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="src/style.css" />
 
 </head>
+
 <body>
     <h5>Family Trees</h5>
     <div class="main">
@@ -19,23 +21,22 @@
                 </div>
 
                 <div id="detailsContent" class="tab-content">
-                    <button
-                    id="modeType"
-                    style="font-size: 25px; margin: 5px; padding: 5px;background-color: tomato;"
-                  >view</button>
-                  <form id="sizeManager">
-                    <label for="size">Size:</label>
-                    <input type="number" id="size" name="size" value="300"><br><br>
-                
-                
-                    <button type="submit">Update SVG Size</button>
-                  </form>
+                    <button id="modeType"
+                        style="font-size: 25px; margin: 5px; padding: 5px;background-color: tomato;">view</button>
+                    <form id="sizeManager">
+                        <label for="size">Size:</label>
+                        <input type="number" id="size" name="size" value="800"><br><br>
+
+
+                        <button type="submit">Update SVG Size</button>
+                    </form>
 
                     <form id="familyTreeForm">
                         <h2 id="endpointLabel">Select Action Type</h2>
-                        <p>endpoint: <span id="postEndpoint">endpoint here</span></p>
-                        <input value="1" type="number" id="familyTreeId" name="familyTreeId" placeholder="Family Tree ID" required />
-                        <input value="6" type="number" id="familyNodeId" name="familyNodeId" placeholder="Family Node ID" required />
+                        <input value="1" type="number" id="familyTreeId" name="familyTreeId"
+                            placeholder="Family Tree ID" required />
+                        <input value="6" type="number" id="familyNodeId" name="familyNodeId"
+                            placeholder="Family Node ID" required />
                         <div id="dynamicFields"></div>
                         <!-- <button type="submit">Submit</button> -->
                     </form>
@@ -56,12 +57,17 @@
                         <button type="submit">Save Note</button>
                     </form>
                 </div>
+                <div id="editSuggestionsContent" class="tab-content hidden">
+                    <div id="pendingUpdateSuggestions">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
 
-        <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/main.ts"></script>
 
 </body>
+
 </html>

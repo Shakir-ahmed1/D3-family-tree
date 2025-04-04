@@ -111,7 +111,10 @@ export class FamilyTreeSuggestionService {
     }
 
     async suggestUpdateNode(familyTreeId: number, familyNodeId: number, data) {
-        const customData: SuggestUpdateNodeInteface = constructNodeCreator(data)
+        const customData: SuggestUpdateNodeInteface = {
+            ...constructNodeCreator(data),
+            reason: data.reason
+        }
         const url = `${API_PREFIX}/${familyTreeId}/nodes/${familyNodeId}/suggestions/updateNode`;
 
         return putData(url, customData);

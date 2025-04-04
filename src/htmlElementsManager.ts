@@ -1,11 +1,12 @@
 import { timeFormatLocale } from "d3";
 import { drawer, ND } from "./main";
-import { actionTypes, FamilyNode, FamilyTreeMembers, genericActionTypes } from "./node.interface";
+import { actionTypes, FamilyNode, FamilyTreeMembers, genericActionTypes, SuggestableActions, SuggestEdits } from "./node.interface";
 import { nodeCreationService } from "./services/nodeCreationServices";
 import { nodeManagmentService } from "./services/nodeManagmentService";
-import { suggestionCreationService } from "./services/suggestionCreationService";
+import { FamilyTreeSuggestionService, suggestionCreationService } from "./services/suggestionCreationService";
 import { suggestionService } from "./services/suggestionService";
 import { userService } from "./services/user.service";
+import { localStorageManager } from "./storage/storageManager";
 
 
 
@@ -415,6 +416,7 @@ function createDropdown(nodes: { id: string, name: string }[], identifier, messa
 
 export class HtmlElementsManager {
     private familyTreeId: number;
+    private rootNodeId: number;
     public nodeManager;
     private relationType = [
         { id: 'UNKNOWN', name: 'UNKNOWN' },
@@ -422,7 +424,8 @@ export class HtmlElementsManager {
         { id: 'FRIEND', name: 'FRIEND' },
         { id: 'MAIN', name: 'MAIN' },
     ]
-    constructor(familyTreeId: number) {
+    constructor(familyTreeId: number, rootNodeId: number) {
+        this.rootNodeId = rootNodeId
         this.familyTreeId = familyTreeId;
         this.nodeManager = ND
         this.initTabs();
@@ -432,17 +435,143 @@ export class HtmlElementsManager {
         document.getElementById('detailsTab').addEventListener('click', () => this.showTab('details'));
         document.getElementById('imagesTab').addEventListener('click', () => this.showTab('images'));
         document.getElementById('notesTab').addEventListener('click', () => this.showTab('notes'));
-    }
-    showTab(tab) {
-        ['details', 'images', 'notes'].forEach(id => {
-            document.getElementById(`${id}Content`).classList.add('hidden');
-            document.getElementById(`${id}Tab`).classList.remove('active');
-        });
-        document.getElementById(`${tab}Content`).classList.remove('hidden');
-        document.getElementById(`${tab}Tab`).classList.add('active');
+
+        if (this.nodeManager?.data?.canContribute) {
+            const editTab = document.createElement('div');
+            editTab.className = 'tab';
+            editTab.id = 'editSuggestionsTab';
+            editTab.textContent = 'Edit Suggestions';
+            editTab.addEventListener('click', () => this.showTab('editSuggestions'));
+
+            // Insert after notesTab for consistent order
+            const notesTab = document.getElementById('notesTab');
+            notesTab.parentNode.insertBefore(editTab, notesTab.nextSibling);
+        }
     }
 
+
+    showTab(tab) {
+        // Get all existing tabs dynamically
+        const allTabElements = document.querySelectorAll('.tab');
+
+        allTabElements.forEach(tabEl => {
+            const id = tabEl.id.replace('Tab', ''); // Extract 'details', 'images', etc.
+            const content = document.getElementById(`${id}Content`);
+            if (content) {
+                content.classList.add('hidden');
+            }
+            tabEl.classList.remove('active');
+        });
+
+        // Show the selected tab and its content
+        const selectedContent = document.getElementById(`${tab}Content`);
+        const selectedTab = document.getElementById(`${tab}Tab`);
+
+        console.log("HTML Info", selectedContent, selectedTab, `${tab}Content`)
+
+        if (selectedContent) selectedContent.classList.remove('hidden');
+        if (selectedTab) selectedTab.classList.add('active');
+
+        console.log("selected TAb", selectedTab)
+        if (tab === 'editSuggestions') {
+            this.displaySuggestionUpdateEdits(this.rootNodeId)
+        }
+    }
+    reviewUpdateSuggestionBody(suggestionObject: SuggestEdits) {
+        const rootNodeId = this.rootNodeId
+        const rootNodeData = this.nodeManager.getNode(rootNodeId)
+        const suggestionContainer = document.createElement('div');
+        suggestionContainer.style.border = '1px black solid';
+        suggestionContainer.style.marginBottom = '5px';
+
+        const suggestingMember = createUserProfileElement(suggestionObject.suggestedBy);
+        suggestionContainer.appendChild(suggestingMember)
+        const field = document.createElement('p');
+        field.innerHTML = `<strong>Reason:</strong> ${suggestionObject.reason || 'N/A'}`;
+        field.className = 'dynamic-input';
+        suggestionContainer.appendChild(field);
+        ['name', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach((key) => {
+            if (suggestionObject.suggestedNode1[key]) {
+
+                const field = document.createElement('p');
+                const existingValue = `<span class="old-data">${rootNodeData[key] || ''}</span>`
+                field.innerHTML = `<strong>${key}:</strong>${rootNodeData[key] ? existingValue : ''}<span class="new-data">${suggestionObject.suggestedNode1[key] || 'N/A'}</span>`;
+                field.className = 'dynamic-input';
+                suggestionContainer.appendChild(field);
+            }
+        });
+
+        if (this.nodeManager.canUpdate(rootNodeId)) {
+            const acceptButton = document.createElement('button');
+            acceptButton.textContent = 'Accept';
+            acceptButton.className = 'buttonPrimary';
+
+            acceptButton.addEventListener('click', async (e) => {
+                e.preventDefault()
+
+                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'accepted')
+                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+                if (nodesArray) {
+                    console.log("Fetched Array Data", nodesArray);
+                    drawer.fetchData(nodesArray, rootNodeId, true);
+                }
+                const rootNode = this.nodeManager.getNode(rootNodeId)
+                console.log("ROOT", rootNodeId, rootNode)
+
+                this.displaySuggestionUpdateEdits(rootNodeId)
+                drawer.updateNodesNameText()
+            });
+
+            suggestionContainer.appendChild(acceptButton);
+            const rejectButton = document.createElement('button');
+            rejectButton.textContent = 'Reject';
+            rejectButton.className = 'buttonSecondary';
+            suggestionContainer.appendChild(rejectButton);
+            rejectButton.addEventListener('click', async (e) => {
+                e.preventDefault()
+                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'rejected')
+                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+                if (nodesArray) {
+                    console.log("Fetched Array Data", nodesArray);
+                    drawer.fetchData(nodesArray, rootNodeId, true);
+                }
+                const rootNode = this.nodeManager.getNode(rootNodeId)
+                console.log("ROOT", rootNodeId, rootNode)
+                // this.createViewMode(rootNode, memberPriviledge)
+                this.displaySuggestionUpdateEdits(rootNodeId)
+                drawer.updateNodesNameText()
+
+            });
+
+        }
+
+        return suggestionContainer
+    }
+    displaySuggestionUpdateEdits(familyNodeId) {
+        const pendingSuggestionsDisplayer = document.getElementById('pendingUpdateSuggestions');
+        pendingSuggestionsDisplayer.innerHTML = '';
+        const nodesSuggestions = this.nodeManager.getNodeSuggestions(familyNodeId).filter(item => item.suggestedAction === SuggestableActions.UpdateNode)
+        if (nodesSuggestions.length === 0) {
+            const message = document.createElement('p')
+            message.textContent = 'No pending suggestions';
+            message.style.textAlign = 'center'
+            pendingSuggestionsDisplayer?.appendChild(message)
+        } else {
+
+            nodesSuggestions.map(item => {
+                const suggestionBody = this.reviewUpdateSuggestionBody(item)
+                pendingSuggestionsDisplayer.appendChild(suggestionBody)
+            })
+        }
+
+    }
+
+
     setActionTypeLabel(actionType: actionTypes, node, currentNodeId) {
+
         let memberPriviledge = this.nodeManager.memberPriviledge(1, currentNodeId);
         console.log('MEMBER PRIVILEDGE', memberPriviledge)
         const currentMembmerMode = (memberPriviledge === 'create' || memberPriviledge === 'only-create') ? 'create' : 'suggest';
@@ -587,7 +716,7 @@ export class HtmlElementsManager {
                 }; e.preventDefault();
                 const familyTreeForm = document.getElementById('familyTreeForm')
                 const formData = new FormData(familyTreeForm);
-                const endpoint = document.getElementById('postEndpoint')?.textContent;
+                const endpoint = localStorageManager.getItem('postEndpoint');
                 const data = Object.fromEntries(formData.entries());
                 console.log('END POINT: ', endpoint)
                 if (endpointServiceMap[endpoint]) {
@@ -637,12 +766,13 @@ export class HtmlElementsManager {
             select.addEventListener('change', () => {
                 const label = endpointFieldMapNew[actionType][select.value].label[currentMembmerMode][node.data.gender];
                 document.getElementById('endpointLabel').textContent = label;
-                document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][select.value].endpoint[currentMembmerMode];
+                localStorageManager.setItem('postEndpoint', endpointFieldMapNew[actionType][select.value].endpoint[currentMembmerMode])
                 generateFields(select.value)
             });
             dynamicFields.appendChild(select);
             const label = endpointFieldMapNew[actionType]['existing'].label[currentMembmerMode][node.data.gender];
-            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType]['existing'].endpoint[currentMembmerMode];
+            localStorageManager.setItem('postEndpoint', endpointFieldMapNew[actionType]['existing'].endpoint[currentMembmerMode])
+
             document.getElementById('endpointLabel').textContent = label;
 
             generateFields('existing'); // Default selection
@@ -650,7 +780,8 @@ export class HtmlElementsManager {
             const option = actionOptions.new ? 'new' : 'existing';
             const label = endpointFieldMapNew[actionType][option].label[currentMembmerMode][node.data.gender];
             document.getElementById('endpointLabel').textContent = label;
-            document.getElementById('postEndpoint').textContent = endpointFieldMapNew[actionType][option].endpoint[currentMembmerMode];
+            localStorageManager.setItem('postEndpoint', endpointFieldMapNew[actionType][option].endpoint[currentMembmerMode])
+
 
             generateFields(option);
         }
@@ -659,6 +790,7 @@ export class HtmlElementsManager {
 
     }
     displaySuggestionInfo(suggestionBody, rootNodeId: number) {
+        this.rootNodeId = rootNodeId;
         const dynamicFields = document.getElementById('dynamicFields');
         let nodeData;
         if (["ChildOfOneParent", "ChildOfTwoParents"].includes(suggestionBody.suggestedAction)) {
@@ -685,58 +817,64 @@ export class HtmlElementsManager {
                 dynamicFields.appendChild(field);
             });
             if (data['suggestedBy']) {
+                const suggetorContainer = document.createElement('div')
+                suggetorContainer.style.border = '1px black solid'
                 const field = document.createElement('p');
-                field.innerHTML = `<strong>Suggested By:</strong> ${data['suggestedBy'].user.name || 'N/A'}`;
+                field.innerHTML = `<strong>Suggested By:</strong>`;
                 field.className = 'dynamic-input';
-                dynamicFields.appendChild(field);
+                const suggestor = createUserProfileElement(data.suggestedBy)
+                suggetorContainer.appendChild(field);
+                suggetorContainer.appendChild(suggestor)
+                dynamicFields.appendChild(suggetorContainer)
             }
+            if (this.nodeManager.canCreate(rootNodeId)) {
+                const acceptButton = document.createElement('button');
+                acceptButton.textContent = 'Accept';
+                acceptButton.className = 'dynamic-input';
 
-            const acceptButton = document.createElement('button');
-            acceptButton.textContent = 'Accept';
-            acceptButton.className = 'dynamic-input';
 
 
+                acceptButton.addEventListener('click', async (e) => {
+                    e.preventDefault()
 
-            acceptButton.addEventListener('click', async (e) => {
-                e.preventDefault()
+                    const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'accepted')
+                    const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+                    const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+                    if (nodesArray) {
+                        console.log("Fetched Array Data", nodesArray);
+                        drawer.fetchData(nodesArray, rootNodeId, true);
+                    }
+                    const rootNode = this.nodeManager.getNode(rootNodeId)
+                    console.log("ROOT", rootNodeId, rootNode)
+                    this.createViewMode(rootNode, memberPriviledge)
+                });
 
-                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'accepted')
-                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
-                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
-                if (nodesArray) {
-                    console.log("Fetched Array Data", nodesArray);
-                    drawer.fetchData(nodesArray, rootNodeId, true);
-                }
+                dynamicFields.appendChild(acceptButton);
+                const rejectButton = document.createElement('button');
+                rejectButton.textContent = 'Reject';
+                rejectButton.className = 'dynamic-input';
+                dynamicFields.appendChild(rejectButton);
+                rejectButton.addEventListener('click', async (e) => {
+                    e.preventDefault()
+                    const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'rejected')
+                    const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+
+                    const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+                    if (nodesArray) {
+                        console.log("Fetched Array Data", nodesArray);
+                        drawer.fetchData(nodesArray, rootNodeId, true);
+                    }
+                    const rootNode = this.nodeManager.getNode(rootNodeId)
+                    console.log("ROOT", rootNodeId, rootNode)
+                    this.createViewMode(rootNode, memberPriviledge)
+
+                });
                 const rootNode = this.nodeManager.getNode(rootNodeId)
                 console.log("ROOT", rootNodeId, rootNode)
-                this.createViewMode(rootNode, memberPriviledge)
-            });
-
-            dynamicFields.appendChild(acceptButton);
-            const rejectButton = document.createElement('button');
-            rejectButton.textContent = 'Reject';
-            rejectButton.className = 'dynamic-input';
-            dynamicFields.appendChild(rejectButton);
-            rejectButton.addEventListener('click', async (e) => {
-                e.preventDefault()
-                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'rejected')
                 const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
-
-                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
-                if (nodesArray) {
-                    console.log("Fetched Array Data", nodesArray);
-                    drawer.fetchData(nodesArray, rootNodeId, true);
-                }
-                const rootNode = this.nodeManager.getNode(rootNodeId)
-                console.log("ROOT", rootNodeId, rootNode)
-                this.createViewMode(rootNode, memberPriviledge)
-
-            });
-            const rootNode = this.nodeManager.getNode(rootNodeId)
-            console.log("ROOT", rootNodeId, rootNode)
-            const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
-            // this.createViewMode(rootNode, memberPriviledge)
+            }
         };
+
         reviewSuggestionViewMode(nodeData)
     }
 
@@ -936,6 +1074,7 @@ export class HtmlElementsManager {
         const dynamicFields = document.getElementById('dynamicFields');
 
         dynamicFields.innerHTML = '';
+
         const formData = {};
         const name = 'reason'
         const input = document.createElement('input');
@@ -962,18 +1101,25 @@ export class HtmlElementsManager {
         saveButton.textContent = 'Save Suggestion';
         saveButton.className = 'dynamic-input';
         saveButton.addEventListener('click', async (e) => {
-
             e.preventDefault()
-            // const suggestionService = new FamilyTreeSuggestionService(this.familyTreeId);
-            const suggestedData = {};
-            Object.keys(formData).forEach(key => {
-                if (formData[key].value) {
-                    console.log("Form Values", formData[key].value)
-                    suggestedData[key] = formData[key].value;
-                }
-            });
+            const familyTreeForm = document.getElementById('familyTreeForm')
+            const formData = new FormData(familyTreeForm);
+            const data = Object.fromEntries(formData.entries());
+
+            const suggestedData = await suggestionCreationService.suggestUpdateNode(this.familyTreeId, nodeData.id, data)
+
+
+
+            const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, nodeData.id)
+            const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+            if (nodesArray) {
+                console.log("Fetched Array Data", nodesArray);
+                drawer.fetchData(nodesArray, nodeData.id, true);
+            }
+            const rootNode = this.nodeManager.getNode(nodeData.id)
+
             console.log("suggested Data", suggestedData)
-            this.createViewMode(nodeData, memberPriviledge);
+            this.createViewMode(rootNode, memberPriviledge);
         });
 
         const cancelButton = document.createElement('button');
@@ -985,6 +1131,7 @@ export class HtmlElementsManager {
         dynamicFields.appendChild(cancelButton);
     };
     infoDisplayer(nodeData, rootNodeId) {
+        this.rootNodeId = rootNodeId
         const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
         const dynamicFields = document.getElementById('dynamicFields');

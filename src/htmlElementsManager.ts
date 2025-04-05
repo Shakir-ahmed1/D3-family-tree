@@ -582,13 +582,12 @@ export class HtmlElementsManager {
 
 
     setActionTypeLabel(actionType: actionTypes, node, currentNodeId) {
-
+        this.rootNodeId = currentNodeId;
         let memberPriviledge = this.nodeManager.memberPriviledge(1, currentNodeId);
         console.log('MEMBER PRIVILEDGE', memberPriviledge)
         const currentMembmerMode = (memberPriviledge === 'create' || memberPriviledge === 'only-create') ? 'create' : 'suggest';
         // 'suggest'; // 'create' or 'suggest
         const dynamicFields = document.getElementById('dynamicFields');
-        document.getElementById('familyNodeId').value = currentNodeId;
 
         dynamicFields.innerHTML = '';
         const endpointFieldMapNew = {
@@ -733,11 +732,11 @@ export class HtmlElementsManager {
                 if (endpointServiceMap[endpoint]) {
                     try {
 
-                        const response = await endpointServiceMap[endpoint](this.familyTreeId, data.familyNodeId, data);
+                        const response = await endpointServiceMap[endpoint](this.familyTreeId, this.rootNodeId, data);
 
                         const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                         if (nodesArray) {
-                            drawer.fetchData(nodesArray, parseInt(data.familyNodeId), true);
+                            drawer.fetchData(nodesArray, this.rootNodeId, true);
                         }
                     } catch (error) {
                         console.error('Error:', error);
@@ -943,9 +942,9 @@ export class HtmlElementsManager {
             editButton.addEventListener('click', () => { this.createSuggestionMode(data, memberPriviledge) });
             dynamicFields.appendChild(editButton);
             const details = otherNodeDetails(this.nodeManager.getNode(data.id))
-            dynamicFields.appendChild(details)
             const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
             dynamicFields.appendChild(contributors);
+            dynamicFields.appendChild(details)
 
         }
     };
@@ -1146,7 +1145,6 @@ export class HtmlElementsManager {
         const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
         const dynamicFields = document.getElementById('dynamicFields');
-        document.getElementById('familyNodeId').value = rootNodeId;
 
         dynamicFields.innerHTML = '';
 
@@ -1161,7 +1159,8 @@ export class HtmlElementsManager {
         this.showTab('details')
         const modeButton = document.getElementById('modeType')
         modeButton.textContent = 'view'
-        return document.getElementById('modeType')?.textContent
+        localStorageManager.setItem('modeType', 'view')
+        return 'view'
     }
 }
 

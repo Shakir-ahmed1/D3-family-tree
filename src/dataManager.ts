@@ -635,6 +635,7 @@ export class DataManager {
       `)
   }
   memberPriviledge(familyTreeId: number, familyNodeId: number): 'view' | 'suggest' | 'create' | 'update' | 'only-create' {
+    console.log("CONTRIBUTION", this.getContributionByNodeId(familyNodeId))
     const canContribute = this.canContribute()
     if (!canContribute) return 'view'
     const canCreate = this.canCreate(familyNodeId)

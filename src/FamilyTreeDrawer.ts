@@ -14,7 +14,7 @@ export class FamilyTreeDrawer {
         actionUpdate: '#FFD700',
         actionCreate: '#2E8B57',
         actionSuggest: '#D2691E',
-        actionOnlyCreate: '#FFD700',
+        actionOnlyCreate: '#2E8B57',
         actionTextColor: "#ffffff",
         lineMarriage: "#000",
         lineParentChild: "#ccc",
@@ -674,7 +674,7 @@ export class FamilyTreeDrawer {
     }
 
     modeController(rootId: number) {
-        this.memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootId)
+        
         this.currentMode = this.formManager.displayNodeDetails()
         // this.nodeDetailDisplayer()
         this.preProcessData(rootId);
@@ -725,7 +725,6 @@ export class FamilyTreeDrawer {
 
             if (d.data.id !== this.rootNodeId) {
                 this.modeController(d.data.id);
-                this.selectEndpoint(d.data.id);
             } else {
                 this.currentMode = this.formManager.displayNodeDetails()
                 // this.nodeDetailDisplayer()
@@ -804,29 +803,6 @@ export class FamilyTreeDrawer {
 
         // Store the previous root node ID for reference in the next update
         this.oldRootNodeId = this.rootNodeId;
-    }
-
-    // Function to simulate selecting an endpoint and trigger dynamic fields
-    selectEndpoint(nodeId: number) {
-        // console.log("hey it's me")
-        // const endpointMapping = {
-        //     // Add a mapping from node data id to endpoint here
-        //     // Assuming your node has a `type` or `id` that can map to your endpoints
-        //     'node1': 'addNewParent',
-        //     'node2': 'addExistingParent',
-        //     'node3': 'addChildOfOneParent',
-        //     'node4': 'addChildOfTwoParents',
-        //     // Add more mappings as needed
-        // };
-
-        // const endpoint = endpointMapping[nodeId];
-
-        // if (endpoint) {
-        //     const select = document.getElementById('endpoint');
-        //     select.value = endpoint; // Set the value in the hidden select
-        //     const event = new Event('change');
-        //     select.dispatchEvent(event);  // Trigger the change event to update dynamic fields
-        // }
     }
 
 
@@ -1112,6 +1088,10 @@ export class FamilyTreeDrawer {
         const node = this.descendantsGroupEditMode.selectAll("g.node")
             .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id);
         node.selectAll("text[dy='60'][text-anchor='middle']").filter(d => d.data.id > 0 && !['suggestDesc', 'suggestAnce'].includes(d.data.catag)).text(d => this.nodeManager.getNode(d.data.id).name);
+        node.selectAll(".node-circle")
+            .attr("fill", d => {
+                return this.getCustomColor(d)
+            });
 
     }
     private drawDescNodesEditMode() {
@@ -1120,7 +1100,8 @@ export class FamilyTreeDrawer {
 
         const handleClick = (_event: any, d: d3.HierarchyNode<DrawableNode>) => {
             // When a node is clicked, check for the actionType and update the h2 label
-            if (d.data.hasPending === false && d.data.mode === 'edit' && d.data.type !== 'suggest' && this.memberPriviledge !== 'suggest') {
+            console.log("HAS PENDING", d.data.hasPending)
+            if (d.data.hasPending === false && d.data.mode === 'edit' && d.data.type !== 'suggest' && this.memberPriviledge !== 'suggest' && this.memberPriviledge !== 'update') {
                 return
             }
             if (d.data.mode !== 'edit' && d.data.id !== this.rootNodeId) {
@@ -1223,9 +1204,11 @@ export class FamilyTreeDrawer {
     // Sample call (replace with actual data)this.formManager.setActionTypeLabel('addParent', { data: { gender: 'MALE' } });
 
 
-    private getNodeColor(d: d3.HierarchyNode<DrawableNode>): string {
-        // console.log("current Priviledge", this.memberPriviledge)
-        if (this.memberPriviledge === 'suggest') {
+    private getNodeColor(dd: d3.HierarchyNode<DrawableNode>): string {
+        console.log("current Priviledge", this.memberPriviledge)
+        const d :d3.HierarchyNode<DrawableNode>= this.jointNode.find(item=>item.data.id === dd.data.id)
+
+        if (this.memberPriviledge === 'suggest' || this.memberPriviledge === 'update') {
             if (d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc' || d.data.mode === 'edit') {
                 return d.data.gender === "MALE" ? this.colors.suggestionMale :  // Green (similar to the original blue)
                     d.data.gender === "FEMALE" ? this.colors.suggestionFemale : // Violet (similar to the original pink)
@@ -1235,7 +1218,11 @@ export class FamilyTreeDrawer {
                     d.data.gender === "FEMALE" ? this.colors.nodeFemale : this.colors.nodeDefault;
             }
 
-        } else if (this.memberPriviledge === 'update') {
+        }
+        else if (this.memberPriviledge === 'only-create') {
+            if (d.data.hasPending === false) {
+                return this.colors.nodeDefault
+            }
             if (d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc') {
                 return d.data.gender === "MALE" ? this.colors.suggestionMale :  // Green (similar to the original blue)
                     d.data.gender === "FEMALE" ? this.colors.suggestionFemale : // Violet (similar to the original pink)
@@ -1244,7 +1231,8 @@ export class FamilyTreeDrawer {
                 return d.data.gender === "MALE" ? this.colors.nodeMale :
                     d.data.gender === "FEMALE" ? this.colors.nodeFemale : this.colors.nodeDefault;
             }
-        } else if (this.memberPriviledge === 'create') {
+        }
+        else if (this.memberPriviledge === 'create') {
             if (d.data.hasPending === false) {
                 return this.colors.nodeDefault
             }
@@ -1578,6 +1566,7 @@ export class FamilyTreeDrawer {
         this.renewTreeData(this.fetchedDesendants as DrawableNode, this.fetchedAncestors as DrawableNode);
         this.oldRootNodeId = this.rootNodeId;
         this.rootNodeId = rootNodeId;
+        this.memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, this.rootNodeId)
         this.oldJointData = this.jointNode;
         this.pushRootHistory()
         this.drawNodes()
@@ -1587,6 +1576,7 @@ export class FamilyTreeDrawer {
         this.renewTreeDataEditMode(this.fetchedEditModeChildren as DrawableNode, this.fetchedEditModeParents as DrawableNode);
         this.oldRootNodeId = this.rootNodeId;
         this.rootNodeId = rootNodeId;
+        this.memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, this.rootNodeId)
 
         this.pushRootHistory()
         this.drawNodesEditMode()

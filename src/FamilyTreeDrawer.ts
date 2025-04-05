@@ -75,7 +75,7 @@ export class FamilyTreeDrawer {
         .append("g");
     private familyTreeGroup = this.svg.append("g").attr("class", "familyTree").attr('opacity', 1).attr('transform', 'translate(0,0)');
     descendantsGroup = this.familyTreeGroup.append("g").attr("class", "descendants");
-    private currentMode = 'view';
+    currentMode = 'view';
     private rootHistory = []
 
     // edit mode
@@ -135,10 +135,6 @@ export class FamilyTreeDrawer {
         } catch (error) {
             console.error("Failed to fetch data:", error);
         }
-        const modeButton = document.getElementById('modeType')
-        modeButton.addEventListener('click', (event) => {
-            this.currentMode = this.toggleModes()
-        });
 
     }
     updateSVGSize(size: number) {
@@ -220,7 +216,6 @@ export class FamilyTreeDrawer {
         if (setData) {
             this.nodeManager.setData(fetchedNodesArray)
         }
-        this.currentMode = document.getElementById('modeType')?.textContent
         this.memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootId)
 
         if (this.currentMode === 'view') {
@@ -674,7 +669,7 @@ export class FamilyTreeDrawer {
     }
 
     modeController(rootId: number) {
-        
+
         this.currentMode = this.formManager.displayNodeDetails()
         // this.nodeDetailDisplayer()
         this.preProcessData(rootId);
@@ -689,25 +684,23 @@ export class FamilyTreeDrawer {
     toggleModes(nodeId?: number, manualMode?: string) {
         console.log('log manager is here', this.nodeManager.canContribute())
         if (!this.nodeManager.canContribute()) {
-            return 'view'
-        }
-        const modeButton = document.getElementById('modeType')
-        const oldButtonContent = modeButton?.textContent
-        if (manualMode === 'edit' && oldButtonContent === 'edit') {
-            return oldButtonContent;
+            this.currentMode = 'view'
+        } else if (manualMode === 'edit' && this.currentMode === 'edit') {
+            return
         } else {
             if (manualMode) {
-                modeButton.textContent = manualMode
+                this.currentMode = manualMode
             } else {
-                modeButton.textContent === "view" ? modeButton.textContent = "edit" : modeButton.textContent = "view"
+                this.currentMode === "view" ? this.currentMode = "edit" : this.currentMode = "view"
             }
-            if (modeButton?.textContent === 'view') {
+            this.formManager.setModeType(this.currentMode)
+            if (this.currentMode === 'view') {
                 this.preProcessData(nodeId ? nodeId : this.rootNodeId);
 
-            } else if (modeButton?.textContent === 'edit') {
+            } else if (this.currentMode === 'edit') {
                 this.preProcessDataEditMode(nodeId ? nodeId : this.rootNodeId);
             }
-            return modeButton?.textContent
+            return this.currentMode
         }
     }
     nodeDetailDisplayer() {
@@ -804,7 +797,6 @@ export class FamilyTreeDrawer {
         // Store the previous root node ID for reference in the next update
         this.oldRootNodeId = this.rootNodeId;
     }
-
 
     drawDescMarriageLinesEditMode() {
         // 1. DATA JOIN (Key by a combination of spouse IDs)
@@ -1206,7 +1198,7 @@ export class FamilyTreeDrawer {
 
     private getNodeColor(dd: d3.HierarchyNode<DrawableNode>): string {
         console.log("current Priviledge", this.memberPriviledge)
-        const d :d3.HierarchyNode<DrawableNode>= this.jointNode.find(item=>item.data.id === dd.data.id)
+        const d: d3.HierarchyNode<DrawableNode> = this.jointNode.find(item => item.data.id === dd.data.id)
 
         if (this.memberPriviledge === 'suggest' || this.memberPriviledge === 'update') {
             if (d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc' || d.data.mode === 'edit') {

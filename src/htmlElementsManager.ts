@@ -440,6 +440,15 @@ export class HtmlElementsManager {
         this.familyTreeId = familyTreeId;
         this.nodeManager = ND
         this.initTabs();
+
+        const modeButton = document.getElementById('modeType')
+        modeButton.addEventListener('click', (event) => {
+            drawer.toggleModes()
+        });
+    }
+    setModeType(text) {
+        const modeButton = document.getElementById('modeType')
+        modeButton.textContent = text
     }
 
     initTabs() {
@@ -1157,9 +1166,7 @@ export class HtmlElementsManager {
 
     displayNodeDetails() {
         this.showTab('details')
-        const modeButton = document.getElementById('modeType')
-        modeButton.textContent = 'view'
-        localStorageManager.setItem('modeType', 'view')
+        this.setModeType('view')
         return 'view'
     }
 }

@@ -10,7 +10,18 @@ import { localStorageManager } from "./storage/storageManager";
 
 
 
+function memberDisplayer(title, member) {
+    const suggestionContainer = document.createElement('div');
+    suggestionContainer.style.border = '1px black solid';
+    suggestionContainer.style.marginBottom = '5px';
 
+    const suggestingMember = createUserProfileElement(member);
+    const field = document.createElement('p');
+    field.textContent = title + ': '
+    suggestionContainer.appendChild(field);
+    suggestionContainer.appendChild(suggestingMember)
+    return suggestionContainer
+}
 
 
 
@@ -325,7 +336,7 @@ function contributorsElementGenerator(contributors) {
     titleWrapper.style.width = '100%';
 
     const title = document.createElement('p');
-    title.textContent = 'Contributors';
+    title.textContent = 'Allowed contributors';
     title.style.fontSize = '20px';
     title.style.margin = '0';
     title.style.flexShrink = '0'; // Ensures the text stays on the left
@@ -355,7 +366,7 @@ function contributorsElementGenerator(contributors) {
         contentWrapper.appendChild(document.createElement('hr'));
         contentWrapper.appendChild(contributorDetailElement('updators', contributors.updators));
         contentWrapper.appendChild(document.createElement('hr'));
-        contentWrapper.appendChild(contributorDetailElement('creators', contributors.creators));
+        contentWrapper.appendChild(contributorDetailElement('suggestors', contributors.suggestors));
     }
 
     contributionWrapper.appendChild(contentWrapper);
@@ -644,9 +655,9 @@ export class HtmlElementsManager {
                     h2.className = 'dynamic-input';
                     dynamicFields.appendChild(h2);
 
-                    ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach(name => {
+                    ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach(name => {
                         const input = document.createElement('input');
-                        input.type = name.includes('Date') ? 'date' : name === 'ownedById' ? 'number' : 'text';
+                        input.type = name.includes('Date') ? 'date' : 'text';
                         input.id = name;
                         input.name = name;
                         input.placeholder = name.replace(/([A-Z])/g, ' $1').trim();
@@ -881,7 +892,7 @@ export class HtmlElementsManager {
     createViewMode(data, memberPriviledge) {
         const dynamicFields = document.getElementById('dynamicFields');
         dynamicFields.innerHTML = '';
-        ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach((key) => {
+        ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach((key) => {
             const field = document.createElement('p');
             field.innerHTML = `<strong>${key}:</strong> ${data[key] || 'N/A'}`;
             field.className = 'dynamic-input';
@@ -896,10 +907,10 @@ export class HtmlElementsManager {
                 this.createEditMode(data, memberPriviledge)
             });
             dynamicFields.appendChild(editButton);
-            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
-            dynamicFields.appendChild(contributors);
             const details = otherNodeDetails(this.nodeManager.getNode(data.id))
             dynamicFields.appendChild(details)
+            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
+            dynamicFields.appendChild(contributors);
             const deleteAllowed = this.nodeManager.isAllowedAction(data.id, genericActionTypes.DeleteNode);
             // const deleteAllowed = this.nodeManager.isAllowedAction(nodeData.id, genericActionTypes.DeleteNode);
             console.log("Delete Allowed", deleteAllowed)
@@ -931,10 +942,10 @@ export class HtmlElementsManager {
             editButton.className = 'dynamic-input';
             editButton.addEventListener('click', () => { this.createSuggestionMode(data, memberPriviledge) });
             dynamicFields.appendChild(editButton);
-            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
-            dynamicFields.appendChild(contributors);
             const details = otherNodeDetails(this.nodeManager.getNode(data.id))
             dynamicFields.appendChild(details)
+            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
+            dynamicFields.appendChild(contributors);
 
         }
     };
@@ -944,7 +955,7 @@ export class HtmlElementsManager {
         dynamicFields.innerHTML = '';
         const formData = {};
 
-        ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach((key) => {
+        ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach((key) => {
             const input = document.createElement('input');
             input.type = (key.includes('Date')) ? 'date' : (key.includes('Id')) ? 'number' : 'text';
             input.name = key;
@@ -1086,7 +1097,7 @@ export class HtmlElementsManager {
         input.required = false
         dynamicFields.appendChild(input);
 
-        ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate', 'ownedById'].forEach((key) => {
+        ['name', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach((key) => {
             const input = document.createElement('input');
             input.type = (key.includes('Date')) ? 'date' : (key.includes('Id')) ? 'number' : 'text';
             input.name = key;

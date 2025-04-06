@@ -4,6 +4,38 @@ import { DataManager } from "./dataManager";
 import { HtmlElementsManager } from "./htmlElementsManager";
 import { ND } from "./main";
 import { nodeManagmentService } from "./services/nodeManagmentService";
+
+
+
+async function fetchNodeImage(nodeId: number, token: string): Promise<string | null> {
+    try {
+        const response = await fetch(`http://localhost:3000/api/family-tree/1/nodes/${nodeId}/primaryPicture`, {
+            headers: {
+                'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) throw new Error("Image not found");
+
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+    } catch (err) {
+        console.warn(`Could not fetch image for node ${nodeId}:`, err);
+        return null;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 export class FamilyTreeDrawer {
     private colors = {
         suggestionMale: '#9FCC9F',
@@ -60,14 +92,14 @@ export class FamilyTreeDrawer {
     private anceTreeData: d3.HierarchyPointNode<DrawableNode> | undefined;
     private anceNodes: d3.HierarchyNode<DrawableNode>[] = [];
     private rootNodeId: number | undefined;
-    private containerClassName: string = '#treeContainer';
+    private containerId: string = '#treeContainer';
     private fadeInAnimationDuration = this.values.fadeInAnimationDuration;
     private fadeOutAnimationDuration = this.values.fadeOutAnimationDuration;
     private oldRootNodeId: number | undefined;
     private offSetX = 0;
     private offSetY = 0;
     private scaleFactor = 0.5;
-    private svg = d3.select('body').select(this.containerClassName)
+    private svg = d3.select('body').select(this.containerId)
         .append('svg')
         .attr('class', 'svgContainer')
         .attr("width", this.width)
@@ -103,6 +135,8 @@ export class FamilyTreeDrawer {
     private offSetYEditMode: number = 0;
     private scaleFactorEditMode: number = 0.5;
 
+    private isPopUp = false;
+
     descendantsGroupEditMode = this.descendantsGroup
     // descendantsGroupEditMode = this.familyTreeGroup.append("g").attr("class", "descendantsEditMode");
     private fadeInAnimationDurationEditMode = this.values.fadeInAnimationDurationEditMode;
@@ -110,8 +144,14 @@ export class FamilyTreeDrawer {
     private formManager: HtmlElementsManager | undefined;
     familyTreeId: number;
     nodeManager;
+    private nonFounderId
 
-    constructor(familyTreeId: number) {
+    constructor(familyTreeId: number, containerId, width, height, isPopUp: boolean, nonFounderId?) {
+        this.nonFounderId = nonFounderId
+        this.containerId = containerId
+        this.width = width;
+        this.height = height;
+        this.isPopUp = isPopUp;
         this.intialize(familyTreeId)
     }
     async intialize(familyTreeId: number) {
@@ -121,7 +161,15 @@ export class FamilyTreeDrawer {
         try {
             let nodesArray: CustomFlatData = await nodeManagmentService.fetchNodesArrays(familyTreeId);
             if (nodesArray) {
-                const founderNode = nodesArray.familyNodes.find(item => item.isFounder);
+                let founderNode;
+                if (this.nonFounderId) {
+                    founderNode = nodesArray.familyNodes.find(item => item.id === this.nonFounderId);
+                    // if (!founderNode) {
+                    //     founderNode = nodesArray.familyNodes.find(item => item.isFounder);   
+                    // }
+                } else {
+                    founderNode = nodesArray.familyNodes.find(item => item.isFounder);
+                }
                 tempRootId = founderNode.id
                 this.nodeManager.setData(nodesArray)
                 this.formManager = new HtmlElementsManager(this.familyTreeId, tempRootId)
@@ -165,6 +213,17 @@ export class FamilyTreeDrawer {
         }
 
         this.jointNode = [...this.descNodes, ...this.anceNodes.filter(item => item.data.id !== this.rootNodeId)]
+        if (this.isPopUp) {
+            console.log(foundDescRoot?.height, foundAnceRoot?.height, this.jointNode)
+            this.jointNode = [...this.descNodes.filter(item => item.height === foundDescRoot?.height + 1 || item.height === foundDescRoot?.height - 1 || item.height === foundDescRoot?.height),
+            ...this.anceNodes.filter(item => item.data.id !== this.rootNodeId && (item.height === foundAnceRoot?.height + 1 || item.height === foundAnceRoot?.height - 1 || item.height === foundAnceRoot?.height))]
+
+            // const foundRoot = this.jointNode.find(item => item.data.id === this.rootNodeId)
+            // this.jointNode = this.jointNode.filter(item =>{
+            //     console.log("height", item.height)
+            //     item.height === foundRoot?.height + 1 || item.height === foundRoot?.height + 1 || item.height === foundRoot?.height})
+        }
+
     }
     private attachNodesEditMode() {
 
@@ -178,6 +237,9 @@ export class FamilyTreeDrawer {
         }
 
         this.jointNode = [...this.childNodes, ...this.parentNodes.filter(item => item.data.id !== this.rootNodeId)]
+        if (this.isPopUp) {
+            this.jointNode = this.jointNode.filter(item => item.height === 1 || item.height === 0)
+        }
     }
 
     private adjustPostioning() {
@@ -238,16 +300,6 @@ export class FamilyTreeDrawer {
                 this.updateTreeDrawing(rootId)
 
             } else {
-                // console.log("Hey HOw")
-                // const ancestorsData = this.nodeManager.customBuildAncestorsHierarchy(rootId, undefined);
-                // const descendantsData = this.nodeManager.customBuildDescendantsHiararchy(rootId);
-                // const editModeParents = this.nodeManager.customBuildParent(rootId)
-                // const editModeChildren = this.nodeManager.customBuildChildren(rootId)
-
-                // this.fetchedDesendants = descendantsData;
-                // this.fetchedAncestors = ancestorsData;
-
-                // this.updateTreeDrawing(rootId)
             }
         } else {
             const ancestorsData = this.nodeManager.customBuildAncestorsHierarchy(rootId, undefined);
@@ -674,15 +726,9 @@ export class FamilyTreeDrawer {
         // this.nodeDetailDisplayer()
         this.preProcessData(rootId);
 
-        // if (this.currentMode === 'view') {
 
-        // }
-        // else if (this.currentMode === 'edit') {
-        // this.preProcessDataEditMode(rootId);
-        // }
     }
     toggleModes(nodeId?: number, manualMode?: string) {
-        console.log('log manager is here', this.nodeManager.canContribute())
         if (!this.nodeManager.canContribute()) {
             this.currentMode = 'view'
         } else if (manualMode === 'edit' && this.currentMode === 'edit') {
@@ -712,6 +758,7 @@ export class FamilyTreeDrawer {
 
     drawDescNodes() {
         const rootNode = this.jointNode.find(item => item.data.id === this.rootNodeId);
+        console.log("ROOOt", rootNode)
         const strokeWidth = 3;
 
         const handleClick = (_event: any, d: d3.HierarchyNode<DrawableNode>) => {
@@ -1092,7 +1139,6 @@ export class FamilyTreeDrawer {
 
         const handleClick = (_event: any, d: d3.HierarchyNode<DrawableNode>) => {
             // When a node is clicked, check for the actionType and update the h2 label
-            console.log("HAS PENDING", d.data.hasPending)
             if (d.data.hasPending === false && d.data.mode === 'edit' && d.data.type !== 'suggest' && this.memberPriviledge !== 'suggest' && this.memberPriviledge !== 'update') {
                 return
             }
@@ -1139,7 +1185,6 @@ export class FamilyTreeDrawer {
                 return color;
             })
 
-        console.log('Found Circles', foundCircles)
         node.selectAll("text[dy='60'][text-anchor='middle']").filter(d => d.data.id > 0 && !['suggestDesc', 'suggestAnce'].includes(d.data.catag)).text(d => this.nodeManager.getNode(d.data.id).name);
         node.on('click', handleClick);
 
@@ -1197,7 +1242,6 @@ export class FamilyTreeDrawer {
 
 
     private getNodeColor(dd: d3.HierarchyNode<DrawableNode>): string {
-        console.log("current Priviledge", this.memberPriviledge)
         const d: d3.HierarchyNode<DrawableNode> = this.jointNode.find(item => item.data.id === dd.data.id)
 
         if (this.memberPriviledge === 'suggest' || this.memberPriviledge === 'update') {
@@ -1257,17 +1301,92 @@ export class FamilyTreeDrawer {
         this.descendantsGroupEditMode.selectAll("g.node").raise(); // Raise nodes to the top
     }
     // Draw nodes
-    defaultNodePicture(svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>, options = {}) {
+    // defaultNodePicture(svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>, options = {}) {
+    //     const {
+    //         width = 0,
+    //         height = 0,
+    //         outerRadius = this.NODE_RADIUS,
+    //         innerRadius = outerRadius * 0.45,
+    //     } = options;
+
+
+    //     const cutoutColor = "white";
+
+    //     const centerX = width / 2;
+    //     const centerY = height / 2;
+
+    //     const group = svg.append("g")
+    //         .attr("transform", `translate(${centerX}, ${centerY})`);
+
+    //     // Outer Circle
+    //     group.append("circle")
+    //         .attr('class', 'node-circle')
+    //         .attr("r", outerRadius)
+    //         .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
+
+    //     // Inner Circle (Cutout)
+    //     group.append("circle")
+    //         .attr("r", innerRadius)
+    //         .attr("fill", cutoutColor);
+
+    //     // Lower Shape (Crescent-like bottom part) - Scaled dynamically
+    //     const lowerShapePath = `M${-outerRadius * 0.66},${outerRadius * 0.85} 
+    //         q${outerRadius * 0.27},${-outerRadius * 0.35} ${outerRadius * 0.4},${-outerRadius * 0.35} 
+    //         h${outerRadius * 0.54} 
+    //         q${outerRadius * 0.4},0 ${outerRadius * 0.4},${outerRadius * 0.35} 
+    //         a${outerRadius * 0.97},${outerRadius * 0.97} 0 0,1 ${-outerRadius * 1.3},0`;
+
+    //     group.append("path")
+    //         .attr("d", lowerShapePath)
+    //         .attr("fill", cutoutColor);
+
+    //     // Profile Picture
+    //     const imageUrl = (d: d3.HierarchyNode<DrawableNode>) => `http://localhost:3000/api/family-tree/1/nodes/${d.data.id}/primaryPicture`;
+
+    //     group.each(function (d) {
+    //         fetch(imageUrl(d), {
+    //             headers: {
+    //                 'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
+    //                 'Content-Type': 'application/json',
+    //             }
+    //         }).then(response => {
+    //             if (!response.ok) throw new Error('Image not found');
+    //             return response.blob();
+    //         }).then(blob => {
+    //             const url = URL.createObjectURL(blob);
+    //             const defs = svg.append("defs");
+    //             defs.append("clipPath")
+    //                 .attr("id", `clip-${d.data.id}`)
+    //                 .append("circle")
+    //                 .attr("r", outerRadius)
+    //                 .attr("cx", 0)
+    //                 .attr("cy", 0);
+
+    //             d3.select(this).append("image")
+    //                 .attr("x", -outerRadius)
+    //                 .attr("y", -outerRadius)
+    //                 .attr("width", outerRadius * 2)
+    //                 .attr("height", outerRadius * 2)
+    //                 .attr("clip-path", `url(#clip-${d.data.id})`)
+    //                 .attr("href", url);
+    //         }).catch(() => {
+    //             // If image is not found, default SVG remains
+    //         });
+    //     });
+    // }
+    defaultNodePicture(
+        svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>,
+        options = {}
+    ) {
         const {
             width = 0,
             height = 0,
             outerRadius = this.NODE_RADIUS,
             innerRadius = outerRadius * 0.45,
+            token = ''
         } = options;
 
-
         const cutoutColor = "white";
-
         const centerX = width / 2;
         const centerY = height / 2;
 
@@ -1278,92 +1397,91 @@ export class FamilyTreeDrawer {
         group.append("circle")
             .attr('class', 'node-circle')
             .attr("r", outerRadius)
-            .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
+            .attr("fill", d => this.getNodeColor(d));
 
         // Inner Circle (Cutout)
         group.append("circle")
             .attr("r", innerRadius)
             .attr("fill", cutoutColor);
 
-        // Lower Shape (Crescent-like bottom part) - Scaled dynamically
-        const lowerShapePath = `M${-outerRadius * 0.66},${outerRadius * 0.85} 
+        // Lower Shape (Crescent-like bottom part)
+        const lowerShapePath = `
+            M${-outerRadius * 0.66},${outerRadius * 0.85} 
             q${outerRadius * 0.27},${-outerRadius * 0.35} ${outerRadius * 0.4},${-outerRadius * 0.35} 
             h${outerRadius * 0.54} 
             q${outerRadius * 0.4},0 ${outerRadius * 0.4},${outerRadius * 0.35} 
-            a${outerRadius * 0.97},${outerRadius * 0.97} 0 0,1 ${-outerRadius * 1.3},0`;
+            a${outerRadius * 0.97},${outerRadius * 0.97} 0 0,1 ${-outerRadius * 1.3},0
+        `;
 
         group.append("path")
             .attr("d", lowerShapePath)
             .attr("fill", cutoutColor);
 
-        // Profile Picture
-        const imageUrl = (d: d3.HierarchyNode<DrawableNode>) => `http://localhost:3000/api/family-tree/1/nodes/${d.data.id}/primaryPicture`;
-
+        // Profile Picture: Fetch asynchronously
         group.each(function (d) {
-            fetch(imageUrl(d), {
-                headers: {
-                    'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
-                    'Content-Type': 'application/json',
-                }
-            }).then(response => {
-                if (!response.ok) throw new Error('Image not found');
-                return response.blob();
-            }).then(blob => {
-                const url = URL.createObjectURL(blob);
+            const nodeId = d.data.id;
+            const container = d3.select(this);
+
+            fetchNodeImage(nodeId, token).then(imageUrl => {
+                if (!imageUrl) return;
+
                 const defs = svg.append("defs");
                 defs.append("clipPath")
-                    .attr("id", `clip-${d.data.id}`)
+                    .attr("id", `clip-${nodeId}`)
                     .append("circle")
                     .attr("r", outerRadius)
                     .attr("cx", 0)
                     .attr("cy", 0);
 
-                d3.select(this).append("image")
+                container.append("image")
                     .attr("x", -outerRadius)
                     .attr("y", -outerRadius)
                     .attr("width", outerRadius * 2)
                     .attr("height", outerRadius * 2)
-                    .attr("clip-path", `url(#clip-${d.data.id})`)
-                    .attr("href", url);
-            }).catch(() => {
-                // If image is not found, default SVG remains
+                    .attr("clip-path", `url(#clip-${nodeId})`)
+                    .attr("href", imageUrl);
             });
         });
     }
 
-    defaultNodePictureEditMode(svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>, options = {}) {
+    defaultNodePictureEditMode(
+        svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>,
+        options = {}
+    ) {
         const {
             width = 0,
             height = 0,
             outerRadius = this.NODE_RADIUS,
             innerRadius = outerRadius * 0.45,
+            token = ''
         } = options;
 
         const cutoutColor = "white";
-
         const centerX = width / 2;
         const centerY = height / 2;
+
 
         svg.each((d: d3.HierarchyNode<DrawableNode>, i: number, nodes) => {
             const nodeGroup = d3.select(nodes[i])
                 .append("g")
                 .attr("transform", `translate(${centerX}, ${centerY})`);
 
-            // console.log("found paths",foundPaths)
+            const isEdit = d.data.mode === 'edit';
+            const isSuggestion = d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc';
 
-
-            if (d.data.mode !== 'edit' || d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc') {
+            if (!isEdit || isSuggestion) {
                 // ✅ Normal Node with Profile Picture
                 nodeGroup.append("circle")
                     .attr('class', 'node-circle')
                     .attr("r", outerRadius)
-                    .attr("fill", d => this.getCustomColor(d as d3.HierarchyNode<DrawableNode>));
+                    .attr("fill", d => this.getCustomColor(d));
 
                 nodeGroup.append("circle")
                     .attr("r", innerRadius)
                     .attr("fill", cutoutColor);
 
-                const lowerShapePath = `M${-outerRadius * 0.66},${outerRadius * 0.85} 
+                const lowerShapePath = `
+                    M${-outerRadius * 0.66},${outerRadius * 0.85} 
                     q${outerRadius * 0.27},${-outerRadius * 0.35} ${outerRadius * 0.4},${-outerRadius * 0.35} 
                     h${outerRadius * 0.54} 
                     q${outerRadius * 0.4},0 ${outerRadius * 0.4},${outerRadius * 0.35} 
@@ -1373,19 +1491,11 @@ export class FamilyTreeDrawer {
                     .attr("d", lowerShapePath)
                     .attr("fill", cutoutColor);
 
-                const imageUrl = `http://localhost:3000/api/family-tree/1/nodes/${d.data.id}/primaryPicture`;
+                // 👇 Fetch and place image
+                fetchNodeImage(d.data.id, token).then(imageUrl => {
+                    if (!imageUrl) return;
 
-                fetch(imageUrl, {
-                    headers: {
-                        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzE5MzkwOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
-                    }
-                }).then(response => {
-                    if (!response.ok) throw new Error('Image not found');
-                    return response.blob();
-                }).then(blob => {
-                    const url = URL.createObjectURL(blob);
                     const defs = svg.append("defs");
-
                     defs.append("clipPath")
                         .attr("id", `clip-${d.data.id}`)
                         .append("circle")
@@ -1399,43 +1509,39 @@ export class FamilyTreeDrawer {
                         .attr("width", outerRadius * 2)
                         .attr("height", outerRadius * 2)
                         .attr("clip-path", `url(#clip-${d.data.id})`)
-                        .attr("href", url);
-                }).catch(() => {
-                    // If image is not found, default SVG remains
+                        .attr("href", imageUrl)
+                        .attr("preserveAspectRatio", "xMidYMid slice"); // 🔥 this is key
                 });
 
-            } else if (d.data.mode === 'edit') {
-                // ✅ Edit Node with Plus Icon
 
+            } else {
+                // ✅ Edit Node with Plus Icon
                 nodeGroup.append("circle")
                     .attr("r", outerRadius)
-                    .attr("fill", this.colors.editNodeBackground) // Gray background for edit mode
-                    .attr("stroke", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>))
+                    .attr("fill", this.colors.editNodeBackground)
+                    .attr("stroke", d => this.getNodeColor(d))
                     .attr("stroke-width", 2);
 
-                // Group for the plus icon (centered inside the node)
-                nodeGroup.select('g')
+                // Plus icon
                 const iconGroup = nodeGroup.append("g")
                     .attr("transform", `translate(0,0) scale(${outerRadius / 12})`);
 
                 iconGroup.append("circle")
-                    .attr('class', "dynamic-color-nodes")
                     .attr("r", 12)
                     .attr("cx", 0)
                     .attr("cy", 0)
                     .style("fill", "rgba(0,0,0,0)");
 
                 iconGroup.append("path")
-                    .attr('class', "dynamic-color-nodes")
                     .attr("d", "M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z")
-                    .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>))
-                    .attr("transform", "translate(-12,-12)"); // Center the plus icon inside the node
+                    .attr("fill", d => this.getNodeColor(d))
+                    .attr("transform", "translate(-12,-12)");
             }
         });
     }
+
     actionCircleColor(d: string) {
         const type = this.nodeManager.memberPriviledge(this.familyTreeId, d.data.id);
-        console.log("Member privilege", type);
 
         if (type === 'update') return this.colors.actionUpdate; // Bright Yellow - Represents active change
         if (type === 'create') return this.colors.actionCreate; // Deep Green - Symbolizes growth and new additions
@@ -1447,7 +1553,6 @@ export class FamilyTreeDrawer {
 
     // actionIcon(d: string) {
     //     const type = this.nodeManager.memberPriviledge(this.familyTreeId, d.data.id);
-    //     console.log("Member privilege", type);
 
     //     if (type === 'update') return '✎'; // Pencil - Represents editing
     //     if (type === 'create') return '+'; // Plus - Symbolizes adding a new node
@@ -1458,7 +1563,6 @@ export class FamilyTreeDrawer {
     // }
     actionIcon(d: string) {
         const type = this.nodeManager.memberPriviledge(this.familyTreeId, d.data.id);
-        console.log("Member privilege", type);
 
         if (type === 'update') return '✎'; // Edit - Pencil symbol
         if (type === 'create') return '+'; // Add - Plus sign

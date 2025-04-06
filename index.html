@@ -12,50 +12,52 @@
 <body>
     <h5>Family Trees</h5>
     <div class="main">
+        <div id="treePopUp" style="padding: 50px;">
+        </div>
         <div id="treeContainer" style="padding: 50px;">
-            <div class="form-container">
-                <div class="tabs">
-                    <div class="tab active" id="detailsTab">Details</div>
-                    <div class="tab" id="imagesTab">Images</div>
-                    <div class="tab" id="notesTab">Notes</div>
-                </div>
+        </div>
+        <div class="form-container">
+            <div class="tabs">
+                <div class="tab active" id="detailsTab">Details</div>
+                <div class="tab" id="imagesTab">Images</div>
+                <div class="tab" id="notesTab">Notes</div>
+            </div>
 
-                <div id="detailsContent" class="tab-content">
-                    <button id="modeType"
-                        style="font-size: 25px; margin: 5px; padding: 5px;background-color: tomato;">view</button>
-                    <form id="sizeManager">
-                        <label for="size">Size:</label>
-                        <input type="number" id="size" name="size" value="800"><br><br>
+            <div id="detailsContent" class="tab-content">
+                <button id="modeType"
+                    style="font-size: 25px; margin: 5px; padding: 5px;background-color: tomato;">view</button>
+                <form id="sizeManager">
+                    <label for="size">Size:</label>
+                    <input type="number" id="size" name="size" value="800"><br><br>
 
 
-                        <button type="submit">Update SVG Size</button>
-                    </form>
+                    <button type="submit">Update SVG Size</button>
+                </form>
 
-                    <form id="familyTreeForm">
-                        <h2 id="endpointLabel">Select Action Type</h2>
-                        <div id="dynamicFields"></div>
-                        <!-- <button type="submit">Submit</button> -->
-                    </form>
-                </div>
+                <form id="familyTreeForm">
+                    <h2 id="endpointLabel">Select Action Type</h2>
+                    <div id="dynamicFields"></div>
+                    <!-- <button type="submit">Submit</button> -->
+                </form>
+            </div>
 
-                <div id="imagesContent" class="tab-content hidden">
-                    <form id="imagesForm">
-                        <label for="imageUpload">Upload Image:</label>
-                        <input type="file" id="imageUpload" name="imageUpload" accept="image/*" />
-                        <button type="submit">Upload Image</button>
-                    </form>
-                </div>
+            <div id="imagesContent" class="tab-content hidden">
+                <form id="imagesForm">
+                    <label for="imageUpload">Upload Image:</label>
+                    <input type="file" id="imageUpload" name="imageUpload" accept="image/*" />
+                    <button type="submit">Upload Image</button>
+                </form>
+            </div>
 
-                <div id="notesContent" class="tab-content hidden">
-                    <form id="notesForm">
-                        <label for="noteText">Add Note:</label>
-                        <textarea id="noteText" name="noteText" placeholder="Write your note here..."></textarea>
-                        <button type="submit">Save Note</button>
-                    </form>
-                </div>
-                <div id="editSuggestionsContent" class="tab-content hidden">
-                    <div id="pendingUpdateSuggestions">
-                    </div>
+            <div id="notesContent" class="tab-content hidden">
+                <form id="notesForm">
+                    <label for="noteText">Add Note:</label>
+                    <textarea id="noteText" name="noteText" placeholder="Write your note here..."></textarea>
+                    <button type="submit">Save Note</button>
+                </form>
+            </div>
+            <div id="editSuggestionsContent" class="tab-content hidden">
+                <div id="pendingUpdateSuggestions">
                 </div>
             </div>
         </div>

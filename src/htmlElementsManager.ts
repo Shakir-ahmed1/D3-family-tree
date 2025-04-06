@@ -7,10 +7,11 @@ import { FamilyTreeSuggestionService, suggestionCreationService } from "./servic
 import { suggestionService } from "./services/suggestionService";
 import { userService } from "./services/user.service";
 import { localStorageManager } from "./storage/storageManager";
-
+import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
 
 
 function memberDisplayer(title, member) {
+
     const suggestionContainer = document.createElement('div');
     suggestionContainer.style.border = '1px black solid';
     suggestionContainer.style.marginBottom = '5px';
@@ -196,6 +197,7 @@ function createUserProfileElement(familyTreeMember) {
     profilePic.style.height = "40px";
     profilePic.style.borderRadius = "50%";
     profilePic.style.objectFit = "cover";
+    // profilePic.src = generateTemporaryProfilePicture(familyTreeMember.user.name);
 
     // Fetch profile picture from UserService
     userService.getUserProfilePicture(familyTreeMember.user.id)
@@ -436,6 +438,9 @@ export class HtmlElementsManager {
         { id: 'MAIN', name: 'MAIN' },
     ]
     constructor(familyTreeId: number, rootNodeId: number) {
+        // disable any click events for the pop up
+
+
         this.rootNodeId = rootNodeId
         this.familyTreeId = familyTreeId;
         this.nodeManager = ND
@@ -487,12 +492,10 @@ export class HtmlElementsManager {
         const selectedContent = document.getElementById(`${tab}Content`);
         const selectedTab = document.getElementById(`${tab}Tab`);
 
-        console.log("HTML Info", selectedContent, selectedTab, `${tab}Content`)
 
         if (selectedContent) selectedContent.classList.remove('hidden');
         if (selectedTab) selectedTab.classList.add('active');
 
-        console.log("selected TAb", selectedTab)
         if (tab === 'editSuggestions') {
             this.displaySuggestionUpdateEdits(this.rootNodeId)
         }
@@ -533,11 +536,9 @@ export class HtmlElementsManager {
                 const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
                 const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
-                    console.log("Fetched Array Data", nodesArray);
                     drawer.fetchData(nodesArray, rootNodeId, true);
                 }
                 const rootNode = this.nodeManager.getNode(rootNodeId)
-                console.log("ROOT", rootNodeId, rootNode)
 
                 this.displaySuggestionUpdateEdits(rootNodeId)
                 drawer.updateNodesNameText()
@@ -555,11 +556,9 @@ export class HtmlElementsManager {
 
                 const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
-                    console.log("Fetched Array Data", nodesArray);
                     drawer.fetchData(nodesArray, rootNodeId, true);
                 }
                 const rootNode = this.nodeManager.getNode(rootNodeId)
-                console.log("ROOT", rootNodeId, rootNode)
                 // this.createViewMode(rootNode, memberPriviledge)
                 this.displaySuggestionUpdateEdits(rootNodeId)
                 drawer.updateNodesNameText()
@@ -567,13 +566,125 @@ export class HtmlElementsManager {
             });
 
         }
+        const isSuggestor = suggestionObject.suggestedBy.id === this.nodeManager.data.myInfo?.id
+        console.log("is Suggestor", isSuggestor, suggestionObject.suggestedBy.id, this.nodeManager.data.myInfo?.id)
+        if (isSuggestor) {
+
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancel';
+            cancelButton.className = 'buttonPrimary';
+            suggestionContainer.appendChild(cancelButton);
+            cancelButton.addEventListener('click', async (e) => {
+                e.preventDefault()
+                const updatedNode = await suggestionService.cancelSuggestion(this.familyTreeId, suggestionObject.id)
+
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+                if (nodesArray) {
+                    drawer.fetchData(nodesArray, rootNodeId, true);
+                }
+                const rootNode = this.nodeManager.getNode(rootNodeId)
+                // this.createViewMode(rootNode, memberPriviledge)
+                this.displaySuggestionUpdateEdits(rootNodeId)
+                drawer.updateNodesNameText()
+
+            });
+        }
+
+        return suggestionContainer
+    }
+    reviewDeletionSuggestionBody(suggestionObject: SuggestEdits) {
+        const rootNodeId = this.rootNodeId
+        const rootNodeData = this.nodeManager.getNode(rootNodeId)
+        const suggestionContainer = document.createElement('div');
+        suggestionContainer.style.border = '1px black solid';
+        suggestionContainer.style.marginBottom = '5px';
+
+        const suggestingMember = createUserProfileElement(suggestionObject.suggestedBy);
+        suggestionContainer.appendChild(suggestingMember)
+        const field = document.createElement('p');
+        field.innerHTML = `<strong>Reason:</strong> ${suggestionObject.reason || 'N/A'}`;
+        field.className = 'dynamic-input';
+        suggestionContainer.appendChild(field);
+
+        const message = document.createElement('p');
+        message.innerHTML = `Delete <strong style="color: red;">${rootNodeData.name}?</strong>`;
+        message.className = 'dynamic-input';
+        suggestionContainer.appendChild(message);
+
+        if (this.nodeManager.canCreate(rootNodeId)) {
+            const acceptButton = document.createElement('button');
+            acceptButton.textContent = 'Accept';
+            acceptButton.className = 'buttonPrimary';
+
+            acceptButton.addEventListener('click', async (e) => {
+                e.preventDefault()
+
+                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'accepted')
+                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+
+                const previousNodeId = drawer.popRootHistory(this.rootNodeId)
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+                if (nodesArray) {
+                    drawer.fetchData(nodesArray, previousNodeId, true);
+                    drawer.toggleModes(previousNodeId, 'view')
+                }
+
+                this.displaySuggestionUpdateEdits(rootNodeId)
+                drawer.updateNodesNameText()
+            });
+
+            suggestionContainer.appendChild(acceptButton);
+            const rejectButton = document.createElement('button');
+            rejectButton.textContent = 'Reject';
+            rejectButton.className = 'buttonSecondary';
+            suggestionContainer.appendChild(rejectButton);
+            rejectButton.addEventListener('click', async (e) => {
+                e.preventDefault()
+                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'rejected')
+                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+                if (nodesArray) {
+                    drawer.fetchData(nodesArray, rootNodeId, true);
+                }
+                const rootNode = this.nodeManager.getNode(rootNodeId)
+                // this.createViewMode(rootNode, memberPriviledge)
+                this.displaySuggestionUpdateEdits(rootNodeId)
+                drawer.updateNodesNameText()
+
+            });
+
+        }
+        const isSuggestor = suggestionObject.suggestedBy.id === this.nodeManager.data.myInfo?.id
+        console.log("is Suggestor", isSuggestor, suggestionObject.suggestedBy.id, this.nodeManager.data.myInfo?.id)
+        if (isSuggestor) {
+
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancel';
+            cancelButton.className = 'buttonPrimary';
+            suggestionContainer.appendChild(cancelButton);
+            cancelButton.addEventListener('click', async (e) => {
+                e.preventDefault()
+                const updatedNode = await suggestionService.cancelSuggestion(this.familyTreeId, suggestionObject.id)
+
+                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+                if (nodesArray) {
+                    drawer.fetchData(nodesArray, rootNodeId, true);
+                }
+                const rootNode = this.nodeManager.getNode(rootNodeId)
+                // this.createViewMode(rootNode, memberPriviledge)
+                this.displaySuggestionUpdateEdits(rootNodeId)
+                drawer.updateNodesNameText()
+
+            });
+        }
 
         return suggestionContainer
     }
     displaySuggestionUpdateEdits(familyNodeId) {
         const pendingSuggestionsDisplayer = document.getElementById('pendingUpdateSuggestions');
         pendingSuggestionsDisplayer.innerHTML = '';
-        const nodesSuggestions = this.nodeManager.getNodeSuggestions(familyNodeId).filter(item => item.suggestedAction === SuggestableActions.UpdateNode)
+        const nodesSuggestions = this.nodeManager.getNodeSuggestions(familyNodeId).filter(item => item.suggestedAction === SuggestableActions.UpdateNode || item.suggestedAction === SuggestableActions.DeleteNode)
         if (nodesSuggestions.length === 0) {
             const message = document.createElement('p')
             message.textContent = 'No pending suggestions';
@@ -582,8 +693,14 @@ export class HtmlElementsManager {
         } else {
 
             nodesSuggestions.map(item => {
-                const suggestionBody = this.reviewUpdateSuggestionBody(item)
-                pendingSuggestionsDisplayer.appendChild(suggestionBody)
+                if (item.suggestedAction === SuggestableActions.UpdateNode) {
+                    const suggestionBody = this.reviewUpdateSuggestionBody(item)
+                    pendingSuggestionsDisplayer.appendChild(suggestionBody)
+                }
+                else if (item.suggestedAction === SuggestableActions.DeleteNode) {
+                    const suggestionBody = this.reviewDeletionSuggestionBody(item)
+                    pendingSuggestionsDisplayer.appendChild(suggestionBody)
+                }
             })
         }
 
@@ -593,7 +710,6 @@ export class HtmlElementsManager {
     setActionTypeLabel(actionType: actionTypes, node, currentNodeId) {
         this.rootNodeId = currentNodeId;
         let memberPriviledge = this.nodeManager.memberPriviledge(1, currentNodeId);
-        console.log('MEMBER PRIVILEDGE', memberPriviledge)
         const currentMembmerMode = (memberPriviledge === 'create' || memberPriviledge === 'only-create') ? 'create' : 'suggest';
         // 'suggest'; // 'create' or 'suggest
         const dynamicFields = document.getElementById('dynamicFields');
@@ -640,7 +756,6 @@ export class HtmlElementsManager {
             },
         };
         const generateFields = (option) => {
-            console.log("I am GENERAT FIELDS")
             const fields = actionOptions[option].fields;
             dynamicFields.querySelectorAll('.dynamic-input').forEach(el => el.remove());
 
@@ -680,9 +795,77 @@ export class HtmlElementsManager {
                         }
                         dynamicFields.appendChild(input);
                     });
-                } else if (field === 'targetNodeId' && actionType !== actionTypes.addChildOfTwoParents) {
-                    dynamicFields.appendChild(createDropdown(this.nodeManager.data.familyNodes, 'targetNodeId', 'select Existing Node'))
-                } else if (field === 'partnershipType') {
+                }
+
+
+
+
+                else if (field === 'targetNodeId' && actionType !== actionTypes.addChildOfTwoParents) {
+                    console.log("HYYYYYY");
+
+                    nodeManagmentService.fetchMarriableNodes(this.familyTreeId, this.rootNodeId)
+                        .then(item => {
+                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node');
+
+                            const referenceElement = document.getElementById('actionOptionSelect');
+
+                            if (referenceElement && referenceElement.parentNode === dynamicFields) {
+                                // Insert dropdown after referenceElement
+                                if (referenceElement.nextSibling) {
+                                    dynamicFields.insertBefore(dropdown, referenceElement.nextSibling);
+                                } else {
+                                    // If it's the last child, just append
+                                    dynamicFields.appendChild(dropdown);
+                                }
+                            } else {
+                                console.warn("referenceElement not found or not a child of dynamicFields");
+                                dynamicFields.appendChild(dropdown); // Fallback
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error fetching marriable nodes:", error);
+                        });
+                }
+
+                else if (field === 'targetNodeId' && actionType === actionTypes.addExistingPartner) {
+                    console.log("HYYYYYY");
+
+                    nodeManagmentService.fetchMarriableNodes(this.familyTreeId, this.rootNodeId)
+                        .then(item => {
+                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node');
+
+                            const referenceElement = document.getElementById('actionOptionSelect');
+
+                            if (referenceElement && referenceElement.parentNode === dynamicFields) {
+                                // Insert dropdown after referenceElement
+                                if (referenceElement.nextSibling) {
+                                    dynamicFields.insertBefore(dropdown, referenceElement.nextSibling);
+                                } else {
+                                    // If it's the last child, just append
+                                    dynamicFields.appendChild(dropdown);
+                                }
+                            } else {
+                                console.warn("referenceElement not found or not a child of dynamicFields");
+                                dynamicFields.appendChild(dropdown); // Fallback
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error fetching marriable nodes:", error);
+                        });
+                }
+
+
+
+
+
+
+
+
+
+
+
+
+                else if (field === 'partnershipType') {
                     dynamicFields.appendChild(createDropdown(this.relationType, 'partnershipType', 'select relationship Status'))
                 }
                 else if (field.endsWith('Id')) {
@@ -714,7 +897,7 @@ export class HtmlElementsManager {
 
 
             const saveButton = document.createElement('button')
-            saveButton.textContent = 'Save Info'
+            saveButton.textContent = 'Save'
             saveButton.className = 'dynamic-input'
             saveButton.addEventListener('click', async (e) => {
                 const endpointServiceMap = {
@@ -737,7 +920,6 @@ export class HtmlElementsManager {
                 const formData = new FormData(familyTreeForm);
                 const endpoint = localStorageManager.getItem('postEndpoint');
                 const data = Object.fromEntries(formData.entries());
-                console.log('END POINT: ', endpoint)
                 if (endpointServiceMap[endpoint]) {
                     try {
 
@@ -860,11 +1042,9 @@ export class HtmlElementsManager {
                     const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
                     const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                     if (nodesArray) {
-                        console.log("Fetched Array Data", nodesArray);
                         drawer.fetchData(nodesArray, rootNodeId, true);
                     }
                     const rootNode = this.nodeManager.getNode(rootNodeId)
-                    console.log("ROOT", rootNodeId, rootNode)
                     this.createViewMode(rootNode, memberPriviledge)
                 });
 
@@ -880,16 +1060,13 @@ export class HtmlElementsManager {
 
                     const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                     if (nodesArray) {
-                        console.log("Fetched Array Data", nodesArray);
                         drawer.fetchData(nodesArray, rootNodeId, true);
                     }
                     const rootNode = this.nodeManager.getNode(rootNodeId)
-                    console.log("ROOT", rootNodeId, rootNode)
                     this.createViewMode(rootNode, memberPriviledge)
 
                 });
                 const rootNode = this.nodeManager.getNode(rootNodeId)
-                console.log("ROOT", rootNodeId, rootNode)
                 const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
             }
         };
@@ -924,6 +1101,7 @@ export class HtmlElementsManager {
             console.log("Delete Allowed", deleteAllowed)
             const canSuggest = this.nodeManager.canContribute()
             const canUpdate = this.nodeManager.canUpdate(data.id)
+
             if (deleteAllowed) {
                 if (canSuggest) {
                     const deleteButton = document.createElement('button');
@@ -950,6 +1128,19 @@ export class HtmlElementsManager {
             editButton.className = 'dynamic-input';
             editButton.addEventListener('click', () => { this.createSuggestionMode(data, memberPriviledge) });
             dynamicFields.appendChild(editButton);
+            const deleteAllowed = this.nodeManager.isAllowedAction(data.id, genericActionTypes.DeleteNode);
+            console.log("Delete Allowed Suggest", deleteAllowed)
+            if (deleteAllowed) {
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Suggest Deletion';
+                deleteButton.className = 'delete-button';
+
+                deleteButton.addEventListener('click', () => {
+                    drawer.toggleModes(data.id, 'edit')
+                    this.suggestDeleteMode(data, memberPriviledge)
+                });
+                dynamicFields.appendChild(deleteButton)
+            }
             const details = otherNodeDetails(this.nodeManager.getNode(data.id))
             const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
             dynamicFields.appendChild(contributors);
@@ -981,7 +1172,7 @@ export class HtmlElementsManager {
             e.preventDefault()
             const updatedData = {};
             Object.keys(formData).forEach(key => {
-                if (formData[key].value) {
+                if (formData[key].value && formData[key] !== nodeData[key]) {
                     updatedData[key] = formData[key].value;
                 }
             });
@@ -989,7 +1180,6 @@ export class HtmlElementsManager {
 
             const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
-                console.log("Fetched Array Data", nodesArray);
                 drawer.fetchData(nodesArray, nodeData.id, true);
             }
             const updatedNode = this.nodeManager.getNode(nodeData.id)
@@ -1064,16 +1254,18 @@ export class HtmlElementsManager {
             const deletionBody = {};
             Object.keys(formData).forEach(key => {
                 if (formData[key].value) {
-                    console.log("Form Values", formData[key].value)
                     deletionBody[key] = formData[key].value;
                 }
             });
-            console.log("form body", formData)
-            console.log("suggest body", deletionBody)
 
 
             const deleteNode = await suggestionCreationService.suggestDeleteNode(this.familyTreeId, nodeData.id, deletionBody)
-            // Return to the previous old node
+
+            const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+            if (nodesArray) {
+                drawer.fetchData(nodesArray, nodeData.id, true);
+            }
+
             this.createViewMode(nodeData, memberPriviledge)
 
 
@@ -1124,20 +1316,22 @@ export class HtmlElementsManager {
             const familyTreeForm = document.getElementById('familyTreeForm')
             const formData = new FormData(familyTreeForm);
             const data = Object.fromEntries(formData.entries());
+            const filteredData = {}
+            Object.keys(data).map(item => {
+                if (data[item] !== nodeData[item]) {
+                    filteredData[item] = data[item]
+                }
+            })
 
-            const suggestedData = await suggestionCreationService.suggestUpdateNode(this.familyTreeId, nodeData.id, data)
-
-
+            const suggestedData = await suggestionCreationService.suggestUpdateNode(this.familyTreeId, nodeData.id, filteredData)
 
             const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, nodeData.id)
             const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
-                console.log("Fetched Array Data", nodesArray);
                 drawer.fetchData(nodesArray, nodeData.id, true);
             }
             const rootNode = this.nodeManager.getNode(nodeData.id)
 
-            console.log("suggested Data", suggestedData)
             this.createViewMode(rootNode, memberPriviledge);
         });
 

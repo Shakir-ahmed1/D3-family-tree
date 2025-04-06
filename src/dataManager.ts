@@ -635,7 +635,6 @@ export class DataManager {
       `)
   }
   memberPriviledge(familyTreeId: number, familyNodeId: number): 'view' | 'suggest' | 'create' | 'update' | 'only-create' {
-    console.log("CONTRIBUTION", this.getContributionByNodeId(familyNodeId))
     const canContribute = this.canContribute()
     if (!canContribute) return 'view'
     const canCreate = this.canCreate(familyNodeId)
@@ -670,7 +669,7 @@ export class DataManager {
     }) ? false : true
     return result
   }
-  isAllowedAction(familyNodeId: number, suggestableAction: genericActionTypes): boolean {
+  isAllowedAction(familyNodeId: number, suggestableAction: genericActionTypes, checkPending?: true): boolean {
 
     const mapper = {
       ChildOfOneParent: genericActionTypes.addChildOfOneParent,
@@ -687,12 +686,14 @@ export class DataManager {
       UpdateNode: genericActionTypes.UpdateNode,
     }
     const foundPending = this.data.allowedActions.find(item => item.id === familyNodeId)?.relations
-    if (!foundPending) return false
 
+    if (!foundPending) return false
     const result = foundPending.find(item => {
       return mapper[item as keyof typeof mapper] === suggestableAction;
     }) ? true : false
     return result
+
+
   }
   simpleGetChildren(selfNode: FamilyNode, spouseIds: number[]): DrawableNode[] {
     const allSpouseAsParents: DrawableNode[] = []

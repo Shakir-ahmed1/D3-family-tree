@@ -14,18 +14,11 @@ const bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6Iis
 
 localStorageManager.setItem('bearerToken', bearerToken)
 
-const familyTreeId = 2
+const familyTreeId = 1
 export const ND = new DataManager(familyTreeId);
-export const drawer = new FamilyTreeDrawer(familyTreeId, 'treeContainer', 1000, 1000, false);
+export const drawer = new FamilyTreeDrawer(familyTreeId, 'treeContainer', 500, 500, false);
 
 
-// function displayPopUp(familyTreeId, familyNodeId) {
-//     const drawerPopUp = new FamilyTreeDrawer(familyTreeId, 'treePopUp', 500, 500, true, familyNodeId);
-//     const svgContainer = document.getElementById('treePopUp')
-//     svgContainer.style.pointerEvents = 'none'
-// }
-// displayPopUp(1, 1)
-// // Automatically fetch the nodes when the script loads
 
 
 

@@ -128,17 +128,9 @@ function otherNodeDetails(familyNode: FamilyNode) {
 
 
 
-
-
-
-
-
-
-
 // Colors for background selection
 const backgroundColors = ["#1E1E1E", "#2C3E50", "#34495E", "#8E44AD", "#C0392B", "#16A085", "#D35400", "#2980B9"]
 
-Math.floor(Math.random() * 8)
 
 // Function to generate a temporary profile picture
 function generateTemporaryProfilePicture(userName) {
@@ -223,98 +215,6 @@ function createUserProfileElement(familyTreeMember) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// function createUserProfileElement(familyTreeMember: FamilyTreeMembers | undefined): HTMLDivElement | null {
-//     if (!familyTreeMember || !familyTreeMember.user) {
-//         console.error("Invalid familyTreeMember object");
-//         return null;
-//     }
-
-//     const container = document.createElement("div");
-//     container.style.display = "flex";
-//     container.style.alignItems = "center";
-//     container.style.gap = "10px";
-//     container.style.marginBottom = '40px'
-//     container.style.paddingTop = '10px'
-//     container.style.paddingBottom = '10px'
-
-//     // Create name element
-//     const nameElement = document.createElement("span");
-//     nameElement.textContent = familyTreeMember.user.name;
-//     nameElement.style.fontSize = "14px";
-//     nameElement.style.fontWeight = "bold";
-
-//     // Create profile picture element
-//     const profilePic = document.createElement("img");
-//     profilePic.alt = `${familyTreeMember.user.name}'s profile picture`;
-//     profilePic.style.width = "50px"; // 5x relative size
-//     profilePic.style.height = "50px";
-//     profilePic.style.borderRadius = "50%";
-//     profilePic.style.objectFit = "cover";
-
-//     // Fetch profile picture from UserService
-//     userService.getUserProfilePicture(familyTreeMember.user.id)
-//         .then(response => response.blob())
-//         .then(blob => {
-//             profilePic.src = URL.createObjectURL(blob);
-//         })
-//         .catch(error => {
-//             console.error("Error fetching profile picture:", error);
-//             profilePic.src = "default-profile.png"; // Fallback image
-//         });
-//     // Append elements in order
-//     container.appendChild(profilePic);
-//     container.appendChild(nameElement);
-
-//     return container;
-// }
 function contributorDetailElement(title: string, contributors: FamilyTreeMembers[]) {
     const wrapper = document.createElement('div')
     const creatorsTitle = document.createElement('p')
@@ -388,13 +288,29 @@ function contributorsElementGenerator(contributors) {
     return contributionWrapper;
 }
 
-
-
-
-
-
-function createDropdown(nodes: { id: string, name: string }[], identifier, message): HTMLSelectElement {
+function createDropdown(nodes: { id: string, name: string }[], identifier, message, zeroMessage): HTMLSelectElement {
     // Create a select element
+    if (nodes.length === 0) {
+        const select = document.createElement("select");
+
+        // Create and append the default option
+        select.id = identifier
+        select.name = identifier
+        select.className = 'dynamic-input'
+        const defaultOption = document.createElement("option");
+        defaultOption.textContent = zeroMessage;
+        defaultOption.value = "";
+        select.appendChild(defaultOption);
+        select.disabled = true;
+
+
+        const saveButton = document.getElementById('allowed-save');
+        console.log('save butttttttttttttttttttt', saveButton)
+        saveButton.disabled = true
+        saveButton.style.backgroundColor = '#AAAAAA'
+
+        return select
+    }
     const select = document.createElement("select");
 
     // Create and append the default option
@@ -428,6 +344,7 @@ function createDropdown(nodes: { id: string, name: string }[], identifier, messa
 
 
 export class HtmlElementsManager {
+    private treeDrawer
     private familyTreeId: number;
     private rootNodeId: number;
     public nodeManager;
@@ -437,10 +354,10 @@ export class HtmlElementsManager {
         { id: 'FRIEND', name: 'FRIEND' },
         { id: 'MAIN', name: 'MAIN' },
     ]
-    constructor(familyTreeId: number, rootNodeId: number) {
+    constructor(familyTreeId: number, rootNodeId: number, drawer) {
         // disable any click events for the pop up
 
-
+        this.treeDrawer = drawer
         this.rootNodeId = rootNodeId
         this.familyTreeId = familyTreeId;
         this.nodeManager = ND
@@ -448,7 +365,7 @@ export class HtmlElementsManager {
 
         const modeButton = document.getElementById('modeType')
         modeButton.addEventListener('click', (event) => {
-            drawer.toggleModes()
+            this.treeDrawer.toggleModes()
         });
     }
     setModeType(text) {
@@ -536,12 +453,12 @@ export class HtmlElementsManager {
                 const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
                 const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
-                    drawer.fetchData(nodesArray, rootNodeId, true);
+                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
                 }
                 const rootNode = this.nodeManager.getNode(rootNodeId)
 
                 this.displaySuggestionUpdateEdits(rootNodeId)
-                drawer.updateNodesNameText()
+                this.treeDrawer.updateNodesNameText()
             });
 
             suggestionContainer.appendChild(acceptButton);
@@ -556,12 +473,12 @@ export class HtmlElementsManager {
 
                 const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
-                    drawer.fetchData(nodesArray, rootNodeId, true);
+                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
                 }
                 const rootNode = this.nodeManager.getNode(rootNodeId)
                 // this.createViewMode(rootNode, memberPriviledge)
                 this.displaySuggestionUpdateEdits(rootNodeId)
-                drawer.updateNodesNameText()
+                this.treeDrawer.updateNodesNameText()
 
             });
 
@@ -580,12 +497,12 @@ export class HtmlElementsManager {
 
                 const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
-                    drawer.fetchData(nodesArray, rootNodeId, true);
+                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
                 }
                 const rootNode = this.nodeManager.getNode(rootNodeId)
                 // this.createViewMode(rootNode, memberPriviledge)
                 this.displaySuggestionUpdateEdits(rootNodeId)
-                drawer.updateNodesNameText()
+                this.treeDrawer.updateNodesNameText()
 
             });
         }
@@ -622,15 +539,15 @@ export class HtmlElementsManager {
                 const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'accepted')
                 const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
-                const previousNodeId = drawer.popRootHistory(this.rootNodeId)
+                const previousNodeId = this.treeDrawer.popRootHistory(this.rootNodeId)
                 const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
-                    drawer.fetchData(nodesArray, previousNodeId, true);
-                    drawer.toggleModes(previousNodeId, 'view')
+                    this.treeDrawer.fetchData(nodesArray, previousNodeId, true);
+                    this.treeDrawer.toggleModes(previousNodeId, 'view')
                 }
 
                 this.displaySuggestionUpdateEdits(rootNodeId)
-                drawer.updateNodesNameText()
+                this.treeDrawer.updateNodesNameText()
             });
 
             suggestionContainer.appendChild(acceptButton);
@@ -645,12 +562,12 @@ export class HtmlElementsManager {
 
                 const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
-                    drawer.fetchData(nodesArray, rootNodeId, true);
+                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
                 }
                 const rootNode = this.nodeManager.getNode(rootNodeId)
                 // this.createViewMode(rootNode, memberPriviledge)
                 this.displaySuggestionUpdateEdits(rootNodeId)
-                drawer.updateNodesNameText()
+                this.treeDrawer.updateNodesNameText()
 
             });
 
@@ -669,12 +586,12 @@ export class HtmlElementsManager {
 
                 const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
-                    drawer.fetchData(nodesArray, rootNodeId, true);
+                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
                 }
                 const rootNode = this.nodeManager.getNode(rootNodeId)
                 // this.createViewMode(rootNode, memberPriviledge)
                 this.displaySuggestionUpdateEdits(rootNodeId)
-                drawer.updateNodesNameText()
+                this.treeDrawer.updateNodesNameText()
 
             });
         }
@@ -805,7 +722,8 @@ export class HtmlElementsManager {
 
                     nodeManagmentService.fetchMarriableNodes(this.familyTreeId, this.rootNodeId)
                         .then(item => {
-                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node');
+
+                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node', 'Couldn\'t find a possible pair');
 
                             const referenceElement = document.getElementById('actionOptionSelect');
 
@@ -827,32 +745,32 @@ export class HtmlElementsManager {
                         });
                 }
 
-                else if (field === 'targetNodeId' && actionType === actionTypes.addExistingPartner) {
-                    console.log("HYYYYYY");
+                // else if (field === 'targetNodeId' && actionType === actionTypes.addExistingPartner) {
+                //     console.log("HYYYYYY");
 
-                    nodeManagmentService.fetchMarriableNodes(this.familyTreeId, this.rootNodeId)
-                        .then(item => {
-                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node');
+                //     nodeManagmentService.fetchMarriableNodes(this.familyTreeId, this.rootNodeId)
+                //         .then(item => {
+                //             const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node');
 
-                            const referenceElement = document.getElementById('actionOptionSelect');
+                //             const referenceElement = document.getElementById('actionOptionSelect');
 
-                            if (referenceElement && referenceElement.parentNode === dynamicFields) {
-                                // Insert dropdown after referenceElement
-                                if (referenceElement.nextSibling) {
-                                    dynamicFields.insertBefore(dropdown, referenceElement.nextSibling);
-                                } else {
-                                    // If it's the last child, just append
-                                    dynamicFields.appendChild(dropdown);
-                                }
-                            } else {
-                                console.warn("referenceElement not found or not a child of dynamicFields");
-                                dynamicFields.appendChild(dropdown); // Fallback
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Error fetching marriable nodes:", error);
-                        });
-                }
+                //             if (referenceElement && referenceElement.parentNode === dynamicFields) {
+                //                 // Insert dropdown after referenceElement
+                //                 if (referenceElement.nextSibling) {
+                //                     dynamicFields.insertBefore(dropdown, referenceElement.nextSibling);
+                //                 } else {
+                //                     // If it's the last child, just append
+                //                     dynamicFields.appendChild(dropdown);
+                //                 }
+                //             } else {
+                //                 console.warn("referenceElement not found or not a child of dynamicFields");
+                //                 dynamicFields.appendChild(dropdown); // Fallback
+                //             }
+                //         })
+                //         .catch(error => {
+                //             console.error("Error fetching marriable nodes:", error);
+                //         });
+                // }
 
 
 
@@ -898,6 +816,7 @@ export class HtmlElementsManager {
 
             const saveButton = document.createElement('button')
             saveButton.textContent = 'Save'
+            saveButton.id = 'allowed-save'
             saveButton.className = 'dynamic-input'
             saveButton.addEventListener('click', async (e) => {
                 const endpointServiceMap = {
@@ -927,7 +846,7 @@ export class HtmlElementsManager {
 
                         const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                         if (nodesArray) {
-                            drawer.fetchData(nodesArray, this.rootNodeId, true);
+                            this.treeDrawer.fetchData(nodesArray, this.rootNodeId, true);
                         }
                     } catch (error) {
                         console.error('Error:', error);
@@ -1042,7 +961,7 @@ export class HtmlElementsManager {
                     const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
                     const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                     if (nodesArray) {
-                        drawer.fetchData(nodesArray, rootNodeId, true);
+                        this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
                     }
                     const rootNode = this.nodeManager.getNode(rootNodeId)
                     this.createViewMode(rootNode, memberPriviledge)
@@ -1060,7 +979,7 @@ export class HtmlElementsManager {
 
                     const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                     if (nodesArray) {
-                        drawer.fetchData(nodesArray, rootNodeId, true);
+                        this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
                     }
                     const rootNode = this.nodeManager.getNode(rootNodeId)
                     this.createViewMode(rootNode, memberPriviledge)
@@ -1088,7 +1007,7 @@ export class HtmlElementsManager {
             editButton.textContent = 'Edit';
             editButton.className = 'dynamic-input';
             editButton.addEventListener('click', () => {
-                drawer.toggleModes(data.id, 'edit')
+                this.treeDrawer.toggleModes(data.id, 'edit')
                 this.createEditMode(data, memberPriviledge)
             });
             dynamicFields.appendChild(editButton);
@@ -1108,13 +1027,13 @@ export class HtmlElementsManager {
                     if (canUpdate) {
                         deleteButton.textContent = 'Delete';
                         deleteButton.addEventListener('click', () => {
-                            drawer.toggleModes(data.id, 'edit')
+                            this.treeDrawer.toggleModes(data.id, 'edit')
                             this.deleteMode(data, memberPriviledge)
                         });
                     } else {
                         deleteButton.textContent = 'Suggest Deletion';
                         deleteButton.addEventListener('click', () => {
-                            drawer.toggleModes(data.id, 'edit')
+                            this.treeDrawer.toggleModes(data.id, 'edit')
                             this.suggestDeleteMode(data, memberPriviledge)
                         });
                     }
@@ -1136,7 +1055,7 @@ export class HtmlElementsManager {
                 deleteButton.className = 'delete-button';
 
                 deleteButton.addEventListener('click', () => {
-                    drawer.toggleModes(data.id, 'edit')
+                    this.treeDrawer.toggleModes(data.id, 'edit')
                     this.suggestDeleteMode(data, memberPriviledge)
                 });
                 dynamicFields.appendChild(deleteButton)
@@ -1180,7 +1099,7 @@ export class HtmlElementsManager {
 
             const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
-                drawer.fetchData(nodesArray, nodeData.id, true);
+                this.treeDrawer.fetchData(nodesArray, nodeData.id, true);
             }
             const updatedNode = this.nodeManager.getNode(nodeData.id)
             this.createViewMode(updatedNode, memberPriviledge);
@@ -1210,11 +1129,11 @@ export class HtmlElementsManager {
         deleteButtonYes.addEventListener('click', async (e) => {
             e.preventDefault()
             const deleteNode = await nodeManagmentService.deleteNode(this.familyTreeId, nodeData.id)
-            const previousNodeId = drawer.popRootHistory(nodeData.id)
+            const previousNodeId = this.treeDrawer.popRootHistory(nodeData.id)
 
             const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
-                drawer.fetchData(nodesArray, previousNodeId, true);
+                this.treeDrawer.fetchData(nodesArray, previousNodeId, true);
             }
             // Return to the previous old node
         });
@@ -1263,7 +1182,7 @@ export class HtmlElementsManager {
 
             const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
-                drawer.fetchData(nodesArray, nodeData.id, true);
+                this.treeDrawer.fetchData(nodesArray, nodeData.id, true);
             }
 
             this.createViewMode(nodeData, memberPriviledge)
@@ -1328,7 +1247,7 @@ export class HtmlElementsManager {
             const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, nodeData.id)
             const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
-                drawer.fetchData(nodesArray, nodeData.id, true);
+                this.treeDrawer.fetchData(nodesArray, nodeData.id, true);
             }
             const rootNode = this.nodeManager.getNode(nodeData.id)
 

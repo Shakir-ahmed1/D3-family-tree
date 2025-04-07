@@ -15,7 +15,6 @@ async function fetchNodeImage(nodeId: number, token: string): Promise<string | n
                 'Content-Type': 'application/json',
             },
         });
-
         if (!response.ok) throw new Error("Image not found");
 
         const blob = await response.blob();
@@ -172,7 +171,7 @@ export class FamilyTreeDrawer {
                 }
                 tempRootId = founderNode.id
                 this.nodeManager.setData(nodesArray)
-                this.formManager = new HtmlElementsManager(this.familyTreeId, tempRootId)
+                this.formManager = new HtmlElementsManager(this.familyTreeId, tempRootId, this)
                 if (founderNode) {
                     this.fetchData(nodesArray, founderNode.id as number, true);
                 } else {
@@ -511,26 +510,31 @@ export class FamilyTreeDrawer {
                     return d.data.type === "spouse" && d.data.target;
                 } else if (d.data.catag === 'ance') {
                     const spouse = this.jointNode.find(n => n.data.id === d.data.target);
-                    return spouse !== undefined; // Check if spouse exists
+                    return spouse !== undefined; // Check if spouse exists)
                 } else {
                     throw new Error('data must have a .catag property set either to "desc" or "ance"')
                 }
-            }), d => {
-                if (d.data.catag === 'desc') {
-                    const spouseId = Math.min(d.data.id, d.data.target);
-                    const otherSpouseId = Math.max(d.data.id, d.data.target);
-                    return `${spouseId}-${otherSpouseId}`;
-                } else if (d.data.catag === 'ance') {
-                    const spouse = this.jointNode.find(n => n.data.id === d.data.target);
-                    if (spouse) {
-                        const spouseId = Math.min(d.data.id, spouse.data.id); // Use spouse ID directly
-                        const otherSpouseId = Math.max(d.data.id, spouse.data.id);
+            }), dd => {
+                const ddd = (d) => {
+                    if (d.data.catag === 'desc') {
+                        const spouseId = Math.min(d.data.id, d.data.target);
+                        const otherSpouseId = Math.max(d.data.id, d.data.target);
                         return `${spouseId}-${otherSpouseId}`;
+                    } else if (d.data.catag === 'ance') {
+                        const spouse = this.jointNode.find(n => n.data.id === d.data.target);
+                        if (spouse) {
+                            const spouseId = Math.min(d.data.id, spouse.data.id); // Use spouse ID directly
+                            const otherSpouseId = Math.max(d.data.id, spouse.data.id);
+                            return `${spouseId}-${otherSpouseId}`;
+                        }
+                        return ""; // Return empty string if no spouse found (will be filtered out))
+                    } else {
                     }
-                    return ""; // Return empty string if no spouse found (will be filtered out)
-                } else {
                 }
-            });
+                console.log("DDDDDDDDDDDDDDDDDDDDDDDD", ddd(dd))
+                return ddd(dd)
+            }
+            );
         // 2. EXIT (Remove old lines - this is important!)
         lines.exit().transition()
             .duration(this.fadeOutAnimationDuration)
@@ -542,11 +546,11 @@ export class FamilyTreeDrawer {
             .attr("x1", d => d.x ?? 0)
             .attr("y1", d => d.y ?? 0)
             .attr("x2", d => {
-                const spouse = this.jointNode.find(n => n.data.id === d.data.target);
+                const spouse = this.jointNode.find(n => n.data.id === d.data.target && n.data.type === 'child');
                 return spouse?.x ?? 0;
             })
             .attr("y2", d => {
-                const spouse = this.jointNode.find(n => n.data.id === d.data.target);
+                const spouse = this.jointNode.find(n => n.data.id === d.data.target && n.data.type === 'child');
                 return spouse?.y ?? 0;
             })
             .attr("opacity", 1);
@@ -762,7 +766,7 @@ export class FamilyTreeDrawer {
         const strokeWidth = 3;
 
         const handleClick = (_event: any, d: d3.HierarchyNode<DrawableNode>) => {
-
+            console.log("CLICKED", d.data.id)
             if (d.data.id !== this.rootNodeId) {
                 this.modeController(d.data.id);
             } else {
@@ -1138,6 +1142,8 @@ export class FamilyTreeDrawer {
         const strokeWidth = 3;
 
         const handleClick = (_event: any, d: d3.HierarchyNode<DrawableNode>) => {
+            console.log("CLICKED", d.data.id)
+
             // When a node is clicked, check for the actionType and update the h2 label
             if (d.data.hasPending === false && d.data.mode === 'edit' && d.data.type !== 'suggest' && this.memberPriviledge !== 'suggest' && this.memberPriviledge !== 'update') {
                 return

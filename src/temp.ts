@@ -163,7 +163,6 @@ export class FamilyTreeDrawer {
             if (descRootX && node.x) node.x = node.x - descRootX;
             return node;
         });
-        console.log('this is desc nodes', this.descNodes);
         // Filp ancestors upside down
         this.anceNodes = this.anceTreeData.descendants()
             .map(node => {

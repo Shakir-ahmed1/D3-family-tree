@@ -1,160 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reusable Family Tree</title>
-    <link rel="stylesheet" href="style.css" />
-    <style>
-        /* General Reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <title>Reusable Family Tree with Tabs</title>
+    <link rel="stylesheet" href="src/style.css" />
 
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        h5 {
-            text-align: center;
-            margin: 10px 0;
-            color: #333;
-        }
-
-        .main {
-            display: flex;
-            width: 100%;
-            height: calc(100vh - 50px); /* Adjust for header height */
-        }
-
-        /* Sidebar styles */
-        .sidebar {
-            width: 33%;
-            padding: 15px;
-            background-color: #333;
-            border-right: 1px solid #ddd;
-            overflow-y: auto;
-        }
-
-        .sidebar form {
-            margin-bottom: 20px;
-            padding: 10px;
-            background-color: #333;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar form label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            font-size: 14px;
-            color: #555;
-        }
-
-        .sidebar form input,
-        .sidebar form select,
-        .sidebar form textarea {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .sidebar form button {
-            background-color: #007bff;
-            color: #fff;
-            padding: 8px 15px;
-            font-size: 14px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .sidebar form button:hover {
-            background-color: #0056b3;
-        }
-
-        /* Main content styles */
-        #container1 {
-            flex: 1;
-            padding: 20px;
-            background-color: #888;
-            overflow-y: auto;
-        }
-
-        /* Scrollable forms and content */
-        .main .sidebar,
-        .main #container1 {
-            overflow-y: auto;
-        }
-    </style>
 </head>
+
 <body>
     <h5>Family Trees</h5>
     <div class="main">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <!-- Form for Fetching API Data -->
-            <form id="apiForm">
-                <label for="apiUrl">API URL:</label>
-                <input type="text" id="apiUrl" placeholder="Enter API URL" value="http://localhost:3000/api/family-tree/1/relations" />
-                <label for="bearerToken">Bearer Token:</label>
-                <input type="text" id="bearerToken" placeholder="Enter Bearer Token" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8" required />
-                <button type="submit">Fetch Data</button>
-            </form>
-
-            <!-- Form for Updating Self Node ID -->
-            <form id="viewChangeForm">
-                <label for="selfNodeId">Self Node ID:</label>
-                <input type="text" id="selfNodeId" placeholder="Enter Self Node ID" value="1" required />
-                <button type="submit">Draw Tree</button>
-            </form>
-
-            <!-- Form for Adding a New Node -->
-            <form id="addNodeForm">
-                <label for="actionSelect">Select Action:</label>
-                <select id="actionSelect" required>
-                    <option value="" disabled selected>Select an action</option>
-                    <!-- Populate dropdown with action titles -->
-                    <script>
-                        const actions = [
-                            "SIBLING: Add a new sibling to the family tree",
-                            "PARENT: Add a new biological parent to the node",
-                            "CHILD: Create a child with an existing partner",
-                            "CHILD: Create a child without a partner",
-                            "CHILD: Create a child with a new partner",
-                            "SPOUSE: Add a new partner to the family tree",
-                            "SPOUSE: Add an existing partner to the family tree",
-                        ];
-                        actions.forEach(action => {
-                            document.write(`<option value="${action}">${action}</option>`);
-                        });
-                    </script>
-                </select>
-
-                <label for="requestBody">Request Body:</label>
-                <textarea id="requestBody" rows="10" placeholder="Request body will appear here..." required></textarea>
-
-                <button type="submit">Submit</button>
-            </form>
+        <div id="treePopUp" style="padding: 50px;">
         </div>
-
-        <!-- Main Content -->
         <div id="treeContainer" style="padding: 50px;">
-      </div>
-          <!-- Family tree visualization or other dynamic content will go here -->
-      </div>
+        </div>
+        <div class="form-container">
+            <div class="tabs">
+                <div class="tab active" id="detailsTab">Details</div>
+                <div class="tab" id="imagesTab">Images</div>
+                <div class="tab" id="notesTab">Notes</div>
+            </div>
+
+            <div id="detailsContent" class="tab-content">
+                <button id="modeType"
+                    style="font-size: 25px; margin: 5px; padding: 5px;background-color: tomato;">view</button>
+                <form id="sizeManager">
+                    <label for="size">Size:</label>
+                    <input type="number" id="size" name="size" value="800"><br><br>
+
+
+                    <button type="submit">Update SVG Size</button>
+                </form>
+
+                <form id="familyTreeForm">
+                    <h2 id="endpointLabel">Select Action Type</h2>
+                    <div id="dynamicFields"></div>
+                    <!-- <button type="submit">Submit</button> -->
+                </form>
+            </div>
+
+            <div id="imagesContent" class="tab-content hidden">
+                <form id="imagesForm">
+                    <label for="imageUpload">Upload Image:</label>
+                    <input type="file" id="imageUpload" name="imageUpload" accept="image/*" />
+                    <button type="submit">Upload Image</button>
+                </form>
+            </div>
+
+            <div id="notesContent" class="tab-content hidden">
+                <form id="notesForm">
+                    <label for="noteText">Add Note:</label>
+                    <textarea id="noteText" name="noteText" placeholder="Write your note here..."></textarea>
+                    <button type="submit">Save Note</button>
+                </form>
+            </div>
+            <div id="editSuggestionsContent" class="tab-content hidden">
+                <div id="pendingUpdateSuggestions">
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <script type="module" src="/src/main.ts"></script>
+
 </body>
+
 </html>

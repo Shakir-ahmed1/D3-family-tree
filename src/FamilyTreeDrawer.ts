@@ -5,6 +5,16 @@ import { HtmlElementsManager } from "./htmlElementsManager";
 import { ND } from "./main";
 import { nodeManagmentService } from "./services/nodeManagmentService";
 
+function calculatePositionChildParentPosition(x, nodeRadius, scale, gender) {
+    const offset = 1.5
+    let sign;
+    if (gender === 'MALE') {
+        sign = 1
+    } else {
+        sign = -1
+    }
+    return x + sign * ((nodeRadius * offset) * scale)
+}
 
 
 async function fetchNodeImage(nodeId: number, token: string): Promise<string | null> {
@@ -627,6 +637,7 @@ export class FamilyTreeDrawer {
         paths.transition()
             .duration(this.fadeInAnimationDuration)
             .attr("d", d => {  // Update the 'd' attribute
+
                 if (d.data.catag === 'desc') {
                     let pathD = "";
                     if (d.data.mother && d.data.father) {
@@ -634,14 +645,21 @@ export class FamilyTreeDrawer {
                         const father = this.jointNode.find(n => n.data.uuid === d.data.father);
                         let theSpouse = (mother.data.type === 'spouse') ? mother : father;
                         if (mother && father && theSpouse.marriageMidpoint !== undefined) {
-                            pathD = `M${theSpouse.x}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+
+                            // pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+                            pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
                         }
                     } else if (d.data.mother || d.data.father) {
                         let pr;
                         if (d.data.father) pr = this.jointNode.find(n => n.data.uuid === d.data.father);
                         if (d.data.mother) pr = this.jointNode.find(n => n.data.uuid === d.data.mother);
                         if (pr && pr.x !== undefined && pr.y !== undefined && d && d.y !== undefined && d.x !== undefined) {
-                            pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                            console.log("PRPRPRPRPRPRPR")
+                            if (pr.data.type !== 'spouse') {
+                                pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                            } else {
+                                pathD = `M${calculatePositionChildParentPosition(pr.x, this.NODE_RADIUS, this.scaleFactor, pr.data.gender)},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                            }
                         }
                     }
                     return pathD;
@@ -684,14 +702,14 @@ export class FamilyTreeDrawer {
                     const father = this.jointNode.find(n => n.data.uuid === d.data.father);
                     let theSpouse = (mother.data.type === 'spouse') ? mother : father;
                     if (mother && father && theSpouse.marriageMidpoint !== undefined) {
-                        pathD = `M${theSpouse.x}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+                        pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
                     }
                 } else if (d.data.mother || d.data.father) {
                     let pr;
                     if (d.data.father) pr = this.jointNode.find(n => n.data.uuid === d.data.father);
                     if (d.data.mother) pr = this.jointNode.find(n => n.data.uuid === d.data.mother);
                     if (pr && pr.x !== undefined && pr.y !== undefined && d && d.y !== undefined && d.x !== undefined) {
-                        pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                        pathD = `M${calculatePositionChildParentPosition(pr.x, this.NODE_RADIUS, this.scaleFactor, pr.data.gender)},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
                     }
                 }
                 return pathD;
@@ -987,14 +1005,18 @@ export class FamilyTreeDrawer {
                         const father = this.jointNode.find(n => n.data.uuid === d.data.father);
                         let theSpouse = (mother.data.type === 'spouse') ? mother : father;
                         if (mother && father && theSpouse.marriageMidpoint !== undefined) {
-                            pathD = `M${theSpouse.x}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+                            pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
                         }
                     } else if (d.data.mother || d.data.father) {
                         let pr;
                         if (d.data.father) pr = this.jointNode.find(n => n.data.uuid === d.data.father);
                         if (d.data.mother) pr = this.jointNode.find(n => n.data.uuid === d.data.mother);
                         if (pr && pr.x !== undefined && pr.y !== undefined && d && d.y !== undefined && d.x !== undefined) {
-                            pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                            if (pr.data.type !== 'spouse') {
+                                pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                            } else {
+                                pathD = `M${calculatePositionChildParentPosition(pr.x, this.NODE_RADIUS, this.scaleFactor, pr.data.gender)},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                            }
                         }
                     }
                     return pathD;
@@ -1057,14 +1079,18 @@ export class FamilyTreeDrawer {
                     const father = this.jointNode.find(n => n.data.uuid === d.data.father);
                     let theSpouse = (mother?.data?.type === 'spouse') ? mother : father;
                     if (mother && father && theSpouse.marriageMidpoint !== undefined) {
-                        pathD = `M${theSpouse.x}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+                        pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
                     }
                 } else if (d.data.mother || d.data.father) {
                     let pr;
                     if (d.data.father) pr = this.jointNode.find(n => n.data.uuid === d.data.father);
                     if (d.data.mother) pr = this.jointNode.find(n => n.data.uuid === d.data.mother);
                     if (pr && pr.x !== undefined && pr.y !== undefined && d && d.y !== undefined && d.x !== undefined) {
-                        pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                        if (pr.data.type !== 'spouse') {
+                            pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                        } else {
+                            pathD = `M${calculatePositionChildParentPosition(pr.x, this.NODE_RADIUS, this.scaleFactor, pr.data.gender)},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                        }
                     }
                 }
                 return pathD;

@@ -322,11 +322,11 @@ export class DataManager {
       })
       const foundItem = this.getNode(familyNode.id)
       let mot, fat;
-      if (foundItem.gender === 'MALE') {
+      if (familyNode.fatherId) {
         let temp = customId.split('+')
         temp.pop()
         fat = temp.join('+')
-      } else {
+      } if (familyNode.motherId) {
         let temp = customId.split('+')
         temp.pop()
         mot = temp.join('+')
@@ -588,6 +588,66 @@ export class DataManager {
     }
     return parents;
   }
+
+  customBuildParentPreview(startNodeId: number): DrawableNode {
+    const foundNode = this.getNode(startNodeId)
+    let mother: DrawableNode | undefined, father: DrawableNode | undefined;
+    let foundParentHood: Parent | undefined;
+    if (foundNode?.parentRelationship?.id) {
+      foundParentHood = this.getParentRelationship(foundNode.parentRelationship.id)
+    }
+    if (foundParentHood?.femaleNode) {
+      const foundMother = this.getNode(foundParentHood.femaleNode.id)
+      mother = {
+        id: foundMother.id,
+        uuid: `${foundMother.id}`,
+        // parents: operatedParents,
+        children: [],
+        name: foundMother.name,
+        gender: foundMother.gender,
+        type: 'child',
+        catag: 'editAnce',
+        mode: 'node'
+      }
+    } 
+    if (foundParentHood?.maleNode) {
+      const foundFather = this.getNode(foundParentHood.maleNode.id)
+
+      father = {
+        id: foundFather.id,
+        uuid: `${foundFather.id}`,
+        children: [],
+        name: foundFather.name,
+        gender: foundFather.gender,
+        type: 'child',
+        catag: 'editAnce',
+        mode: 'node'
+      }
+    }
+    const displayableParents = []
+
+    if (father) {
+      if (mother) father.target = mother.id;
+      displayableParents.push(father)
+    }
+    if (mother) {
+      if (father) mother.target = father.id
+      displayableParents.push(mother)
+    }
+    const parents: DrawableNode = {
+      id: startNodeId,
+      uuid: `${startNodeId}`,
+      children: displayableParents,
+      name: foundNode.name,
+      gender: foundNode.gender,
+      father: father?.uuid,
+      mother: mother?.uuid,
+      type: 'child',
+      catag: 'editAnce',
+      mode: 'node'
+    }
+    return parents;
+  }
   getParentHoodBySpouses(selfNode: FamilyNode, otherNode: FamilyNode): Parent | undefined {
     if (selfNode.gender === otherNode.gender) {
       throw new Error("Same gender can't be spouse")
@@ -695,7 +755,7 @@ export class DataManager {
 
 
   }
-  simpleGetChildren(selfNode: FamilyNode, spouseIds: number[]): DrawableNode[] {
+  simpleGetChildren(selfNode: FamilyNode, spouseIds: number[], isView: boolean = false): DrawableNode[] {
     const allSpouseAsParents: DrawableNode[] = []
     spouseIds.map(item => {
       const spouseNode = this.getNode(item)
@@ -774,7 +834,13 @@ export class DataManager {
         name: spouseNode.name,
         type: 'spouse',
         target: selfNode.id,
-        children: DrawableChildren,
+        children: DrawableChildren.filter(item=> {
+          if (isView) {
+            return item.id > 0
+          } else {
+            return isView
+          }
+        }),
         catag: 'editDesc',
         mode: 'node'
       }
@@ -911,7 +977,75 @@ export class DataManager {
     }
     return resultedChildren;
   }
+  customBuildChildrenPreview(startNodeId: number): DrawableNode {
+    const foundNode = this.getNode(startNodeId)
+    const singledChildren = this.getSingleParentedChildNodes(foundNode)
+    const drawableSingledChildren = singledChildren.map(item => {
+      if (foundNode.gender === "MALE") {
+        const singledChild: DrawableNode = {
+          id: item.id,
+          uuid: `${item.id}`,
+          gender: item.gender,
+          name: item.name,
+          type: 'child',
+          children: [],
+          father: `${foundNode.id}`,
+          fatherId: foundNode.id,
+          catag: 'editDesc',
+          mode: 'node'
+        }
+        return singledChild;
+      } else {
+        const singledChild: DrawableNode = {
+          id: item.id,
+          uuid: `${item.id}`,
+          gender: item.gender,
+          name: item.name,
+          type: 'child',
+          children: [],
+          mother: `${foundNode.id}`,
+          motherId: foundNode.id,
+          catag: 'editDesc',
+          mode: 'node',
+        }
+        return singledChild;
+      }
+    })
 
+    const foundSpouseIds = this.getSpouses(foundNode)
+    const foundDoubleParentedChildren = this.simpleGetChildren(foundNode, foundSpouseIds, true)
+
+    const selfDrawable: DrawableNode = {
+      id: foundNode.id,
+      uuid: `${foundNode.id}`,
+      gender: foundNode.gender,
+      name: foundNode.name,
+      type: 'child',
+      children: [...drawableSingledChildren],
+      catag: 'editDesc',
+      mode: 'node'
+    }
+    const foundSuggestedPartner = this.prepareSuggestedPartners(startNodeId);
+
+    const customChildren = [];
+    // const customChildren = []
+    if (foundNode.gender === 'MALE') {
+      customChildren.push(selfDrawable, ...foundDoubleParentedChildren, ...foundSuggestedPartner.femaleNodes)
+    } else {
+      customChildren.push(...foundSuggestedPartner.maleNodes, ...foundDoubleParentedChildren, selfDrawable)
+    }
+    const resultedChildren: DrawableNode = {
+      id: 0,
+      uuid: '0',
+      name: 'root',
+      gender: 'MALE',
+      type: 'root',
+      catag: 'editDesc',
+      mode: 'node',
+      children: customChildren
+    }
+    return resultedChildren;
+  }
 
   suggestionData(familyNodeId: number, suggestedAction: SuggestableActions): SuggestEdits[] {
     const nodesSuggestions: SuggestEdits[] = this.data.suggestions.filter(item => {

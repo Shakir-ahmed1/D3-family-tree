@@ -1,3 +1,4 @@
+import { Gender } from "../dtos/gender.enum";
 import { localStorageManager } from "../storage/storageManager";
 
 async function updateData<T>(url: string, data: T, bearerToken: string): Promise<Response> {
@@ -84,6 +85,34 @@ export class NodeManagementService {
 
     async fetchMarriableNodes(familyTreeId: number, familyNodeId: number) {
         const fetchNodesUri = `http://localhost:3000/api/family-tree/${familyTreeId}/nodes/${familyNodeId}/allowedSpouses`;
+
+        try {
+            const bearerToken = localStorageManager.getItem('bearerToken');
+            if (!bearerToken) throw new Error('No bearer token found');
+
+            const response = await fetch(fetchNodesUri, {
+                method: 'GET',
+                headers: {
+                    'Authorization': bearerToken,
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+            const fetchedData = await response.json();
+            console.log("FETCHED DATA", fetchedData)
+            return fetchedData
+        } catch (error) {
+            console.error('Error fetching nodes array:', error);
+            return { error: 'Failed to fetch data' };
+        }
+    }
+    async fetchAllowedParents(familyTreeId: number, familyNodeId: number, gender: Gender) {
+        let endpoint = 'allowedMothers'
+        if (gender === Gender.MALE) {
+            endpoint = 'allowedFathers'
+        } 
+        const fetchNodesUri = `http://localhost:3000/api/family-tree/${familyTreeId}/nodes/${familyNodeId}/${endpoint}`;
 
         try {
             const bearerToken = localStorageManager.getItem('bearerToken');

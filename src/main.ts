@@ -16,7 +16,7 @@ localStorageManager.setItem('bearerToken', bearerToken)
 
 const familyTreeId = 1
 export const ND = new DataManager(familyTreeId);
-export const drawer = new FamilyTreeDrawer(familyTreeId, 'treeContainer', 500, 500, false);
+export const drawer = new FamilyTreeDrawer(familyTreeId, '#treeContainer', 500, 500, false);
 
 
 

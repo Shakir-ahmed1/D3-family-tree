@@ -101,21 +101,16 @@ export class FamilyTreeDrawer {
     private anceTreeData: d3.HierarchyPointNode<DrawableNode> | undefined;
     private anceNodes: d3.HierarchyNode<DrawableNode>[] = [];
     private rootNodeId: number | undefined;
-    private containerId: string = '#treeContainer';
+    private containerId: string = '#treePopUp';
     private fadeInAnimationDuration = this.values.fadeInAnimationDuration;
     private fadeOutAnimationDuration = this.values.fadeOutAnimationDuration;
     private oldRootNodeId: number | undefined;
     private offSetX = 0;
     private offSetY = 0;
     private scaleFactor = 0.5;
-    private svg = d3.select('body').select(this.containerId)
-        .append('svg')
-        .attr('class', 'svgContainer')
-        .attr("width", this.width)
-        .attr("height", this.height)
-        .append("g");
-    private familyTreeGroup = this.svg.append("g").attr("class", "familyTree").attr('opacity', 1).attr('transform', 'translate(0,0)');
-    descendantsGroup = this.familyTreeGroup.append("g").attr("class", "descendants");
+    private svg
+    private familyTreeGroup
+    descendantsGroup
     currentMode = 'view';
     private rootHistory = []
 
@@ -144,9 +139,10 @@ export class FamilyTreeDrawer {
     private offSetYEditMode: number = 0;
     private scaleFactorEditMode: number = 0.5;
 
+
     private isPopUp = false;
 
-    descendantsGroupEditMode = this.descendantsGroup
+    descendantsGroupEditMode
     // descendantsGroupEditMode = this.familyTreeGroup.append("g").attr("class", "descendantsEditMode");
     private fadeInAnimationDurationEditMode = this.values.fadeInAnimationDurationEditMode;
     private fadeOutAnimationDurationEditMode = this.values.fadeOutAnimationDurationEditMode;
@@ -161,8 +157,20 @@ export class FamilyTreeDrawer {
         this.width = width;
         this.height = height;
         this.isPopUp = isPopUp;
+
+        this.svg = d3.select('body').select(this.containerId)
+            .append('svg')
+            .attr('class', 'svgContainer')
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .append("g");
+        this.familyTreeGroup = this.svg.append("g").attr("class", "familyTree").attr('opacity', 1).attr('transform', 'translate(0,0)');
+        this.descendantsGroup = this.familyTreeGroup.append("g").attr("class", "descendants");
+        this.descendantsGroupEditMode = this.descendantsGroup
+
         this.intialize(familyTreeId)
     }
+
     async intialize(familyTreeId: number) {
         this.familyTreeId = familyTreeId
         this.nodeManager = ND;
@@ -181,7 +189,7 @@ export class FamilyTreeDrawer {
                 }
                 tempRootId = founderNode.id
                 this.nodeManager.setData(nodesArray)
-                this.formManager = new HtmlElementsManager(this.familyTreeId, tempRootId, this)
+                if (!this.isPopUp) { this.formManager = new HtmlElementsManager(this.familyTreeId, tempRootId, this) }
                 if (founderNode) {
                     this.fetchData(nodesArray, founderNode.id as number, true);
                 } else {
@@ -222,16 +230,7 @@ export class FamilyTreeDrawer {
         }
 
         this.jointNode = [...this.descNodes, ...this.anceNodes.filter(item => item.data.id !== this.rootNodeId)]
-        if (this.isPopUp) {
-            console.log(foundDescRoot?.height, foundAnceRoot?.height, this.jointNode)
-            this.jointNode = [...this.descNodes.filter(item => item.height === foundDescRoot?.height + 1 || item.height === foundDescRoot?.height - 1 || item.height === foundDescRoot?.height),
-            ...this.anceNodes.filter(item => item.data.id !== this.rootNodeId && (item.height === foundAnceRoot?.height + 1 || item.height === foundAnceRoot?.height - 1 || item.height === foundAnceRoot?.height))]
 
-            // const foundRoot = this.jointNode.find(item => item.data.id === this.rootNodeId)
-            // this.jointNode = this.jointNode.filter(item =>{
-            //     console.log("height", item.height)
-            //     item.height === foundRoot?.height + 1 || item.height === foundRoot?.height + 1 || item.height === foundRoot?.height})
-        }
 
     }
     private attachNodesEditMode() {
@@ -246,9 +245,6 @@ export class FamilyTreeDrawer {
         }
 
         this.jointNode = [...this.childNodes, ...this.parentNodes.filter(item => item.data.id !== this.rootNodeId)]
-        if (this.isPopUp) {
-            this.jointNode = this.jointNode.filter(item => item.height === 1 || item.height === 0)
-        }
     }
 
     private adjustPostioning() {
@@ -321,13 +317,23 @@ export class FamilyTreeDrawer {
         }
     }
     private preProcessDataEditMode(rootId: number) {
-        const editModeParents = this.nodeManager.customBuildParent(rootId)
-        const editModeChildren = this.nodeManager.customBuildChildren(rootId)
-        this.fetchedEditModeParents = editModeParents;
-        this.fetchedEditModeChildren = editModeChildren;
-        this.updateTreeDrawingEditMode(rootId)
-        this.custPrint(this.jointNode)
 
+        if (this.isPopUp) {
+            const editModeParents = this.nodeManager.customBuildParentPreview(rootId)
+            const editModeChildren = this.nodeManager.customBuildChildrenPreview(rootId)
+            this.fetchedEditModeParents = editModeParents;
+            this.fetchedEditModeChildren = editModeChildren;
+            this.updateTreeDrawingEditMode(rootId)
+            this.custPrint(this.jointNode)
+        }
+        else {
+            const editModeParents = this.nodeManager.customBuildParent(rootId)
+            const editModeChildren = this.nodeManager.customBuildChildren(rootId)
+            this.fetchedEditModeParents = editModeParents;
+            this.fetchedEditModeChildren = editModeChildren;
+            this.updateTreeDrawingEditMode(rootId)
+            this.custPrint(this.jointNode)
+        }
     }
     private joinTree() {
         // search the position of the root node in the descendants
@@ -709,7 +715,7 @@ export class FamilyTreeDrawer {
                     if (d.data.father) pr = this.jointNode.find(n => n.data.uuid === d.data.father);
                     if (d.data.mother) pr = this.jointNode.find(n => n.data.uuid === d.data.mother);
                     if (pr && pr.x !== undefined && pr.y !== undefined && d && d.y !== undefined && d.x !== undefined) {
-                        pathD = `M${calculatePositionChildParentPosition(pr.x, this.NODE_RADIUS, this.scaleFactor, pr.data.gender)},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
+                        pathD = `M${pr.x},${pr.y} V${(pr.y + d.y) / 2} H${d.x} V${d.y}`;
                     }
                 }
                 return pathD;
@@ -743,8 +749,9 @@ export class FamilyTreeDrawer {
     }
 
     modeController(rootId: number) {
-
-        this.currentMode = this.formManager.displayNodeDetails()
+        if (!this.isPopUp) {
+            this.currentMode = this.formManager.displayNodeDetails()
+        }
         // this.nodeDetailDisplayer()
         this.preProcessData(rootId);
 
@@ -761,7 +768,7 @@ export class FamilyTreeDrawer {
             } else {
                 this.currentMode === "view" ? this.currentMode = "edit" : this.currentMode = "view"
             }
-            this.formManager.setModeType(this.currentMode)
+            if (!this.isPopUp) { this.formManager.setModeType(this.currentMode) }
             if (this.currentMode === 'view') {
                 this.preProcessData(nodeId ? nodeId : this.rootNodeId);
 
@@ -775,7 +782,10 @@ export class FamilyTreeDrawer {
         let nodeData = this.nodeManager.data.familyNodes.find(item => {
             return item.id === this.rootNodeId
         })
-        this.formManager.infoDisplayer(nodeData, this.rootNodeId)
+        if (!this.isPopUp) {
+
+            this.formManager.infoDisplayer(nodeData, this.rootNodeId)
+        }
     }
 
     drawDescNodes() {
@@ -788,7 +798,9 @@ export class FamilyTreeDrawer {
             if (d.data.id !== this.rootNodeId) {
                 this.modeController(d.data.id);
             } else {
-                this.currentMode = this.formManager.displayNodeDetails()
+                if (!this.isPopUp) {
+                    this.currentMode = this.formManager.displayNodeDetails()
+                }
                 // this.nodeDetailDisplayer()
             }
             if (d.data.mode === 'node')
@@ -1180,13 +1192,13 @@ export class FamilyTreeDrawer {
                 this.modeController(d.data.id)
             } else if (d.data.type === 'suggest') {
                 const foundSuggestion = this.nodeManager.getSuggestion(d.data.suggestionId)
-                this.formManager.displaySuggestionInfo(foundSuggestion, this.rootNodeId)
+                if (!this.isPopUp) { this.formManager.displaySuggestionInfo(foundSuggestion, this.rootNodeId) }
             }
             else {
 
                 // Simulate selecting the correct actionType and updating the h2 label
                 const actionType = d.data.actionType;
-                this.formManager.setActionTypeLabel(actionType, d, this.rootNodeId); // Function to handle label update and field updates
+                if (!this.isPopUp) { this.formManager.setActionTypeLabel(actionType, d, this.rootNodeId) }; // Function to handle label update and field updates
             }
             // this.nodeDetailDisplayer()
 
@@ -1332,80 +1344,7 @@ export class FamilyTreeDrawer {
         this.descendantsGroupEditMode.selectAll("line.marriage-line").raise(); // Raise marriage lines to the bottom
         this.descendantsGroupEditMode.selectAll("g.node").raise(); // Raise nodes to the top
     }
-    // Draw nodes
-    // defaultNodePicture(svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>, options = {}) {
-    //     const {
-    //         width = 0,
-    //         height = 0,
-    //         outerRadius = this.NODE_RADIUS,
-    //         innerRadius = outerRadius * 0.45,
-    //     } = options;
 
-
-    //     const cutoutColor = "white";
-
-    //     const centerX = width / 2;
-    //     const centerY = height / 2;
-
-    //     const group = svg.append("g")
-    //         .attr("transform", `translate(${centerX}, ${centerY})`);
-
-    //     // Outer Circle
-    //     group.append("circle")
-    //         .attr('class', 'node-circle')
-    //         .attr("r", outerRadius)
-    //         .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
-
-    //     // Inner Circle (Cutout)
-    //     group.append("circle")
-    //         .attr("r", innerRadius)
-    //         .attr("fill", cutoutColor);
-
-    //     // Lower Shape (Crescent-like bottom part) - Scaled dynamically
-    //     const lowerShapePath = `M${-outerRadius * 0.66},${outerRadius * 0.85} 
-    //         q${outerRadius * 0.27},${-outerRadius * 0.35} ${outerRadius * 0.4},${-outerRadius * 0.35} 
-    //         h${outerRadius * 0.54} 
-    //         q${outerRadius * 0.4},0 ${outerRadius * 0.4},${outerRadius * 0.35} 
-    //         a${outerRadius * 0.97},${outerRadius * 0.97} 0 0,1 ${-outerRadius * 1.3},0`;
-
-    //     group.append("path")
-    //         .attr("d", lowerShapePath)
-    //         .attr("fill", cutoutColor);
-
-    //     // Profile Picture
-    //     const imageUrl = (d: d3.HierarchyNode<DrawableNode>) => `http://localhost:3000/api/family-tree/1/nodes/${d.data.id}/primaryPicture`;
-
-    //     group.each(function (d) {
-    //         fetch(imageUrl(d), {
-    //             headers: {
-    //                 'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
-    //                 'Content-Type': 'application/json',
-    //             }
-    //         }).then(response => {
-    //             if (!response.ok) throw new Error('Image not found');
-    //             return response.blob();
-    //         }).then(blob => {
-    //             const url = URL.createObjectURL(blob);
-    //             const defs = svg.append("defs");
-    //             defs.append("clipPath")
-    //                 .attr("id", `clip-${d.data.id}`)
-    //                 .append("circle")
-    //                 .attr("r", outerRadius)
-    //                 .attr("cx", 0)
-    //                 .attr("cy", 0);
-
-    //             d3.select(this).append("image")
-    //                 .attr("x", -outerRadius)
-    //                 .attr("y", -outerRadius)
-    //                 .attr("width", outerRadius * 2)
-    //                 .attr("height", outerRadius * 2)
-    //                 .attr("clip-path", `url(#clip-${d.data.id})`)
-    //                 .attr("href", url);
-    //         }).catch(() => {
-    //             // If image is not found, default SVG remains
-    //         });
-    //     });
-    // }
     defaultNodePicture(
         svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>,
         options = {}
@@ -1710,4 +1649,10 @@ export class FamilyTreeDrawer {
         this.drawNodesEditMode()
         this.nodeDetailDisplayer()
     }
+    createPopUp(familyNodeId) {
+        return new FamilyTreeDrawer(1, '#treePopUp', 300, 300, true, familyNodeId)
+    }
 }
+
+
+

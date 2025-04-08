@@ -66,7 +66,7 @@ export class FamilyTreeSuggestionService {
             reason: data.reason,
             parentNodeId: parseInt(data.targetNodeId)
         }
-        const url = `${API_PREFIX}/${familyTreeId}/suggestions/${familyNodeId}/parent/SuggestExitingParent`;
+        const url = `${API_PREFIX}/${familyTreeId}/suggestions/${familyNodeId}/parent/SuggestExistingParent`;
         return postData(url, customData);
     }
 

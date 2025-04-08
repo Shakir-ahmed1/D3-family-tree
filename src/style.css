@@ -197,3 +197,53 @@ h5 {
     border-radius: 4px;
     font-weight: bold;
 }
+
+#treePopUp {
+    display: none;
+    position: fixed;
+    background-color: green;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    min-width: 150px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+}
+
+#treeContainer {
+    padding: 50px;
+    border: 1px dashed blue;
+    /* Added border for visualization */
+}
+
+.custom-dropdown-container {
+    position: relative;
+    width: 200px;
+}
+
+.custom-dropdown {
+    border: 1px solid #ccc;
+    cursor: pointer;
+}
+
+.dropdown-default {
+    padding: 8px;
+    background-color: #f9f9f9;
+}
+
+.dropdown-options {
+    display: block;
+    border-top: 1px solid #ccc;
+    background-color: white;
+}
+
+.dropdown-option {
+    padding: 8px;
+    transition: background-color 0.2s;
+}
+
+.dropdown-option:hover {
+    background-color: #eee;
+}

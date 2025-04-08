@@ -10,21 +10,6 @@ import { localStorageManager } from "./storage/storageManager";
 import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
 
 
-function memberDisplayer(title, member) {
-
-    const suggestionContainer = document.createElement('div');
-    suggestionContainer.style.border = '1px black solid';
-    suggestionContainer.style.marginBottom = '5px';
-
-    const suggestingMember = createUserProfileElement(member);
-    const field = document.createElement('p');
-    field.textContent = title + ': '
-    suggestionContainer.appendChild(field);
-    suggestionContainer.appendChild(suggestingMember)
-    return suggestionContainer
-}
-
-
 
 function otherNodeDetails(familyNode: FamilyNode) {
     const wrapper = document.createElement('div');
@@ -214,7 +199,6 @@ function createUserProfileElement(familyTreeMember) {
     return container;
 }
 
-
 function contributorDetailElement(title: string, contributors: FamilyTreeMembers[]) {
     const wrapper = document.createElement('div')
     const creatorsTitle = document.createElement('p')
@@ -288,57 +272,103 @@ function contributorsElementGenerator(contributors) {
     return contributionWrapper;
 }
 
-function createDropdown(nodes: { id: string, name: string }[], identifier, message, zeroMessage): HTMLSelectElement {
-    // Create a select element
-    if (nodes.length === 0) {
-        const select = document.createElement("select");
+/**
+ * Creates a dropdown select element.
+ * @param nodes An array of objects, each with 'id' and 'name' properties.
+ * @param identifier The ID and name attribute for the select element.
+ * @param message The text for the default, non-selectable option when nodes exist.
+ * @param zeroMessage The text for the default option when no nodes are provided.
+ * @param hoverHandler A function to call when the mouse hovers over an option. It receives the node's ID.
+ * @returns The created HTMLSelectElement.
+ */
+function createDropdown(nodes: { id: string, name: string }[], identifier: string, message: string, zeroMessage: string, hoverHandler: (id: string) => void): HTMLSelectElement {
+    const select = document.createElement("select");
+    select.id = identifier;
+    select.name = identifier;
+    select.className = 'dynamic-input';
 
-        // Create and append the default option
-        select.id = identifier
-        select.name = identifier
-        select.className = 'dynamic-input'
+    // Handle the case where there are no nodes
+    if (nodes.length === 0) {
         const defaultOption = document.createElement("option");
         defaultOption.textContent = zeroMessage;
         defaultOption.value = "";
         select.appendChild(defaultOption);
         select.disabled = true;
 
-
-        const saveButton = document.getElementById('allowed-save');
-        console.log('save butttttttttttttttttttt', saveButton)
-        saveButton.disabled = true
-        saveButton.style.backgroundColor = '#AAAAAA'
-
-        return select
+        // Example: Disable a save button if it exists
+        const saveButton = document.getElementById('allowed-save') as HTMLButtonElement | null;
+        if (saveButton) {
+            console.log('Disabling save button because dropdown is empty');
+            saveButton.disabled = true;
+            saveButton.style.backgroundColor = '#AAAAAA'; // Consider using CSS classes instead
+        }
+        return select;
     }
-    const select = document.createElement("select");
 
-    // Create and append the default option
-    select.id = identifier
-    select.name = identifier
-    select.className = 'dynamic-input'
+    // Create and append the default instructional option
     const defaultOption = document.createElement("option");
     defaultOption.textContent = message;
-    defaultOption.value = "";
+    defaultOption.value = ""; // Make sure it's not selectable as a valid value
+    // defaultOption.disabled = true; // Optionally disable the placeholder
+    // defaultOption.selected = true; // Optionally make it selected by default
     select.appendChild(defaultOption);
 
     // Create and append options for each node
     nodes.forEach(node => {
         const option = document.createElement("option");
-        option.value = `${node.id}`;
+        option.value = node.id; // Use node.id directly
         option.textContent = node.name;
+
+        // --- Add mouseover event listener --- #NOT WORKING
+        // --- End Optional ---
+
         select.appendChild(option);
     });
 
-    // Add an event listener to capture selection
-    select.addEventListener("change", () => {
-        if (select.value) {
-            console.log("Selected Node ID:", select.value);
-        }
-    });
+    // Add an event listener to capture selection change
+    // select.addEventListener("change", () => {
+    //     const popup = document.getElementById('treePopUp')
+
+    //     popup.style.display = 'block'
+    //     popup.innerHTML = ''
+
+    //     if (typeof hoverHandler === 'function') {
+    //         hoverHandler(select.value);
+    //     } else {
+    //     }
+    //     if (select.value) { // Check if a valid option (not the default "") is selected
+    //         console.log("Selected Node ID:", select.value);
+    //         // Add any logic needed when an item is selected
+    //     }
+    // });
 
     return select;
 }
+function hoverEffect(hoverHandler, nodeId) {
+    const div = document.createElement('div')
+    div.textContent = 'HOVER EFFECT TEST???'
+
+    div.addEventListener('mouseover', () => {
+        // Call the provided hoverHandler with the node's ID
+        if (typeof hoverHandler === 'function') {
+            const popup = document.getElementById('treePopUp')
+            popup.style.display = 'block'
+
+            hoverHandler(nodeId);
+        }
+    });
+
+    // --- (optional) Add mouseout event listener to hide the popup-- - #NOT WORKING
+    div.addEventListener('mouseout', () => {
+        const popup = document.getElementById('treePopUp');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+        popup.innerHTML = ''
+    });
+    return div;
+}
+
 
 // Example usage
 
@@ -354,7 +384,7 @@ export class HtmlElementsManager {
         { id: 'FRIEND', name: 'FRIEND' },
         { id: 'MAIN', name: 'MAIN' },
     ]
-    constructor(familyTreeId: number, rootNodeId: number, drawer) {
+    constructor(familyTreeId: number, rootNodeId: number, drawer: FamilyTreeDrawer) {
         // disable any click events for the pop up
 
         this.treeDrawer = drawer
@@ -624,7 +654,7 @@ export class HtmlElementsManager {
     }
 
 
-    setActionTypeLabel(actionType: actionTypes, node, currentNodeId) {
+    setActionTypeLabel(actionType: genericActionTypes, node, currentNodeId) {
         this.rootNodeId = currentNodeId;
         let memberPriviledge = this.nodeManager.memberPriviledge(1, currentNodeId);
         const currentMembmerMode = (memberPriviledge === 'create' || memberPriviledge === 'only-create') ? 'create' : 'suggest';
@@ -632,6 +662,9 @@ export class HtmlElementsManager {
         const dynamicFields = document.getElementById('dynamicFields');
 
         dynamicFields.innerHTML = '';
+        const hoverEffectTest = hoverEffect(this.treeDrawer.createPopUp, this.rootNodeId)
+        dynamicFields.appendChild(hoverEffectTest);
+
         const endpointFieldMapNew = {
             addParent: {
                 new: {
@@ -715,15 +748,12 @@ export class HtmlElementsManager {
                 }
 
 
+                else if (field === 'targetNodeId' && actionType === genericActionTypes.addParent) {
 
-
-                else if (field === 'targetNodeId' && actionType !== actionTypes.addChildOfTwoParents) {
-                    console.log("HYYYYYY");
-
-                    nodeManagmentService.fetchMarriableNodes(this.familyTreeId, this.rootNodeId)
+                    nodeManagmentService.fetchAllowedParents(this.familyTreeId, this.rootNodeId, node.data.gender)
                         .then(item => {
 
-                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node', 'Couldn\'t find a possible pair');
+                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing parent Node', 'Couldn\'t find a possible parent', this.treeDrawer.createPopUp);
 
                             const referenceElement = document.getElementById('actionOptionSelect');
 
@@ -745,6 +775,35 @@ export class HtmlElementsManager {
                         });
                 }
 
+
+
+                else if (field === 'targetNodeId' && actionType === genericActionTypes.addPartner) {
+                    console.log("HYYYYYY");
+
+                    nodeManagmentService.fetchMarriableNodes(this.familyTreeId, this.rootNodeId)
+                        .then(item => {
+
+                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node', 'Couldn\'t find a possible pair', this.treeDrawer.createPopUp);
+
+                            const referenceElement = document.getElementById('actionOptionSelect');
+
+                            if (referenceElement && referenceElement.parentNode === dynamicFields) {
+                                // Insert dropdown after referenceElement
+                                if (referenceElement.nextSibling) {
+                                    dynamicFields.insertBefore(dropdown, referenceElement.nextSibling);
+                                } else {
+                                    // If it's the last child, just append
+                                    dynamicFields.appendChild(dropdown);
+                                }
+                            } else {
+                                console.warn("referenceElement not found or not a child of dynamicFields");
+                                dynamicFields.appendChild(dropdown); // Fallback
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error fetching marriable nodes:", error);
+                        });
+                }
                 // else if (field === 'targetNodeId' && actionType === actionTypes.addExistingPartner) {
                 //     console.log("HYYYYYY");
 
@@ -784,7 +843,7 @@ export class HtmlElementsManager {
 
 
                 else if (field === 'partnershipType') {
-                    dynamicFields.appendChild(createDropdown(this.relationType, 'partnershipType', 'select relationship Status'))
+                    dynamicFields.appendChild(createDropdown(this.relationType, 'partnershipType', 'select relationship Status', this.treeDrawer.createPopUp))
                 }
                 else if (field.endsWith('Id')) {
                     const input = document.createElement('input');
@@ -905,8 +964,6 @@ export class HtmlElementsManager {
 
             generateFields(option);
         }
-
-
 
     }
     displaySuggestionInfo(suggestionBody, rootNodeId: number) {

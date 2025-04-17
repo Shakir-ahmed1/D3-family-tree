@@ -609,7 +609,7 @@ export class DataManager {
         catag: 'editAnce',
         mode: 'node'
       }
-    } 
+    }
     if (foundParentHood?.maleNode) {
       const foundFather = this.getNode(foundParentHood.maleNode.id)
 
@@ -834,11 +834,11 @@ export class DataManager {
         name: spouseNode.name,
         type: 'spouse',
         target: selfNode.id,
-        children: DrawableChildren.filter(item=> {
+        children: DrawableChildren.filter(item => {
           if (isView) {
             return item.id > 0
           } else {
-            return isView
+            return item
           }
         }),
         catag: 'editDesc',

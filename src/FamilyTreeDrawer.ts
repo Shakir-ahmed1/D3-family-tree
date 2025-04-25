@@ -181,9 +181,6 @@ export class FamilyTreeDrawer {
                 let founderNode;
                 if (this.nonFounderId) {
                     founderNode = nodesArray.familyNodes.find(item => item.id === this.nonFounderId);
-                    // if (!founderNode) {
-                    //     founderNode = nodesArray.familyNodes.find(item => item.isFounder);   
-                    // }
                 } else {
                     founderNode = nodesArray.familyNodes.find(item => item.isFounder);
                 }
@@ -292,7 +289,7 @@ export class FamilyTreeDrawer {
         }
     }
     private preProcessData(rootId: number): void {
-
+        console.log("ZZZZZZZZZ", this.jointNode, this.rootNodeId)
         if (this.jointNode && this.rootNodeId) {
             const foundCurrentRoot = this.jointNode.find(item => item.data.id === rootId)
             if (foundCurrentRoot) {
@@ -1584,6 +1581,7 @@ export class FamilyTreeDrawer {
 
 
     renewTreeData(desc: DrawableNode, ance: DrawableNode) {
+        
         this.descRoot = d3.hierarchy<DrawableNode>(desc);
         this.descTreeData = this.descTreeLayout(this.descRoot);
         this.descNodes = this.descTreeData.descendants().filter(item => item.data.id !== 0);

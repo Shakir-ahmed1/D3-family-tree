@@ -1,4 +1,3 @@
-import { ND } from "./main";
 import { genericActionTypes, SuggestableActions, SuggestEdits } from "./node.interface";
 import { nodeCreationService } from "./services/nodeCreationServices";
 import { nodeManagmentService } from "./services/nodeManagmentService";
@@ -24,7 +23,7 @@ export class HtmlElementsManager {
         { id: 'FRIEND', name: 'FRIEND' },
         { id: 'MAIN', name: 'MAIN' },
     ]
-    constructor(familyTreeId: number, rootNodeId: number, drawer: FamilyTreeDrawer) {
+    constructor(ND, familyTreeId: number, rootNodeId: number, drawer: FamilyTreeDrawer) {
         // disable any click events for the pop up
 
         this.treeDrawer = drawer

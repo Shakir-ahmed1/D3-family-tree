@@ -2,7 +2,6 @@ import * as d3 from "d3";
 import { DrawableNode } from "./node.interface";
 import { DataManager } from "./dataManager";
 import { HtmlElementsManager } from "./htmlElementsManager";
-import { ND } from "./main";
 import { nodeManagmentService } from "./services/nodeManagmentService";
 
 function calculatePositionChildParentPosition(x, nodeRadius, scale, gender) {
@@ -151,7 +150,7 @@ export class FamilyTreeDrawer {
     nodeManager;
     private nonFounderId
 
-    constructor(familyTreeId: number, containerId, width, height, isPopUp: boolean, nonFounderId?) {
+    constructor(ND, familyTreeId: number, containerId, width, height, isPopUp: boolean, nonFounderId?) {
         this.nonFounderId = nonFounderId
         this.containerId = containerId
         this.width = width;
@@ -168,10 +167,10 @@ export class FamilyTreeDrawer {
         this.descendantsGroup = this.familyTreeGroup.append("g").attr("class", "descendants");
         this.descendantsGroupEditMode = this.descendantsGroup
 
-        this.intialize(familyTreeId)
+        this.intialize(familyTreeId, ND)
     }
 
-    async intialize(familyTreeId: number) {
+    async intialize(familyTreeId: number, ND: DataManager) {
         this.familyTreeId = familyTreeId
         this.nodeManager = ND;
         let tempRootId;
@@ -186,7 +185,7 @@ export class FamilyTreeDrawer {
                 }
                 tempRootId = founderNode.id
                 this.nodeManager.setData(nodesArray)
-                if (!this.isPopUp) { this.formManager = new HtmlElementsManager(this.familyTreeId, tempRootId, this) }
+                if (!this.isPopUp) { this.formManager = new HtmlElementsManager(ND, this.familyTreeId, tempRootId, this) }
                 if (founderNode) {
                     this.fetchData(nodesArray, founderNode.id as number, true);
                 } else {
@@ -1579,7 +1578,7 @@ export class FamilyTreeDrawer {
 
 
     renewTreeData(desc: DrawableNode, ance: DrawableNode) {
-        
+
         this.descRoot = d3.hierarchy<DrawableNode>(desc);
         this.descTreeData = this.descTreeLayout(this.descRoot);
         this.descNodes = this.descTreeData.descendants().filter(item => item.data.id !== 0);
@@ -1646,7 +1645,7 @@ export class FamilyTreeDrawer {
         this.nodeDetailDisplayer()
     }
     createPopUp(familyNodeId) {
-        return new FamilyTreeDrawer(1, '#treePopUp', 300, 300, true, familyNodeId)
+        return new FamilyTreeDrawer(this.nodeManager, 1, '#treePopUp', 300, 300, true, familyNodeId)
     }
 }
 

@@ -1,9 +1,8 @@
-import { timeFormatLocale } from "d3";
-import { drawer, ND } from "./main";
-import { actionTypes, FamilyNode, FamilyTreeMembers, genericActionTypes, SuggestableActions, SuggestEdits } from "./node.interface";
+import { ND } from "./main";
+import { FamilyNode, FamilyTreeMembers, genericActionTypes, SuggestableActions, SuggestEdits } from "./node.interface";
 import { nodeCreationService } from "./services/nodeCreationServices";
 import { nodeManagmentService } from "./services/nodeManagmentService";
-import { FamilyTreeSuggestionService, suggestionCreationService } from "./services/suggestionCreationService";
+import { suggestionCreationService } from "./services/suggestionCreationService";
 import { suggestionService } from "./services/suggestionService";
 import { userService } from "./services/user.service";
 import { localStorageManager } from "./storage/storageManager";
@@ -227,12 +226,6 @@ function contributorsElementGenerator(contributors) {
     title.style.margin = '0';
     title.style.flexShrink = '0'; // Ensures the text stays on the left
 
-    // const toggleButton = document.createElement('button');
-    // toggleButton.textContent = '[+]';
-    // toggleButton.style.border = 'none';
-    // toggleButton.style.background = 'none';
-    // toggleButton.style.cursor = 'pointer';
-    // toggleButton.style.fontSize = '18px';
 
     const line = document.createElement('hr');
     line.style.flexGrow = '1';
@@ -309,8 +302,6 @@ function createDropdown(nodes: { id: string, name: string }[], identifier: strin
     const defaultOption = document.createElement("option");
     defaultOption.textContent = message;
     defaultOption.value = ""; // Make sure it's not selectable as a valid value
-    // defaultOption.disabled = true; // Optionally disable the placeholder
-    // defaultOption.selected = true; // Optionally make it selected by default
     select.appendChild(defaultOption);
 
     // Create and append options for each node
@@ -324,23 +315,6 @@ function createDropdown(nodes: { id: string, name: string }[], identifier: strin
 
         select.appendChild(option);
     });
-
-    // Add an event listener to capture selection change
-    // select.addEventListener("change", () => {
-    //     const popup = document.getElementById('treePopUp')
-
-    //     popup.style.display = 'block'
-    //     popup.innerHTML = ''
-
-    //     if (typeof hoverHandler === 'function') {
-    //         hoverHandler(select.value);
-    //     } else {
-    //     }
-    //     if (select.value) { // Check if a valid option (not the default "") is selected
-    //         console.log("Selected Node ID:", select.value);
-    //         // Add any logic needed when an item is selected
-    //     }
-    // });
 
     return select;
 }
@@ -480,15 +454,7 @@ export class HtmlElementsManager {
                 e.preventDefault()
 
                 const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'accepted')
-                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
-                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
-                if (nodesArray) {
-                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
-                }
-                const rootNode = this.nodeManager.getNode(rootNodeId)
-
-                this.displaySuggestionUpdateEdits(rootNodeId)
-                this.treeDrawer.updateNodesNameText()
+                this.refreshAfterSuggestion(rootNodeId)
             });
 
             suggestionContainer.appendChild(acceptButton);
@@ -499,16 +465,8 @@ export class HtmlElementsManager {
             rejectButton.addEventListener('click', async (e) => {
                 e.preventDefault()
                 const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'rejected')
-                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
-                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
-                if (nodesArray) {
-                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
-                }
-                const rootNode = this.nodeManager.getNode(rootNodeId)
-                // this.createViewMode(rootNode, memberPriviledge)
-                this.displaySuggestionUpdateEdits(rootNodeId)
-                this.treeDrawer.updateNodesNameText()
+                this.refreshAfterSuggestion(rootNodeId)
 
             });
 
@@ -525,14 +483,7 @@ export class HtmlElementsManager {
                 e.preventDefault()
                 const updatedNode = await suggestionService.cancelSuggestion(this.familyTreeId, suggestionObject.id)
 
-                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
-                if (nodesArray) {
-                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
-                }
-                const rootNode = this.nodeManager.getNode(rootNodeId)
-                // this.createViewMode(rootNode, memberPriviledge)
-                this.displaySuggestionUpdateEdits(rootNodeId)
-                this.treeDrawer.updateNodesNameText()
+                this.refreshAfterSuggestion(rootNodeId)
 
             });
         }
@@ -575,7 +526,6 @@ export class HtmlElementsManager {
                     this.treeDrawer.fetchData(nodesArray, previousNodeId, true);
                     this.treeDrawer.toggleModes(previousNodeId, 'view')
                 }
-
                 this.displaySuggestionUpdateEdits(rootNodeId)
                 this.treeDrawer.updateNodesNameText()
             });
@@ -590,14 +540,7 @@ export class HtmlElementsManager {
                 const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'rejected')
                 const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
-                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
-                if (nodesArray) {
-                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
-                }
-                const rootNode = this.nodeManager.getNode(rootNodeId)
-                // this.createViewMode(rootNode, memberPriviledge)
-                this.displaySuggestionUpdateEdits(rootNodeId)
-                this.treeDrawer.updateNodesNameText()
+                this.refreshAfterSuggestion(rootNodeId)
 
             });
 
@@ -614,19 +557,20 @@ export class HtmlElementsManager {
                 e.preventDefault()
                 const updatedNode = await suggestionService.cancelSuggestion(this.familyTreeId, suggestionObject.id)
 
-                const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
-                if (nodesArray) {
-                    this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
-                }
-                const rootNode = this.nodeManager.getNode(rootNodeId)
-                // this.createViewMode(rootNode, memberPriviledge)
-                this.displaySuggestionUpdateEdits(rootNodeId)
-                this.treeDrawer.updateNodesNameText()
+                this.refreshAfterSuggestion(rootNodeId)
 
             });
         }
 
         return suggestionContainer
+    }
+    async refreshAfterSuggestion(rootNodeId: number) {
+        const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
+        if (nodesArray) {
+            this.treeDrawer.fetchData(nodesArray, rootNodeId, true);
+        }
+        this.displaySuggestionUpdateEdits(rootNodeId)
+        this.treeDrawer.updateNodesNameText()
     }
     displaySuggestionUpdateEdits(familyNodeId) {
         const pendingSuggestionsDisplayer = document.getElementById('pendingUpdateSuggestions');
@@ -804,32 +748,6 @@ export class HtmlElementsManager {
                             console.error("Error fetching marriable nodes:", error);
                         });
                 }
-                // else if (field === 'targetNodeId' && actionType === actionTypes.addExistingPartner) {
-                //     console.log("HYYYYYY");
-
-                //     nodeManagmentService.fetchMarriableNodes(this.familyTreeId, this.rootNodeId)
-                //         .then(item => {
-                //             const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node');
-
-                //             const referenceElement = document.getElementById('actionOptionSelect');
-
-                //             if (referenceElement && referenceElement.parentNode === dynamicFields) {
-                //                 // Insert dropdown after referenceElement
-                //                 if (referenceElement.nextSibling) {
-                //                     dynamicFields.insertBefore(dropdown, referenceElement.nextSibling);
-                //                 } else {
-                //                     // If it's the last child, just append
-                //                     dynamicFields.appendChild(dropdown);
-                //                 }
-                //             } else {
-                //                 console.warn("referenceElement not found or not a child of dynamicFields");
-                //                 dynamicFields.appendChild(dropdown); // Fallback
-                //             }
-                //         })
-                //         .catch(error => {
-                //             console.error("Error fetching marriable nodes:", error);
-                //         });
-                // }
 
 
 
@@ -913,12 +831,6 @@ export class HtmlElementsManager {
 
                 }
 
-                // const updatedData = {};
-                // Object.keys(formData).forEach(key => {
-                //     if (formData[key].value) {
-                //         updatedData[key] = formData[key].value;
-                //     }
-                // });
                 const currentData = await this.nodeManager.getNode(currentNodeId)
                 const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, currentNodeId)
                 this.createViewMode(currentData, memberPriviledge);
@@ -973,7 +885,6 @@ export class HtmlElementsManager {
         if (["ChildOfOneParent", "ChildOfTwoParents"].includes(suggestionBody.suggestedAction)) {
             nodeData = suggestionBody.suggestedNode2
         }
-        // } else if ([ "addExistingParent", "addNewParent",'addNewPartner',"addExistingPartner"].includes(suggestionBody.suggestedAction)){
         else {
             nodeData = suggestionBody.suggestedNode1
         }
@@ -1073,7 +984,6 @@ export class HtmlElementsManager {
             const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
             dynamicFields.appendChild(contributors);
             const deleteAllowed = this.nodeManager.isAllowedAction(data.id, genericActionTypes.DeleteNode);
-            // const deleteAllowed = this.nodeManager.isAllowedAction(nodeData.id, genericActionTypes.DeleteNode);
             console.log("Delete Allowed", deleteAllowed)
             const canSuggest = this.nodeManager.canContribute()
             const canUpdate = this.nodeManager.canUpdate(data.id)

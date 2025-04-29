@@ -1184,8 +1184,6 @@ export class FamilyTreeDrawer {
                 return
             }
             if (d.data.mode !== 'edit' && d.data.id !== this.rootNodeId) {
-                // if (d.data.mode !== 'edit') { // WORKING ON CLICK IF CONDITION
-                // this.preProcessDataEditMode(d.data.id);
                 this.modeController(d.data.id)
             } else if (d.data.type === 'suggest') {
                 const foundSuggestion = this.nodeManager.getSuggestion(d.data.suggestionId)

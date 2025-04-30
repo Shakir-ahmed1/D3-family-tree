@@ -90,6 +90,8 @@ export class FamilyTreeSuggestionService {
     }
 
     async suggestExistingPartner(familyTreeId: number, familyNodeId: number, data: formDataEntries) {
+        console.log("");
+        
         const customData: SuggestExistingPartnerInterface = {
             reason: data["reason"] as string,
             otherNodeId: parseInt(data["targetNodeId"] as string),

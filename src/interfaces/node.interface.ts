@@ -198,6 +198,6 @@ export enum MemberRole {
     VIEWER = 'VIEWER',
 }
 export interface formDataEntries {
-    [k: string]: string | number | Date | RelationshipType;
+    [k: string]: string | number | Date | RelationshipType | FormDataEntryValue;
 }
 

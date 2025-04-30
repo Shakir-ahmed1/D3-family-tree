@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import { HtmlElementsManager } from "./htmlElementsManager";
+import { HtmlElementsManager } from "./htmlManagers/htmlElementsManager";
 import { CustomFlatData, DrawableNode, FamilyNode, genericActionTypes } from "./interfaces/node.interface";
 import { DataManager } from "./services/data-manager";
 import { nodeManagmentService } from "./services/node-managment-service";
@@ -827,7 +827,7 @@ export class FamilyTreeDrawer {
             .attr('opacity', 0)
             .on('click', handleClick);
 
-       enter.append("circle")
+        enter.append("circle")
             .attr("r", this.NODE_RADIUS)
             .attr("stroke", this.colors.circlularStroke)
             .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth))

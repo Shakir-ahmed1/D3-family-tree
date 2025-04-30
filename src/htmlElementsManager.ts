@@ -1,11 +1,12 @@
-import { genericActionTypes, SuggestableActions, SuggestEdits } from "./node.interface";
-import { nodeCreationService } from "./services/nodeCreationServices";
-import { nodeManagmentService } from "./services/nodeManagmentService";
-import { suggestionCreationService } from "./services/suggestionCreationService";
-import { suggestionService } from "./services/suggestionService";
-import { localStorageManager } from "./storage/storageManager";
+import { Contributor, DrawableNode, FamilyNode, genericActionTypes, MemberPriviledge, SuggestableActions, SuggestEdits } from "./interfaces/node.interface";
+import { nodeCreationService } from "./services/node-creation-services";
+import { nodeManagmentService } from "./services/node-managment-service";
+import { suggestionCreationService } from "./services/suggestion-creation-service";
+import { suggestionService } from "./services/suggestion-service";
+import { localStorageManager } from "./services/storage-manager";
 import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
-import { contributorsElementGenerator, createDropdown, createUserProfileElement, hoverEffect, otherNodeDetails } from "./utils";
+import { contributorsElementGenerator, createDropdown, createUserProfileElement, hoverEffect, otherNodeDetails } from "./utils/utils";
+import { DataManager } from "./services/data-manager";
 
 
 
@@ -23,7 +24,7 @@ export class HtmlElementsManager {
         { id: 'FRIEND', name: 'FRIEND' },
         { id: 'MAIN', name: 'MAIN' },
     ]
-    constructor(ND, familyTreeId: number, rootNodeId: number, drawer: FamilyTreeDrawer) {
+    constructor(ND: DataManager, familyTreeId: number, rootNodeId: number, drawer: FamilyTreeDrawer) {
         // disable any click events for the pop up
 
         this.treeDrawer = drawer
@@ -33,19 +34,19 @@ export class HtmlElementsManager {
         this.initTabs();
 
         const modeButton = document.getElementById('modeType')
-        modeButton.addEventListener('click', (event) => {
+        modeButton?.addEventListener('click', (_event) => {
             this.treeDrawer.toggleModes()
         });
     }
-    setModeType(text) {
+    setModeType(text: string) {
         const modeButton = document.getElementById('modeType')
-        modeButton.textContent = text
+        if (modeButton) modeButton.textContent = text
     }
 
     initTabs() {
-        document.getElementById('detailsTab').addEventListener('click', () => this.showTab('details'));
-        document.getElementById('imagesTab').addEventListener('click', () => this.showTab('images'));
-        document.getElementById('notesTab').addEventListener('click', () => this.showTab('notes'));
+        document.getElementById('detailsTab')?.addEventListener('click', () => this.showTab('details'));
+        document.getElementById('imagesTab')?.addEventListener('click', () => this.showTab('images'));
+        document.getElementById('notesTab')?.addEventListener('click', () => this.showTab('notes'));
 
         if (this.nodeManager?.data?.canContribute) {
             const editTab = document.createElement('div');
@@ -56,12 +57,12 @@ export class HtmlElementsManager {
 
             // Insert after notesTab for consistent order
             const notesTab = document.getElementById('notesTab');
-            notesTab.parentNode.insertBefore(editTab, notesTab.nextSibling);
+            notesTab?.parentNode?.insertBefore(editTab, notesTab.nextSibling);
         }
     }
 
 
-    showTab(tab) {
+    showTab(tab: string) {
         // Get all existing tabs dynamically
         const allTabElements = document.querySelectorAll('.tab');
 
@@ -94,17 +95,20 @@ export class HtmlElementsManager {
         suggestionContainer.style.marginBottom = '5px';
 
         const suggestingMember = createUserProfileElement(suggestionObject.suggestedBy);
-        suggestionContainer.appendChild(suggestingMember)
+        suggestionContainer.appendChild(suggestingMember as HTMLDivElement)
         const field = document.createElement('p');
         field.innerHTML = `<strong>Reason:</strong> ${suggestionObject.reason || 'N/A'}`;
         field.className = 'dynamic-input';
         suggestionContainer.appendChild(field);
         ['name', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach((key) => {
-            if (suggestionObject.suggestedNode1[key]) {
+            // Assert key as keyof FamilyNode (assuming FamilyNode is the type)
+            const nodeKey = key as keyof typeof suggestionObject.suggestedNode1;
+            const rootNodeKey = key as keyof typeof rootNodeData;
 
+            if (suggestionObject.suggestedNode1[nodeKey]) {
                 const field = document.createElement('p');
-                const existingValue = `<span class="old-data">${rootNodeData[key] || ''}</span>`
-                field.innerHTML = `<strong>${key}:</strong>${rootNodeData[key] ? existingValue : ''}<span class="new-data">${suggestionObject.suggestedNode1[key] || 'N/A'}</span>`;
+                const existingValue = `<span class="old-data">${rootNodeData[rootNodeKey] || ''}</span>`;
+                field.innerHTML = `<strong>${key}:</strong>${rootNodeData[rootNodeKey] ? existingValue : ''}<span class="new-data">${suggestionObject.suggestedNode1[nodeKey] || 'N/A'}</span>`;
                 field.className = 'dynamic-input';
                 suggestionContainer.appendChild(field);
             }
@@ -118,7 +122,7 @@ export class HtmlElementsManager {
             acceptButton.addEventListener('click', async (e) => {
                 e.preventDefault()
 
-                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'accepted')
+                await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'accepted')
                 this.refreshAfterSuggestion(rootNodeId)
             });
 
@@ -129,7 +133,7 @@ export class HtmlElementsManager {
             suggestionContainer.appendChild(rejectButton);
             rejectButton.addEventListener('click', async (e) => {
                 e.preventDefault()
-                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'rejected')
+                await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'rejected')
 
                 this.refreshAfterSuggestion(rootNodeId)
 
@@ -146,7 +150,7 @@ export class HtmlElementsManager {
             suggestionContainer.appendChild(cancelButton);
             cancelButton.addEventListener('click', async (e) => {
                 e.preventDefault()
-                const updatedNode = await suggestionService.cancelSuggestion(this.familyTreeId, suggestionObject.id)
+                await suggestionService.cancelSuggestion(this.familyTreeId, suggestionObject.id)
 
                 this.refreshAfterSuggestion(rootNodeId)
 
@@ -163,7 +167,7 @@ export class HtmlElementsManager {
         suggestionContainer.style.marginBottom = '5px';
 
         const suggestingMember = createUserProfileElement(suggestionObject.suggestedBy);
-        suggestionContainer.appendChild(suggestingMember)
+        suggestionContainer.appendChild(suggestingMember as HTMLDivElement)
         const field = document.createElement('p');
         field.innerHTML = `<strong>Reason:</strong> ${suggestionObject.reason || 'N/A'}`;
         field.className = 'dynamic-input';
@@ -182,13 +186,13 @@ export class HtmlElementsManager {
             acceptButton.addEventListener('click', async (e) => {
                 e.preventDefault()
 
-                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'accepted')
-                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+                await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'accepted')
+                // const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
                 const previousNodeId = this.treeDrawer.popRootHistory(this.rootNodeId)
                 const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                 if (nodesArray) {
-                    this.treeDrawer.fetchData(nodesArray, previousNodeId, true);
+                    this.treeDrawer.fetchData(nodesArray, previousNodeId as number, true);
                     this.treeDrawer.toggleModes(previousNodeId, 'view')
                 }
                 this.displaySuggestionUpdateEdits(rootNodeId)
@@ -202,8 +206,8 @@ export class HtmlElementsManager {
             suggestionContainer.appendChild(rejectButton);
             rejectButton.addEventListener('click', async (e) => {
                 e.preventDefault()
-                const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'rejected')
-                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+                await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionObject.id, 'rejected')
+                // const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
                 this.refreshAfterSuggestion(rootNodeId)
 
@@ -220,7 +224,7 @@ export class HtmlElementsManager {
             suggestionContainer.appendChild(cancelButton);
             cancelButton.addEventListener('click', async (e) => {
                 e.preventDefault()
-                const updatedNode = await suggestionService.cancelSuggestion(this.familyTreeId, suggestionObject.id)
+                await suggestionService.cancelSuggestion(this.familyTreeId, suggestionObject.id)
 
                 this.refreshAfterSuggestion(rootNodeId)
 
@@ -237,9 +241,9 @@ export class HtmlElementsManager {
         this.displaySuggestionUpdateEdits(rootNodeId)
         this.treeDrawer.updateNodesNameText()
     }
-    displaySuggestionUpdateEdits(familyNodeId) {
+    displaySuggestionUpdateEdits(familyNodeId: number) {
         const pendingSuggestionsDisplayer = document.getElementById('pendingUpdateSuggestions');
-        pendingSuggestionsDisplayer.innerHTML = '';
+        if (pendingSuggestionsDisplayer) pendingSuggestionsDisplayer.innerHTML = '';
         const nodesSuggestions = this.nodeManager.getNodeSuggestions(familyNodeId).filter(item => item.suggestedAction === SuggestableActions.UpdateNode || item.suggestedAction === SuggestableActions.DeleteNode)
         if (nodesSuggestions.length === 0) {
             const message = document.createElement('p')
@@ -251,11 +255,11 @@ export class HtmlElementsManager {
             nodesSuggestions.map(item => {
                 if (item.suggestedAction === SuggestableActions.UpdateNode) {
                     const suggestionBody = this.reviewUpdateSuggestionBody(item)
-                    pendingSuggestionsDisplayer.appendChild(suggestionBody)
+                    pendingSuggestionsDisplayer?.appendChild(suggestionBody)
                 }
                 else if (item.suggestedAction === SuggestableActions.DeleteNode) {
                     const suggestionBody = this.reviewDeletionSuggestionBody(item)
-                    pendingSuggestionsDisplayer.appendChild(suggestionBody)
+                    pendingSuggestionsDisplayer?.appendChild(suggestionBody)
                 }
             })
         }
@@ -263,16 +267,20 @@ export class HtmlElementsManager {
     }
 
 
-    setActionTypeLabel(actionType: genericActionTypes, node, currentNodeId) {
+    setActionTypeLabel(actionType: genericActionTypes, node: d3.HierarchyNode<DrawableNode>, currentNodeId: number) {
         this.rootNodeId = currentNodeId;
-        let memberPriviledge = this.nodeManager.memberPriviledge(1, currentNodeId);
+        let memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, currentNodeId);
         const currentMembmerMode = (memberPriviledge === 'create' || memberPriviledge === 'only-create') ? 'create' : 'suggest';
         // 'suggest'; // 'create' or 'suggest
         const dynamicFields = document.getElementById('dynamicFields');
 
-        dynamicFields.innerHTML = '';
-        const hoverEffectTest = hoverEffect(this.treeDrawer.createPopUp, this.rootNodeId)
-        dynamicFields.appendChild(hoverEffectTest);
+        if (dynamicFields) dynamicFields.innerHTML = '';
+        if (this.nodeManager) {
+            const hoverEffectTest = hoverEffect(this.treeDrawer.createPopUp, this.rootNodeId)
+            dynamicFields?.appendChild(hoverEffectTest);
+        }
+
+
 
         const endpointFieldMapNew = {
             addParent: {
@@ -292,14 +300,16 @@ export class HtmlElementsManager {
                     endpoint: { create: 'addChildOfTwoParents', suggest: 'suggestChildOfTwoParents' },
                     label: { create: { MALE: "Add Son of Two Parents", FEMALE: "Add Daughter of Two Parents" }, suggest: { MALE: "Suggest Son of Two Parents", FEMALE: "Suggest Daughter of Two Parents" } },
                     fields: ['targetNodeId', 'childNodeData']
-                }
+                },
+                existing: null
             },
             addChildOfOneParent: {
                 new: {
                     endpoint: { create: 'addChildOfOneParent', suggest: 'suggestChildOfOneParent' },
                     label: { create: { MALE: "Add Son of One Parent", FEMALE: "Add Daughter of One Parent" }, suggest: { MALE: "Suggest Son of One Parent", FEMALE: "Suggest Daughter of One Parent" } },
                     fields: ['childNodeData']
-                }
+                },
+                existing: null
             },
             addPartner: {
                 new: {
@@ -314,9 +324,9 @@ export class HtmlElementsManager {
                 },
             },
         };
-        const generateFields = (option) => {
-            const fields = actionOptions[option].fields;
-            dynamicFields.querySelectorAll('.dynamic-input').forEach(el => el.remove());
+        const generateFields = (option: 'new' | 'existing') => {
+            const fields = actionOptions[option]?.fields;
+            dynamicFields?.querySelectorAll('.dynamic-input').forEach(el => el.remove());
 
             if (currentMembmerMode === 'suggest') {
                 const name = 'reason'
@@ -328,14 +338,14 @@ export class HtmlElementsManager {
                 input.required = true;
                 input.className = 'dynamic-input';
                 input.required = false
-                dynamicFields.appendChild(input);
+                dynamicFields?.appendChild(input);
             }
-            fields.forEach(field => {
-                if (field.includes('Data')) {
+            fields?.forEach((field: string | null) => {
+                if (field?.includes('Data')) {
                     const h2 = document.createElement('h2');
                     h2.textContent = field;
                     h2.className = 'dynamic-input';
-                    dynamicFields.appendChild(h2);
+                    dynamicFields?.appendChild(h2);
 
                     ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach(name => {
                         const input = document.createElement('input');
@@ -352,7 +362,7 @@ export class HtmlElementsManager {
                         if (name === 'name' || name === 'gender') {
                             input.required = true
                         }
-                        dynamicFields.appendChild(input);
+                        dynamicFields?.appendChild(input);
                     });
                 }
 
@@ -362,21 +372,21 @@ export class HtmlElementsManager {
                     nodeManagmentService.fetchAllowedParents(this.familyTreeId, this.rootNodeId, node.data.gender)
                         .then(item => {
 
-                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing parent Node', 'Couldn\'t find a possible parent', this.treeDrawer.createPopUp);
+                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing parent Node', 'Couldn\'t find a possible parent');
 
                             const referenceElement = document.getElementById('actionOptionSelect');
 
                             if (referenceElement && referenceElement.parentNode === dynamicFields) {
                                 // Insert dropdown after referenceElement
                                 if (referenceElement.nextSibling) {
-                                    dynamicFields.insertBefore(dropdown, referenceElement.nextSibling);
+                                    dynamicFields?.insertBefore(dropdown, referenceElement.nextSibling);
                                 } else {
                                     // If it's the last child, just append
-                                    dynamicFields.appendChild(dropdown);
+                                    dynamicFields?.appendChild(dropdown);
                                 }
                             } else {
                                 console.warn("referenceElement not found or not a child of dynamicFields");
-                                dynamicFields.appendChild(dropdown); // Fallback
+                                dynamicFields?.appendChild(dropdown); // Fallback
                             }
                         })
                         .catch(error => {
@@ -392,21 +402,21 @@ export class HtmlElementsManager {
                     nodeManagmentService.fetchMarriableNodes(this.familyTreeId, this.rootNodeId)
                         .then(item => {
 
-                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node', 'Couldn\'t find a possible pair', this.treeDrawer.createPopUp);
+                            const dropdown = createDropdown(item, 'targetNodeId', 'Select Existing Node', 'Couldn\'t find a possible pair');
 
                             const referenceElement = document.getElementById('actionOptionSelect');
 
                             if (referenceElement && referenceElement.parentNode === dynamicFields) {
                                 // Insert dropdown after referenceElement
                                 if (referenceElement.nextSibling) {
-                                    dynamicFields.insertBefore(dropdown, referenceElement.nextSibling);
+                                    dynamicFields?.insertBefore(dropdown, referenceElement.nextSibling);
                                 } else {
                                     // If it's the last child, just append
-                                    dynamicFields.appendChild(dropdown);
+                                    dynamicFields?.appendChild(dropdown);
                                 }
                             } else {
                                 console.warn("referenceElement not found or not a child of dynamicFields");
-                                dynamicFields.appendChild(dropdown); // Fallback
+                                dynamicFields?.appendChild(dropdown); // Fallback
                             }
                         })
                         .catch(error => {
@@ -426,9 +436,9 @@ export class HtmlElementsManager {
 
 
                 else if (field === 'partnershipType') {
-                    dynamicFields.appendChild(createDropdown(this.relationType, 'partnershipType', 'select relationship Status', this.treeDrawer.createPopUp))
+                    dynamicFields?.appendChild(createDropdown(this.relationType, 'partnershipType', 'select relationship Status', 'Unknow Error Occured'))
                 }
-                else if (field.endsWith('Id')) {
+                else if (field?.endsWith('Id')) {
                     const input = document.createElement('input');
                     input.type = 'number';
                     input.name = field;
@@ -437,21 +447,22 @@ export class HtmlElementsManager {
                     input.className = 'dynamic-input';
                     if (actionType === 'addChildOfTwoParents' && field === 'targetNodeId') {
                         const partnerId = node.data.motherId === currentNodeId ? node.data.fatherId : node.data.motherId
-                        input.value = partnerId;
+
+                        if (input) input.value = `${partnerId}`;
                         const p = document.createElement('p');
-                        const partnerNode = this.nodeManager.getNode(partnerId)
+                        const partnerNode = this.nodeManager.getNode(partnerId as number)
                         p.textContent = `Partner: ${partnerNode.name}`
                         dynamicFields?.appendChild(p)
                     }
-                    dynamicFields.appendChild(input);
+                    dynamicFields?.appendChild(input);
                 } else {
                     const input = document.createElement('input');
                     input.type = 'text';
-                    input.name = field;
-                    input.placeholder = field;
+                    input.name = field as string;
+                    input.placeholder = field as string;
                     input.required = true;
                     input.className = 'dynamic-input';
-                    dynamicFields.appendChild(input);
+                    dynamicFields?.appendChild(input);
                 }
             });
 
@@ -476,15 +487,22 @@ export class HtmlElementsManager {
                     suggestExistingPartner: suggestionCreationService.suggestExistingPartner,
                     suggestDeleteNode: suggestionCreationService.suggestDeleteNode,
                     suggestUpdateNode: suggestionCreationService.suggestUpdateNode,
-                }; e.preventDefault();
-                const familyTreeForm = document.getElementById('familyTreeForm')
-                const formData = new FormData(familyTreeForm);
-                const endpoint = localStorageManager.getItem('postEndpoint');
-                const data = Object.fromEntries(formData.entries());
-                if (endpointServiceMap[endpoint]) {
-                    try {
+                };
+                type EndpointKey = keyof typeof endpointServiceMap;
 
-                        const response = await endpointServiceMap[endpoint](this.familyTreeId, this.rootNodeId, data);
+                e.preventDefault();
+                const familyTreeForm = document.getElementById('familyTreeForm')
+                const formData = new FormData(familyTreeForm as HTMLFormElement);
+                const endpoint = localStorageManager.getItem('postEndpoint') as EndpointKey | null; // Cast to potential key type or null
+// @ts-ignore
+                const data: { [key: string]: string } = Object.fromEntries(formData.entries());
+
+
+
+                if (endpoint && endpoint in endpointServiceMap) { // Check if endpoint is not null and a valid key
+                    try {
+                        const serviceFunction = endpointServiceMap[endpoint]; // Access safely
+                        await serviceFunction(this.familyTreeId, this.rootNodeId, data);
 
                         const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                         if (nodesArray) {
@@ -500,50 +518,59 @@ export class HtmlElementsManager {
                 const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, currentNodeId)
                 this.createViewMode(currentData, memberPriviledge);
             });
-            dynamicFields.appendChild(saveButton)
+            dynamicFields?.appendChild(saveButton)
         }
 
-        const actionOptions = endpointFieldMapNew[actionType];
+        // const actionOptions = endpointFieldMapNew[actionType];
+        const actionOptions = endpointFieldMapNew[actionType as keyof typeof endpointFieldMapNew];
+        type ValidSelectValue = "new" | "existing";
+        const actionKeys = actionType as keyof typeof endpointFieldMapNew
+
 
         if (!actionOptions) return;
 
         // Create dropdown for selecting between 'new' and 'existing' if both exist
-        if (actionOptions.new && actionOptions.existing) {
+        if (actionOptions.existing && actionOptions.new) {
             const select = document.createElement('select');
             select.id = 'actionOptionSelect';
 
             ['existing', 'new'].forEach(option => {
                 const opt = document.createElement('option');
                 opt.value = option;
-                opt.textContent = actionOptions[option].label[currentMembmerMode][node.data.gender];
+                opt.textContent = actionOptions[option as keyof typeof actionOptions].label[currentMembmerMode][node.data.gender];
                 select.appendChild(opt);
             });
 
             select.addEventListener('change', () => {
-                const label = endpointFieldMapNew[actionType][select.value].label[currentMembmerMode][node.data.gender];
-                document.getElementById('endpointLabel').textContent = label;
-                localStorageManager.setItem('postEndpoint', endpointFieldMapNew[actionType][select.value].endpoint[currentMembmerMode])
-                generateFields(select.value)
-            });
-            dynamicFields.appendChild(select);
-            const label = endpointFieldMapNew[actionType]['existing'].label[currentMembmerMode][node.data.gender];
-            localStorageManager.setItem('postEndpoint', endpointFieldMapNew[actionType]['existing'].endpoint[currentMembmerMode])
 
-            document.getElementById('endpointLabel').textContent = label;
+                // Then cast:
+                const label = endpointFieldMapNew[actionKeys]?.[select.value as ValidSelectValue]?.label?.[currentMembmerMode]?.[node.data.gender];
+                const endpointLabel = document.getElementById('endpointLabel')
+                if (endpointLabel) endpointLabel.textContent = label ?? null;
+                localStorageManager.setItem('postEndpoint', endpointFieldMapNew[actionKeys]?.[select.value as ValidSelectValue]?.endpoint[currentMembmerMode])
+                generateFields(select.value as 'new' | 'existing')
+            });
+            dynamicFields?.appendChild(select);
+            const label = endpointFieldMapNew[actionKeys]?.['existing' as ValidSelectValue]?.label[currentMembmerMode][node.data.gender];
+            localStorageManager.setItem('postEndpoint', endpointFieldMapNew[actionKeys]['existing' as ValidSelectValue]?.endpoint[currentMembmerMode])
+
+            const endpointLabel = document.getElementById('endpointLabel')
+            if (endpointLabel) endpointLabel.textContent = label ?? null;
 
             generateFields('existing'); // Default selection
         } else {
-            const option = actionOptions.new ? 'new' : 'existing';
-            const label = endpointFieldMapNew[actionType][option].label[currentMembmerMode][node.data.gender];
-            document.getElementById('endpointLabel').textContent = label;
-            localStorageManager.setItem('postEndpoint', endpointFieldMapNew[actionType][option].endpoint[currentMembmerMode])
+            const option = (actionOptions.new ? 'new' : 'existing') as 'new' | 'existing';
+            const label = endpointFieldMapNew[actionKeys][option]?.label[currentMembmerMode][node.data.gender];
+            const endpointLabel = document.getElementById('endpointLabel')
+            if (endpointLabel) endpointLabel.textContent = label ?? null;
+            localStorageManager.setItem('postEndpoint', endpointFieldMapNew[actionKeys][option]?.endpoint[currentMembmerMode])
 
 
             generateFields(option);
         }
 
     }
-    displaySuggestionInfo(suggestionBody, rootNodeId: number) {
+    displaySuggestionInfo(suggestionBody: SuggestEdits, rootNodeId: number) {
         this.rootNodeId = rootNodeId;
         const dynamicFields = document.getElementById('dynamicFields');
         let nodeData;
@@ -554,20 +581,20 @@ export class HtmlElementsManager {
             nodeData = suggestionBody.suggestedNode1
         }
 
-        const reviewSuggestionViewMode = (data) => {
-            dynamicFields.innerHTML = '';
+        const reviewSuggestionViewMode = (data: FamilyNode) => {
+            if (dynamicFields) dynamicFields.innerHTML = '';
 
             const reason = document.createElement('p');
             reason.innerHTML = `<strong>Reason:</strong> ${suggestionBody['reason'] || 'N/A'}`;
             reason.className = 'dynamic-input';
-            dynamicFields.appendChild(reason);
+            dynamicFields?.appendChild(reason);
 
 
             ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach((key) => {
                 const field = document.createElement('p');
-                field.innerHTML = `<strong>${key}:</strong> ${data[key] || 'N/A'}`;
+                field.innerHTML = `<strong>${key}:</strong> ${data[key as keyof FamilyNode] || 'N/A'}`;
                 field.className = 'dynamic-input';
-                dynamicFields.appendChild(field);
+                dynamicFields?.appendChild(field);
             });
             if (data['suggestedBy']) {
                 const suggetorContainer = document.createElement('div')
@@ -577,8 +604,8 @@ export class HtmlElementsManager {
                 field.className = 'dynamic-input';
                 const suggestor = createUserProfileElement(data.suggestedBy)
                 suggetorContainer.appendChild(field);
-                suggetorContainer.appendChild(suggestor)
-                dynamicFields.appendChild(suggetorContainer)
+                suggetorContainer.appendChild(suggestor as Node)
+                dynamicFields?.appendChild(suggetorContainer)
             }
             if (this.nodeManager.canCreate(rootNodeId)) {
                 const acceptButton = document.createElement('button');
@@ -590,7 +617,7 @@ export class HtmlElementsManager {
                 acceptButton.addEventListener('click', async (e) => {
                     e.preventDefault()
 
-                    const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'accepted')
+                    await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'accepted')
                     const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
                     const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
                     if (nodesArray) {
@@ -600,14 +627,14 @@ export class HtmlElementsManager {
                     this.createViewMode(rootNode, memberPriviledge)
                 });
 
-                dynamicFields.appendChild(acceptButton);
+                dynamicFields?.appendChild(acceptButton);
                 const rejectButton = document.createElement('button');
                 rejectButton.textContent = 'Reject';
                 rejectButton.className = 'dynamic-input';
-                dynamicFields.appendChild(rejectButton);
+                dynamicFields?.appendChild(rejectButton);
                 rejectButton.addEventListener('click', async (e) => {
                     e.preventDefault()
-                    const updatedNode = await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'rejected')
+                    await suggestionService.acceptOrRejectSuggestion(this.familyTreeId, suggestionBody.id, 'rejected')
                     const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
                     const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
@@ -618,22 +645,21 @@ export class HtmlElementsManager {
                     this.createViewMode(rootNode, memberPriviledge)
 
                 });
-                const rootNode = this.nodeManager.getNode(rootNodeId)
-                const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
+                // const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
             }
         };
 
         reviewSuggestionViewMode(nodeData)
     }
 
-    createViewMode(data, memberPriviledge) {
+    createViewMode(data: FamilyNode, memberPriviledge: MemberPriviledge) {
         const dynamicFields = document.getElementById('dynamicFields');
-        dynamicFields.innerHTML = '';
+        if (dynamicFields) dynamicFields.innerHTML = '';
         ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach((key) => {
             const field = document.createElement('p');
-            field.innerHTML = `<strong>${key}:</strong> ${data[key] || 'N/A'}`;
+            field.innerHTML = `<strong>${key}:</strong> ${data[key as keyof FamilyNode] || 'N/A'}`;
             field.className = 'dynamic-input';
-            dynamicFields.appendChild(field);
+            if (dynamicFields) dynamicFields?.appendChild(field);
         });
         if (memberPriviledge === 'create' || memberPriviledge === 'update') {
             const editButton = document.createElement('button');
@@ -643,11 +669,11 @@ export class HtmlElementsManager {
                 this.treeDrawer.toggleModes(data.id, 'edit')
                 this.createEditMode(data, memberPriviledge)
             });
-            dynamicFields.appendChild(editButton);
+            dynamicFields?.appendChild(editButton);
             const details = otherNodeDetails(this.nodeManager.getNode(data.id))
-            dynamicFields.appendChild(details)
-            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
-            dynamicFields.appendChild(contributors);
+            dynamicFields?.appendChild(details)
+            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id) as Contributor)
+            dynamicFields?.appendChild(contributors);
             const deleteAllowed = this.nodeManager.isAllowedAction(data.id, genericActionTypes.DeleteNode);
             console.log("Delete Allowed", deleteAllowed)
             const canSuggest = this.nodeManager.canContribute()
@@ -670,7 +696,7 @@ export class HtmlElementsManager {
                         });
                     }
                     deleteButton.className = 'delete-button';
-                    dynamicFields.appendChild(deleteButton);
+                    dynamicFields?.appendChild(deleteButton);
                 }
             }
         } else if (memberPriviledge === 'suggest' || memberPriviledge === 'only-create') {
@@ -678,7 +704,7 @@ export class HtmlElementsManager {
             editButton.textContent = 'Suggest Edit';
             editButton.className = 'dynamic-input';
             editButton.addEventListener('click', () => { this.createSuggestionMode(data, memberPriviledge) });
-            dynamicFields.appendChild(editButton);
+            dynamicFields?.appendChild(editButton);
             const deleteAllowed = this.nodeManager.isAllowedAction(data.id, genericActionTypes.DeleteNode);
             console.log("Delete Allowed Suggest", deleteAllowed)
             if (deleteAllowed) {
@@ -690,29 +716,29 @@ export class HtmlElementsManager {
                     this.treeDrawer.toggleModes(data.id, 'edit')
                     this.suggestDeleteMode(data, memberPriviledge)
                 });
-                dynamicFields.appendChild(deleteButton)
+                dynamicFields?.appendChild(deleteButton)
             }
             const details = otherNodeDetails(this.nodeManager.getNode(data.id))
-            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id))
-            dynamicFields.appendChild(contributors);
-            dynamicFields.appendChild(details)
+            const contributors = contributorsElementGenerator(this.nodeManager.data.contributors.find(item => item.id === data.id) as Contributor)
+            dynamicFields?.appendChild(contributors);
+            dynamicFields?.appendChild(details)
 
         }
     };
 
-    createEditMode(nodeData, memberPriviledge) {
+    createEditMode(nodeData: FamilyNode, memberPriviledge: MemberPriviledge) {
         const dynamicFields = document.getElementById('dynamicFields');
-        dynamicFields.innerHTML = '';
-        const formData = {};
+        if (dynamicFields) dynamicFields.innerHTML = '';
+        const formData: { [key: string]: HTMLInputElement } = {};
 
         ['name', 'gender', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach((key) => {
             const input = document.createElement('input');
             input.type = (key.includes('Date')) ? 'date' : (key.includes('Id')) ? 'number' : 'text';
             input.name = key;
             input.placeholder = key;
-            input.value = nodeData[key] || '';
+            input.value = nodeData[key as keyof FamilyNode] as string || '';
             input.className = 'dynamic-input';
-            dynamicFields.appendChild(input);
+            dynamicFields?.appendChild(input);
             formData[key] = input;
         });
 
@@ -721,9 +747,9 @@ export class HtmlElementsManager {
         saveButton.className = 'dynamic-input';
         saveButton.addEventListener('click', async (e) => {
             e.preventDefault()
-            const updatedData = {};
+            const updatedData: { [key: string]: string } = {};
             Object.keys(formData).forEach(key => {
-                if (formData[key].value && formData[key] !== nodeData[key]) {
+                if (formData[key]?.value && formData[key].value !== nodeData[key as keyof FamilyNode]) {
                     updatedData[key] = formData[key].value;
                 }
             });
@@ -742,14 +768,14 @@ export class HtmlElementsManager {
         cancelButton.className = 'dynamic-input';
         cancelButton.addEventListener('click', () => { this.createViewMode(nodeData, memberPriviledge) });
 
-        dynamicFields.appendChild(saveButton);
-        dynamicFields.appendChild(cancelButton);
+        dynamicFields?.appendChild(saveButton);
+        dynamicFields?.appendChild(cancelButton);
     };
 
-    deleteMode(nodeData, memberPriviledge) {
+    deleteMode(nodeData: FamilyNode, memberPriviledge: MemberPriviledge) {
         const dynamicFields = document.getElementById('dynamicFields');
 
-        dynamicFields.innerHTML = '';
+        if (dynamicFields) dynamicFields.innerHTML = '';
         const deleteMessage = document.createElement('p');
         deleteMessage.innerHTML = `Are you sure you want to delete <b>${nodeData.name}</b>?`;
         deleteMessage.className = 'delete-message';
@@ -760,12 +786,12 @@ export class HtmlElementsManager {
         deleteButtonYes.className = 'delete-button';
         deleteButtonYes.addEventListener('click', async (e) => {
             e.preventDefault()
-            const deleteNode = await nodeManagmentService.deleteNode(this.familyTreeId, nodeData.id)
+            await nodeManagmentService.deleteNode(this.familyTreeId, nodeData.id)
             const previousNodeId = this.treeDrawer.popRootHistory(nodeData.id)
 
             const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
-                this.treeDrawer.fetchData(nodesArray, previousNodeId, true);
+                this.treeDrawer.fetchData(nodesArray, previousNodeId as number, true);
             }
             // Return to the previous old node
         });
@@ -776,41 +802,41 @@ export class HtmlElementsManager {
             this.createViewMode(nodeData, memberPriviledge);
         });
 
-        dynamicFields.appendChild(deleteMessage);
-        dynamicFields.appendChild(deleteButtonYes);
-        dynamicFields.appendChild(deleteButtonNo);
+        dynamicFields?.appendChild(deleteMessage);
+        dynamicFields?.appendChild(deleteButtonYes);
+        dynamicFields?.appendChild(deleteButtonNo);
     };
-    suggestDeleteMode(nodeData, memberPriviledge) {
+    suggestDeleteMode(nodeData: FamilyNode, memberPriviledge: MemberPriviledge) {
         const dynamicFields = document.getElementById('dynamicFields');
 
-        dynamicFields.innerHTML = '';
-        const familyTreeForm = document.getElementById('familyTreeForm')
-        const formData = new FormData(familyTreeForm);
+        if (dynamicFields) dynamicFields.innerHTML = '';
 
         const reason = 'reason'
-        const input = document.createElement('input');
+        const input = document.createElement('input') as HTMLInputElement;
         input.type = 'text';
         input.id = reason;
         input.name = reason;
         input.placeholder = reason.replace(/([A-Z])/g, ' $1').trim();
         input.className = 'dynamic-input';
         input.required = false
-        formData[reason] = input
+        const familyTreeForm = document.getElementById('familyTreeForm')
+        familyTreeForm?.appendChild(input);
         dynamicFields?.append(input)
         const SuggestDeleteButton = document.createElement('button')
         SuggestDeleteButton.textContent = 'Suggest Delete';
         SuggestDeleteButton.className = 'delete-button';
         SuggestDeleteButton.addEventListener('click', async (e) => {
             e.preventDefault()
-            const deletionBody = {};
-            Object.keys(formData).forEach(key => {
-                if (formData[key].value) {
-                    deletionBody[key] = formData[key].value;
-                }
-            });
+            const formData = new FormData(familyTreeForm as HTMLFormElement);
+// @ts-ignore
+            const deletionBody: { [key: string]: string } =  Object.fromEntries(formData.entries());
+
+            if (input.value) {
+                deletionBody[reason] = input.value;
+            }
 
 
-            const deleteNode = await suggestionCreationService.suggestDeleteNode(this.familyTreeId, nodeData.id, deletionBody)
+            await suggestionCreationService.suggestDeleteNode(this.familyTreeId, nodeData.id, deletionBody)
 
             const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
@@ -828,16 +854,16 @@ export class HtmlElementsManager {
             this.createViewMode(nodeData, memberPriviledge);
         });
 
-        dynamicFields.appendChild(SuggestDeleteButton);
-        dynamicFields.appendChild(deleteButtonNo);
+        dynamicFields?.appendChild(SuggestDeleteButton);
+        dynamicFields?.appendChild(deleteButtonNo);
     };
 
-    createSuggestionMode(nodeData, memberPriviledge) {
+    createSuggestionMode(nodeData: FamilyNode, memberPriviledge: MemberPriviledge) {
         const dynamicFields = document.getElementById('dynamicFields');
 
-        dynamicFields.innerHTML = '';
+        if (dynamicFields) dynamicFields.innerHTML = '';
 
-        const formData = {};
+        const formData: { [key: string]: HTMLInputElement } = {};
         const name = 'reason'
         const input = document.createElement('input');
         input.type = 'text';
@@ -846,16 +872,16 @@ export class HtmlElementsManager {
         input.placeholder = name.replace(/([A-Z])/g, ' $1').trim();
         input.className = 'dynamic-input';
         input.required = false
-        dynamicFields.appendChild(input);
+        dynamicFields?.appendChild(input);
 
         ['name', 'title', 'phone', 'address', 'nickName', 'birthDate', 'deathDate'].forEach((key) => {
             const input = document.createElement('input');
             input.type = (key.includes('Date')) ? 'date' : (key.includes('Id')) ? 'number' : 'text';
             input.name = key;
             input.placeholder = key;
-            input.value = nodeData[key] || '';
+            input.value = nodeData[key as keyof FamilyNode] as string || '';
             input.className = 'dynamic-input';
-            dynamicFields.appendChild(input);
+            dynamicFields?.appendChild(input);
             formData[key] = input;
         });
 
@@ -865,16 +891,18 @@ export class HtmlElementsManager {
         saveButton.addEventListener('click', async (e) => {
             e.preventDefault()
             const familyTreeForm = document.getElementById('familyTreeForm')
-            const formData = new FormData(familyTreeForm);
-            const data = Object.fromEntries(formData.entries());
-            const filteredData = {}
-            Object.keys(data).map(item => {
-                if (data[item] !== nodeData[item]) {
-                    filteredData[item] = data[item]
-                }
-            })
+            const formData = new FormData(familyTreeForm as HTMLFormElement);
+// @ts-ignore
+            const filteredData: { [key: string]: string } = Object.fromEntries(formData.entries());
 
-            const suggestedData = await suggestionCreationService.suggestUpdateNode(this.familyTreeId, nodeData.id, filteredData)
+            Object.keys(formData).forEach(key => {
+                if (formData.get(key) && formData.get(key) !== nodeData[key as keyof FamilyNode]) {
+                } else {
+                    delete filteredData[key]
+                }
+            });
+
+            await suggestionCreationService.suggestUpdateNode(this.familyTreeId, nodeData.id, filteredData)
 
             const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, nodeData.id)
             const nodesArray = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
@@ -891,16 +919,16 @@ export class HtmlElementsManager {
         cancelButton.className = 'dynamic-input';
         cancelButton.addEventListener('click', () => { this.createViewMode(nodeData, memberPriviledge) });
 
-        dynamicFields.appendChild(saveButton);
-        dynamicFields.appendChild(cancelButton);
+        dynamicFields?.appendChild(saveButton);
+        dynamicFields?.appendChild(cancelButton);
     };
-    infoDisplayer(nodeData, rootNodeId) {
+    infoDisplayer(nodeData: FamilyNode, rootNodeId: number) {
         this.rootNodeId = rootNodeId
         const memberPriviledge = this.nodeManager.memberPriviledge(this.familyTreeId, rootNodeId)
 
         const dynamicFields = document.getElementById('dynamicFields');
 
-        dynamicFields.innerHTML = '';
+        if (dynamicFields) dynamicFields.innerHTML = '';
 
 
 

@@ -1,5 +1,5 @@
-import { Gender } from "../dtos/gender.enum";
-import { localStorageManager } from "../storage/storageManager";
+import { Gender } from "../interfaces/dtos/gender.enum";
+import { localStorageManager } from "./storage-manager";
 
 async function updateData<T>(url: string, data: T, bearerToken: string): Promise<Response> {
     return fetch(url, {
@@ -12,7 +12,7 @@ async function updateData<T>(url: string, data: T, bearerToken: string): Promise
     });
 }
 
-async function deleteNodeRequest<T>(url: string, bearerToken: string): Promise<Response> {
+async function deleteNodeRequest(url: string, bearerToken: string): Promise<Response> {
     return fetch(url, {
         method: 'DELETE',
         headers: {
@@ -111,7 +111,7 @@ export class NodeManagementService {
         let endpoint = 'allowedMothers'
         if (gender === Gender.MALE) {
             endpoint = 'allowedFathers'
-        } 
+        }
         const fetchNodesUri = `http://localhost:3000/api/family-tree/${familyTreeId}/nodes/${familyNodeId}/${endpoint}`;
 
         try {

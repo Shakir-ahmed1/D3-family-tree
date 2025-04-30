@@ -1,5 +1,8 @@
-import { FamilyNode, FamilyTreeMembers } from "./node.interface";
-import { userService } from "./services/user.service";
+import { CreateNewPrimaryFamilyNodeInterface } from "../interfaces/dtos/create-new-primary-family-node.dto";
+import { Gender } from "../interfaces/dtos/gender.enum";
+import { SuggestUpdateNodeInteface } from "../interfaces/dtos/suggest.dto";
+import { Contributor, FamilyNode, FamilyTreeMembers, formDataEntries } from "../interfaces/node.interface";
+import { userService } from "../services/user.service";
 
 
 export function otherNodeDetails(familyNode: FamilyNode) {
@@ -45,7 +48,7 @@ export function otherNodeDetails(familyNode: FamilyNode) {
         membersContainer.appendChild(creatorsTitle);
 
         const memberElement = createUserProfileElement(member);
-        membersContainer.appendChild(memberElement);
+        membersContainer.appendChild(memberElement as Node);
 
         return membersContainer;
     }
@@ -85,10 +88,10 @@ export function otherNodeDetails(familyNode: FamilyNode) {
     }
 
     if (familyNode.createdAt) {
-        contentWrapper.appendChild(createInfoRow('Created at', formatDate(familyNode.createdAt)));
+        contentWrapper.appendChild(createInfoRow('Created at', formatDate(JSON.stringify(familyNode.createdAt))));
     }
     if (familyNode.updatedAt) {
-        contentWrapper.appendChild(createInfoRow('Updated at', formatDate(familyNode.updatedAt)));
+        contentWrapper.appendChild(createInfoRow('Updated at', formatDate(JSON.stringify(familyNode.updatedAt))));
     }
 
     wrapper.appendChild(contentWrapper);
@@ -101,7 +104,7 @@ export function otherNodeDetails(familyNode: FamilyNode) {
 
     return wrapper;
 }// Function to generate a temporary profile picture
-export function generateTemporaryProfilePicture(userName) {
+export function generateTemporaryProfilePicture(userName: string) {
     const firstLetter = userName.charAt(0).toUpperCase();
     const colorIndex = userName.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % 8;
     const bgColor1 = backgroundColors[colorIndex];
@@ -115,8 +118,8 @@ export function generateTemporaryProfilePicture(userName) {
     if (ctx) {
         // Create gradient background
         const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, bgColor1);
-        gradient.addColorStop(1, bgColor2);
+        gradient.addColorStop(0, bgColor1 as string);
+        gradient.addColorStop(1, bgColor2 as string);
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -131,7 +134,7 @@ export function generateTemporaryProfilePicture(userName) {
 
     return canvas.toDataURL();
 }
-export function createUserProfileElement(familyTreeMember) {
+export function createUserProfileElement(familyTreeMember: FamilyTreeMembers) {
     if (!familyTreeMember || !familyTreeMember.user) {
         console.error("Invalid familyTreeMember object");
         return null;
@@ -191,12 +194,12 @@ export function contributorDetailElement(title: string, contributors: FamilyTree
     wrapper.appendChild(creatorsTitle);
     contributors.map(item => {
         const creator = createUserProfileElement(item);
-        wrapper.appendChild(creator);
+        wrapper.appendChild(creator as Node);
     });
     return wrapper;
 
 }
-export function contributorsElementGenerator(contributors) {
+export function contributorsElementGenerator(contributors: Contributor) {
     const contributionWrapper = document.createElement('div');
 
     // Create the title and toggle button container
@@ -259,7 +262,7 @@ export function contributorsElementGenerator(contributors) {
  * @param hoverHandler A function to call when the mouse hovers over an option. It receives the node's ID.
  * @returns The created HTMLSelectElement.
  */
-export function createDropdown(nodes: { id: string; name: string; }[], identifier: string, message: string, zeroMessage: string, hoverHandler: (id: string) => void): HTMLSelectElement {
+export function createDropdown(nodes: { id: string; name: string; }[], identifier: string, message: string, zeroMessage: string): HTMLSelectElement {
     const select = document.createElement("select");
     select.id = identifier;
     select.name = identifier;
@@ -302,7 +305,7 @@ export function createDropdown(nodes: { id: string; name: string; }[], identifie
 
     return select;
 }
-export function hoverEffect(hoverHandler, nodeId) {
+export function hoverEffect(hoverHandler: (familyNodeId: number) => void, nodeId: number) {
     const div = document.createElement('div');
     div.textContent = 'HOVER EFFECT TEST???';
 
@@ -310,8 +313,8 @@ export function hoverEffect(hoverHandler, nodeId) {
         // Call the provided hoverHandler with the node's ID
         if (typeof hoverHandler === 'function') {
             const popup = document.getElementById('treePopUp');
-            popup.style.display = 'block';
-
+            if (popup) popup.style.display = 'block';
+            
             hoverHandler(nodeId);
         }
     });
@@ -321,9 +324,46 @@ export function hoverEffect(hoverHandler, nodeId) {
         const popup = document.getElementById('treePopUp');
         if (popup) {
             popup.style.display = 'none';
+            popup.innerHTML = '';
         }
-        popup.innerHTML = '';
     });
     return div;
 }
 
+export function stringMin(str1: string, str2: string) {
+    return str1.localeCompare(str2) < 0 ? str1 : str2;
+}
+
+// Returns the alphabetically larger string
+export function stringMax(str1: string, str2: string) {
+    return str1.localeCompare(str2) > 0 ? str1 : str2;
+}
+ export function constructNodeCreator(allData: formDataEntries): CreateNewPrimaryFamilyNodeInterface {
+    const newNode: CreateNewPrimaryFamilyNodeInterface = {
+        name: allData["name"] as string,
+        address: allData["address"] as string,
+        gender: allData["gender"] as Gender,
+        nickName: allData["nickName"] as string,
+        ownedById: allData["ownedById"] as unknown as number,
+        phone: allData["phone"] as string,
+        title: allData["title"] as string
+    };
+    if (allData["birthDate"]) { newNode.birthDate = allData["birthDate"] as Date; }
+    if (allData["deathDate"]) { newNode.deathDate = allData["deathDate"] as Date; }
+
+    return newNode;
+}
+export function constructNodeUpdateSuggestor(allData: formDataEntries): SuggestUpdateNodeInteface {
+    const newNode: SuggestUpdateNodeInteface = {
+        name: allData["name"] as string,
+        address: allData["address"] as string,
+        nickName: allData["nickName"] as string,
+        phone: allData["phone"] as string,
+        title: allData["title"] as string,
+        reason: allData["reason"] as string,
+    };
+    if (allData["birthDate"]) { newNode.birthDate = allData["birthDate"] as Date; }
+    if (allData["deathDate"]) { newNode.deathDate = allData["deathDate"] as Date; }
+
+    return newNode;
+}

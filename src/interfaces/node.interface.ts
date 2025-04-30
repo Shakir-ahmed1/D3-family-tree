@@ -1,3 +1,6 @@
+import { Gender } from "./dtos/gender.enum";
+import { RelationshipType } from "./dtos/relationship-type.enum";
+
 export interface FamilyNode {
     id: number;
     generatedName: string;
@@ -5,7 +8,7 @@ export interface FamilyNode {
     title: string;
     phone: string;
     address: string;
-    gender: 'MALE' | 'FEMALE';
+    gender: Gender;
     nickName: string;
     birthDate: Date;
     deathDate: Date;
@@ -53,7 +56,7 @@ export interface Contributor {
     updators: FamilyTreeMembers[],
 }
 export interface FamilyTree {
-    id: 1,
+    id: number,
     name: string,
     description: string,
     isPrivate: false,
@@ -118,11 +121,11 @@ export interface DrawableNode {
     id: number,
     uuid: string,
     name: string;
-    gender: string;
-    father?: string;
-    mother?: string;
-    fatherId?: number;
-    motherId?: number;
+    gender: Gender;
+    father?: string | undefined;
+    mother?: string | undefined;
+    fatherId?: number | undefined;
+    motherId?: number | undefined;
     target?: number;
     spouses?: number[];
     type: 'spouse' | 'child' | 'root' | 'net' | 'suggest';
@@ -133,6 +136,7 @@ export interface DrawableNode {
     hasPending?: boolean;
     isAllowed?: boolean;
     suggestionId?: number;
+    marriageMidpoint?: { x: number | undefined; y: number | undefined };
 }
 export interface temporaryData {
     id: number;
@@ -154,7 +158,7 @@ export enum SuggestEditStatus {
     ACCEPTED = "ACCEPTED",
     CANCELED = "CANCELED",
 }
-
+export type MemberPriviledge = 'view' | 'suggest' | 'create' | 'update' | 'only-create';
 export interface SuggestEdits {
     id: number;
     reason: string;
@@ -192,5 +196,8 @@ export enum MemberRole {
     ADMIN = 'ADMIN',
     CONTRIBUTER = 'CONTRIBUTER',
     VIEWER = 'VIEWER',
+}
+export interface formDataEntries {
+    [k: string]: string | number | Date | RelationshipType;
 }
 

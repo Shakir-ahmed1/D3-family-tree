@@ -1,6 +1,6 @@
-import { Gender } from "./dtos/gender.enum";
-import { actionTypes, Contributor, CustomFlatData, DrawableNode, FamilyNode, genericActionTypes, Parent, SuggestableActions, SuggestEdits, temporaryData } from "./node.interface";
-import { localStorageManager } from "./storage/storageManager";
+import { Gender } from "../interfaces/dtos/gender.enum";
+import { Contributor, CustomFlatData, DrawableNode, FamilyNode, genericActionTypes, MemberPriviledge, Parent, SuggestableActions, SuggestEdits, temporaryData } from "../interfaces/node.interface";
+import { localStorageManager } from "../services/storage-manager";
 localStorageManager
 function assignId(key: 'doubled-son' | 'doubled-daughter' | 'father' | 'mother' | 'spouse' | 'singled-daughter' | 'singled-son', offset?: number) {
   const valueMapper = {
@@ -99,6 +99,7 @@ export class DataManager {
       } else if (familyNode.gender === "FEMALE" && item.femaleNode) {
         return item.femaleNode.id === familyNode.id
       }
+      return false
     })
     const result = foundParentHood.map(item => {
       if (familyNode.gender === "MALE" && item.femaleNode) {
@@ -106,6 +107,7 @@ export class DataManager {
       } else if (familyNode.gender === "FEMALE" && item.maleNode) {
         return item.maleNode.id
       }
+      return
     }).filter((item): item is number => item !== undefined)
     return result
 
@@ -156,7 +158,7 @@ export class DataManager {
       const allChildren: temporaryData[] = []
       let father: undefined | string, mother: undefined | string;
       let fatherId: undefined | number, motherId: undefined | number;
-      if (selfNode.gender === 'MALE') {
+      if (selfNode.gender === Gender.MALE) {
         fatherId = selfNode.id;
         father = `${selfNode.id}`;
       } else {
@@ -168,10 +170,10 @@ export class DataManager {
         const customChild: temporaryData = {
           id: item.id,
           uuid: `${item.id}`,
-          father,
-          mother,
-          fatherId,
-          motherId,
+          father: father as string,
+          mother: mother as string,
+          fatherId: fatherId as number,
+          motherId: motherId as number,
           type: 'child',
         }
         const foundSpousesIds = this.getSpouses(item)
@@ -204,12 +206,13 @@ export class DataManager {
         } else if (selfNode.gender === "FEMALE" && item.femaleNode && item.femaleNode.id === selfNode.id && item.maleNode && spouseNode && item.maleNode.id === spouseNode?.id) {
           return true
         }
+        return false
       })
       const allChildren: temporaryData[] = []
       let father: undefined | string, mother: undefined | string;
       let fatherId: undefined | number, motherId: undefined | number;
       if (parentHood) {
-        if (selfNode.gender === 'MALE') {
+        if (selfNode.gender === Gender.MALE) {
           father = `${selfNode.id}`;
           mother = `${selfNode.id}+${spouseNode?.id}`
           fatherId = selfNode.id
@@ -233,10 +236,10 @@ export class DataManager {
         const customChild: temporaryData = {
           id: item.id,
           uuid: `${item.id}`,
-          father,
-          mother,
-          fatherId,
-          motherId,
+          father: father as string,
+          mother: mother as string,
+          fatherId: fatherId as number,
+          motherId: motherId as number,
           type: 'child',
         }
         const foundSpousesIds = this.getSpouses(item)
@@ -281,7 +284,7 @@ export class DataManager {
       })
       const foundItem = this.getNode(familyNode.id)
       let mot, fat;
-      if (foundItem.gender === 'MALE') {
+      if (foundItem.gender === Gender.MALE) {
         let temp = customId.split('+')
         temp.pop()
         fat = temp.join('+')
@@ -301,11 +304,11 @@ export class DataManager {
         name: foundItem.name,
         type: familyNode.type,
         children: customChildren,
-        father: fat,
-        mother: mot,
-        fatherId: familyNode.fatherId,
-        motherId: familyNode.motherId,
-        target: familyNode.target,
+        father: fat as string,
+        mother: mot as string,
+        fatherId: familyNode.fatherId as number,
+        motherId: familyNode.motherId as number,
+        target: familyNode.target as number,
         mode: 'node',
         catag: 'desc',
 
@@ -338,11 +341,11 @@ export class DataManager {
         name: foundItem.name,
         type: familyNode.type,
         children: customChildren,
-        fatherId: familyNode.fatherId,
-        motherId: familyNode.motherId,
-        father: fat,
-        mother: mot,
-        target: familyNode.target,
+        fatherId: familyNode.fatherId as number,
+        motherId: familyNode.motherId as number,
+        father: fat as string,
+        mother: mot as string,
+        target: familyNode.target as number,
         catag: 'desc',
         mode: 'node',
 
@@ -423,7 +426,7 @@ export class DataManager {
       id: 0,
       uuid: '0',
       name: 'root',
-      gender: 'MALE',
+      gender: Gender.MALE,
       type: 'root',
       children: customChildren,
       catag: 'desc',
@@ -477,10 +480,10 @@ export class DataManager {
 
       name: foundNode.name,
       gender: foundNode.gender,
-      father,
-      mother,
-      fatherId,
-      motherId,
+      father: father as string,
+      mother: mother as string,
+      fatherId: fatherId as number,
+      motherId: motherId as number,
       type: 'child',
       catag: 'ance',
       mode: 'node'
@@ -517,7 +520,7 @@ export class DataManager {
         uuid: 'mother',
         children: [],
         name: 'Add Mother',
-        gender: 'FEMALE',
+        gender: Gender.FEMALE,
         source: `${startNodeId}`,
         type: 'child',
         catag: 'editAnce',
@@ -548,7 +551,7 @@ export class DataManager {
         uuid: 'father',
         children: [],
         name: 'Add Father',
-        gender: 'MALE',
+        gender: Gender.MALE,
         source: `${startNodeId}`,
         type: 'child',
         catag: 'editAnce',
@@ -694,7 +697,7 @@ export class DataManager {
       canContribute: ${this.canContribute()},
       `)
   }
-  memberPriviledge(familyTreeId: number, familyNodeId: number): 'view' | 'suggest' | 'create' | 'update' | 'only-create' {
+  memberPriviledge(_familyTreeId: number, familyNodeId: number): MemberPriviledge {
     const canContribute = this.canContribute()
     if (!canContribute) return 'view'
     const canCreate = this.canCreate(familyNodeId)
@@ -729,7 +732,7 @@ export class DataManager {
     }) ? false : true
     return result
   }
-  isAllowedAction(familyNodeId: number, suggestableAction: genericActionTypes, checkPending?: true): boolean {
+  isAllowedAction(familyNodeId: number, suggestableAction: genericActionTypes, _checkPending?: true): boolean {
 
     const mapper = {
       ChildOfOneParent: genericActionTypes.addChildOfOneParent,
@@ -792,7 +795,7 @@ export class DataManager {
       const addDaughter: DrawableNode = {
         id: assignId('doubled-daughter', spouseNode.id),
         uuid: `daughter-${fatherNode.id}-${motherNode.id}`,
-        gender: 'FEMALE',
+        gender: Gender.FEMALE,
         name: 'Add Daughter',
         type: 'child',
         children: [],
@@ -803,14 +806,14 @@ export class DataManager {
         catag: 'editDesc',
         mode: 'edit',
         actionType: genericActionTypes.addChildOfTwoParents,
-        isAllowed: this.isAllowedAction(selfNode.id, genericActionTypes),
+        isAllowed: this.isAllowedAction(selfNode.id, genericActionTypes.addChildOfTwoParents),
         hasPending: this.hasNoPendingSuggestion(selfNode.id, genericActionTypes.addChildOfTwoParents)
 
       }
       const addSon: DrawableNode = {
         id: assignId('doubled-son', spouseNode.id),
         uuid: `son-${fatherNode.id}-${motherNode.id}`,
-        gender: 'MALE',
+        gender: Gender.MALE,
         name: 'Add Son',
         type: 'child',
         children: [],
@@ -821,7 +824,7 @@ export class DataManager {
         catag: 'editDesc',
         mode: 'edit',
         actionType: genericActionTypes.addChildOfTwoParents,
-        isAllowed: this.isAllowedAction(selfNode.id, genericActionTypes),
+        isAllowed: this.isAllowedAction(selfNode.id, genericActionTypes.addChildOfTwoParents),
         hasPending: this.hasNoPendingSuggestion(selfNode.id, genericActionTypes.addChildOfTwoParents)
 
 
@@ -851,7 +854,7 @@ export class DataManager {
   }
   temporarySingledChildren(foundNode: FamilyNode): DrawableNode[] {
     let motherNode, fatherNode;
-    if (foundNode.gender === 'FEMALE') {
+    if (foundNode.gender === Gender.FEMALE) {
       motherNode = foundNode;
     } else {
       fatherNode = foundNode
@@ -859,7 +862,7 @@ export class DataManager {
     const addDaughter: DrawableNode = {
       id: assignId('singled-daughter'),
       uuid: `daughter-${foundNode.id}`,
-      gender: 'FEMALE',
+      gender: Gender.FEMALE,
       name: 'Add Daughter',
       type: 'child',
       children: [],
@@ -869,7 +872,7 @@ export class DataManager {
       motherId: motherNode ? motherNode.id : undefined,
       mode: 'edit',
       actionType: genericActionTypes.addChildOfOneParent,
-      isAllowed: this.isAllowedAction(foundNode.id, genericActionTypes),
+      isAllowed: this.isAllowedAction(foundNode.id, genericActionTypes.addChildOfOneParent),
       hasPending: this.hasNoPendingSuggestion(foundNode.id, genericActionTypes.addChildOfOneParent),
       catag: 'editDesc',
 
@@ -877,7 +880,7 @@ export class DataManager {
     const addSon: DrawableNode = {
       id: assignId('singled-son'),
       uuid: `son-${foundNode.id}`,
-      gender: 'MALE',
+      gender: Gender.MALE,
       name: 'Add Son',
       type: 'child',
       children: [],
@@ -887,7 +890,7 @@ export class DataManager {
       motherId: motherNode ? motherNode.id : undefined,
       mode: 'edit',
       actionType: genericActionTypes.addChildOfOneParent,
-      isAllowed: this.isAllowedAction(foundNode.id, genericActionTypes),
+      isAllowed: this.isAllowedAction(foundNode.id, genericActionTypes.addChildOfOneParent),
       hasPending: this.hasNoPendingSuggestion(foundNode.id, genericActionTypes.addChildOfOneParent),
       catag: 'editDesc',
     }
@@ -949,7 +952,7 @@ export class DataManager {
       uuid: `spouse-${foundNode.id}`,
       name: 'Add Spouse',
       type: 'spouse',
-      gender: foundNode.gender === 'MALE' ? 'FEMALE' : 'MALE',
+      gender: foundNode.gender === Gender.MALE ? Gender.FEMALE : Gender.MALE,
       target: startNodeId,
       mode: 'edit',
       catag: 'editDesc',
@@ -960,7 +963,7 @@ export class DataManager {
     }
     const customChildren = [];
     // const customChildren = []
-    if (foundNode.gender === 'MALE') {
+    if (foundNode.gender === Gender.MALE) {
       customChildren.push(selfDrawable, ...foundDoubleParentedChildren, spouseDrawableTemporary, ...foundSuggestedPartner.femaleNodes)
     } else {
       customChildren.push(...foundSuggestedPartner.maleNodes, spouseDrawableTemporary, ...foundDoubleParentedChildren, selfDrawable)
@@ -969,7 +972,7 @@ export class DataManager {
       id: 0,
       uuid: '0',
       name: 'root',
-      gender: 'MALE',
+      gender: Gender.MALE,
       type: 'root',
       catag: 'editDesc',
       mode: 'node',
@@ -1029,7 +1032,7 @@ export class DataManager {
 
     const customChildren = [];
     // const customChildren = []
-    if (foundNode.gender === 'MALE') {
+    if (foundNode.gender === Gender.MALE) {
       customChildren.push(selfDrawable, ...foundDoubleParentedChildren, ...foundSuggestedPartner.femaleNodes)
     } else {
       customChildren.push(...foundSuggestedPartner.maleNodes, ...foundDoubleParentedChildren, selfDrawable)
@@ -1038,7 +1041,7 @@ export class DataManager {
       id: 0,
       uuid: '0',
       name: 'root',
-      gender: 'MALE',
+      gender: Gender.MALE,
       type: 'root',
       catag: 'editDesc',
       mode: 'node',
@@ -1177,7 +1180,7 @@ export class DataManager {
       femaleNodes: [],
     }
     const suggestedNewPartner = this.suggestionData(familyNodeId, SuggestableActions.NewPartner)
-    const suggestedExistingPartner = this.suggestionData(familyNodeId, SuggestableActions.ExistingPartner)
+    this.suggestionData(familyNodeId, SuggestableActions.ExistingPartner)
 
 
     suggestedNewPartner.map(item => {

@@ -1,6 +1,6 @@
-import { localStorageManager } from "./storage/storageManager";
+import { localStorageManager } from "./services/storage-manager";
 import { FamilyTreeDrawer } from "./FamilyTreeDrawer";
-import { DataManager } from "./dataManager";
+import { DataManager } from "./services/data-manager";
 
 
 class FamilyTreeApp {
@@ -51,4 +51,4 @@ class FamilyTreeApp {
     }
 }
 
-const treeApp = new FamilyTreeApp()
+new FamilyTreeApp()

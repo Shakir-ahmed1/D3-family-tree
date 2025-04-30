@@ -1,6 +1,6 @@
-import { localStorageManager } from "../storage/storageManager";
+import { localStorageManager } from "./storage-manager";
 
-async function getRequest<T>(url: string, bearerToken: string): Promise<Response> {
+async function getRequest(url: string, bearerToken: string): Promise<Response> {
     return fetch(url, {
         method: 'GET',
         headers: {
@@ -12,7 +12,7 @@ async function getRequest<T>(url: string, bearerToken: string): Promise<Response
 export class SuggestionService {
 
 
-    async acceptOrRejectSuggestion(familyTreeId, suggestionId, action) {
+    async acceptOrRejectSuggestion(familyTreeId: number, suggestionId: number, action: string) {
         const acceptOrRejectUrl = `http://localhost:3000/api/family-tree/${familyTreeId}/suggest-edit/${suggestionId}/${action}`
 
         try {
@@ -30,7 +30,7 @@ export class SuggestionService {
 
     }
 
-    async cancelSuggestion(familyTreeId, suggestionId) {
+    async cancelSuggestion(familyTreeId: number, suggestionId: number) {
         const cancelUrl = `http://localhost:3000/api/family-tree/${familyTreeId}/suggest-edit/${suggestionId}/suggestion/cancel`
 
         try {

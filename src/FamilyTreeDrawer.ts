@@ -1,10 +1,11 @@
 import * as d3 from "d3";
-import { DrawableNode } from "./node.interface";
-import { DataManager } from "./dataManager";
 import { HtmlElementsManager } from "./htmlElementsManager";
-import { nodeManagmentService } from "./services/nodeManagmentService";
+import { CustomFlatData, DrawableNode, FamilyNode, genericActionTypes } from "./interfaces/node.interface";
+import { DataManager } from "./services/data-manager";
+import { nodeManagmentService } from "./services/node-managment-service";
+import { stringMax, stringMin } from "./utils/utils";
 
-function calculatePositionChildParentPosition(x, nodeRadius, scale, gender) {
+function calculatePositionChildParentPosition(x: number, nodeRadius: number, scale: number, gender: string) {
     const offset = 1.5
     let sign;
     if (gender === 'MALE') {
@@ -16,11 +17,12 @@ function calculatePositionChildParentPosition(x, nodeRadius, scale, gender) {
 }
 
 
-async function fetchNodeImage(nodeId: number, token: string): Promise<string | null> {
+async function fetchNodeImage(nodeId: number, token?: string): Promise<string | null> {
+    const bearerToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`
     try {
         const response = await fetch(`http://localhost:3000/api/family-tree/1/nodes/${nodeId}/primaryPicture`, {
             headers: {
-                'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6IisxMjM0NTY3ODkwMSIsImlhdCI6MTczNzI3MTkzOSwiZXhwIjoxODM3MzU4MzM5fQ.xyGMhsv6dcywwy7AImYvcFwxHWdvlAidvg-7M7ZeBB8`,
+                'Authorization': token ? token : bearerToken,
                 'Content-Type': 'application/json',
             },
         });
@@ -111,7 +113,7 @@ export class FamilyTreeDrawer {
     private familyTreeGroup
     descendantsGroup
     currentMode = 'view';
-    private rootHistory = []
+    private rootHistory: number[] = []
 
     // edit mode
     private fetchedEditModeParents: DrawableNode | undefined;
@@ -126,9 +128,7 @@ export class FamilyTreeDrawer {
     private parentRoot: d3.HierarchyNode<DrawableNode> | undefined;
     private parentTreeData: d3.HierarchyPointNode<DrawableNode> | undefined;
     private parentNodes: d3.HierarchyNode<DrawableNode>[] = [];
-    private currentEditModeNodeId: number | undefined;
     private oldCurrentEditModeNodeId: number | undefined;
-    private jointNodeEditMode: d3.HierarchyNode<DrawableNode>[] = []
     private oldJointDataEditMode: d3.HierarchyNode<DrawableNode>[] = [];
     private minTreeXEditMode: number = 0;
     private maxTreeXEditMode: number = 0;
@@ -147,10 +147,10 @@ export class FamilyTreeDrawer {
     private fadeOutAnimationDurationEditMode = this.values.fadeOutAnimationDurationEditMode;
     private formManager: HtmlElementsManager | undefined;
     familyTreeId: number;
-    nodeManager;
+    nodeManager: DataManager;
     private nonFounderId
 
-    constructor(ND, familyTreeId: number, containerId, width, height, isPopUp: boolean, nonFounderId?) {
+    constructor(ND: DataManager, familyTreeId: number, containerId: string, width: number, height: number, isPopUp: boolean, nonFounderId?: number) {
         this.nonFounderId = nonFounderId
         this.containerId = containerId
         this.width = width;
@@ -167,15 +167,15 @@ export class FamilyTreeDrawer {
         this.descendantsGroup = this.familyTreeGroup.append("g").attr("class", "descendants");
         this.descendantsGroupEditMode = this.descendantsGroup
 
-        this.intialize(familyTreeId, ND)
-    }
-
-    async intialize(familyTreeId: number, ND: DataManager) {
         this.familyTreeId = familyTreeId
         this.nodeManager = ND;
+        this.intialize()
+    }
+
+    async intialize() {
         let tempRootId;
         try {
-            let nodesArray: CustomFlatData = await nodeManagmentService.fetchNodesArrays(familyTreeId);
+            let nodesArray: CustomFlatData = await nodeManagmentService.fetchNodesArrays(this.familyTreeId);
             if (nodesArray) {
                 let founderNode;
                 if (this.nonFounderId) {
@@ -183,9 +183,9 @@ export class FamilyTreeDrawer {
                 } else {
                     founderNode = nodesArray.familyNodes.find(item => item.isFounder);
                 }
-                tempRootId = founderNode.id
+                tempRootId = founderNode?.id as number
                 this.nodeManager.setData(nodesArray)
-                if (!this.isPopUp) { this.formManager = new HtmlElementsManager(ND, this.familyTreeId, tempRootId, this) }
+                if (!this.isPopUp) { this.formManager = new HtmlElementsManager(this.nodeManager, this.familyTreeId, tempRootId, this) }
                 if (founderNode) {
                     this.fetchData(nodesArray, founderNode.id as number, true);
                 } else {
@@ -208,7 +208,7 @@ export class FamilyTreeDrawer {
             .attr("height", this.height)
             .duration(this.fadeInAnimationDuration)
             ;
-        this.fetchData(this.sourceData, this.rootNodeId, false)
+        this.fetchData(this.sourceData, this.rootNodeId as number, false)
     }
     private attachNodes() {
         this.anceNodes.forEach(item => {
@@ -220,8 +220,8 @@ export class FamilyTreeDrawer {
             item.data.catag = 'desc'
         })
         if (foundDescRoot && foundAnceRoot) {
-            foundDescRoot.data.mother = foundAnceRoot?.data.mother
-            foundDescRoot.data.father = foundAnceRoot?.data.father
+            foundDescRoot.data.mother = foundAnceRoot?.data.mother as string
+            foundDescRoot.data.father = foundAnceRoot?.data.father as string;
             foundDescRoot.data.catag = 'ance'
         }
 
@@ -235,8 +235,8 @@ export class FamilyTreeDrawer {
         const foundChildCurrent = this.childNodes.find(item => item.data.id === this.rootNodeId)
 
         if (foundChildCurrent && foundParentCurrent) {
-            foundChildCurrent.data.father = foundParentCurrent.data.father
-            foundChildCurrent.data.mother = foundParentCurrent.data.mother
+            foundChildCurrent.data.father = foundParentCurrent.data.father as string;
+            foundChildCurrent.data.mother = foundParentCurrent.data.mother as string;
             foundChildCurrent.data.catag = 'editAnce'
         }
 
@@ -363,8 +363,8 @@ export class FamilyTreeDrawer {
         if (this.oldJointData.length > 0 && this.oldRootNodeId) {
             const oldRootNode = this.oldJointData.find(item => item.data.id === this.rootNodeId);
             const newRootNode = this.jointNode.find(item => item.data.id === this.rootNodeId)
-            const rootOffSetX: number = newRootNode?.x as number + oldRootNode?.x as number
-            const rootOffSetY: number = newRootNode?.y as number + oldRootNode?.y as number
+            const rootOffSetX: number = newRootNode?.x as number + (oldRootNode?.x as number)
+            const rootOffSetY: number = newRootNode?.y as number + (oldRootNode?.y as number)
             this.jointNode.forEach(item => {
                 item.x = item.x as number + rootOffSetX
                 item.y = item.y as number + rootOffSetY
@@ -404,8 +404,8 @@ export class FamilyTreeDrawer {
         if (this.oldJointDataEditMode.length > 0 && this.oldRootNodeId) {
             const oldRootNode = this.oldJointDataEditMode.find(item => item.data.id === this.rootNodeId) as d3.HierarchyNode<DrawableNode>;;
             const newRootNode = this.jointNode.find(item => item.data.id === this.rootNodeId) as d3.HierarchyNode<DrawableNode>;
-            const rootOffSetX = newRootNode?.x as number + oldRootNode?.x as number
-            const rootOffSetY = newRootNode?.y as number + oldRootNode?.y as number
+            const rootOffSetX = newRootNode?.x as number + (oldRootNode?.x as number)
+            const rootOffSetY = newRootNode?.y as number + (oldRootNode?.y as number)
             this.jointNode.forEach(item => {
                 item.x = item.x as number + rootOffSetX
                 item.y = item.y as number + rootOffSetY
@@ -526,26 +526,25 @@ export class FamilyTreeDrawer {
                 } else {
                     throw new Error('data must have a .catag property set either to "desc" or "ance"')
                 }
-            }), dd => {
-                const ddd = (d) => {
-                    if (d.data.catag === 'desc') {
-                        const spouseId = Math.min(d.data.id, d.data.target);
-                        const otherSpouseId = Math.max(d.data.id, d.data.target);
+            }), (d: unknown) => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+                if (nodeData.data.catag === 'desc') {
+                    const spouseId = Math.min(nodeData.data.id, nodeData.data.target as number);
+                    const otherSpouseId = Math.max(nodeData.data.id, nodeData.data.target as number);
+                    return `${spouseId}-${otherSpouseId}`;
+                } else if (nodeData.data.catag === 'ance') {
+                    const spouse = this.jointNode.find(n => n.data.id === nodeData.data.target);
+                    if (spouse) {
+                        const spouseId = Math.min(nodeData.data.id, spouse.data.id); // Use spouse ID directly
+                        const otherSpouseId = Math.max(nodeData.data.id, spouse.data.id);
                         return `${spouseId}-${otherSpouseId}`;
-                    } else if (d.data.catag === 'ance') {
-                        const spouse = this.jointNode.find(n => n.data.id === d.data.target);
-                        if (spouse) {
-                            const spouseId = Math.min(d.data.id, spouse.data.id); // Use spouse ID directly
-                            const otherSpouseId = Math.max(d.data.id, spouse.data.id);
-                            return `${spouseId}-${otherSpouseId}`;
-                        }
-                        return ""; // Return empty string if no spouse found (will be filtered out))
-                    } else {
                     }
+                    return ""; // Return empty string if no spouse found (will be filtered out))
+                } else {
+                    return ""; // Ensure a string is always returned
                 }
-                console.log("DDDDDDDDDDDDDDDDDDDDDDDD", ddd(dd))
-                return ddd(dd)
             }
+
             );
         // 2. EXIT (Remove old lines - this is important!)
         lines.exit().transition()
@@ -592,21 +591,21 @@ export class FamilyTreeDrawer {
                 if (d.data.type === "spouse" && d.data.target) {
                     const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                     if (spouse) {
-                        d.marriageMidpoint = {
+                        d.data.marriageMidpoint = {
                             x: ((d.x ?? 0) + (spouse.x ?? 0)) / 2,
                             y: d.y
                         };
-                        spouse.marriageMidpoint = d.marriageMidpoint;
+                        spouse.data.marriageMidpoint = d.data.marriageMidpoint;
                     }
                 }
             } else if (d.data.catag === 'ance') {
                 const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                 if (spouse) {
-                    d.marriageMidpoint = {
+                    d.data.marriageMidpoint = {
                         x: ((d.x ?? 0) + (spouse.x ?? 0)) / 2,
                         y: d.y
                     };
-                    spouse.marriageMidpoint = d.marriageMidpoint;
+                    spouse.data.marriageMidpoint = d.data.marriageMidpoint;
                 }
             } else {
                 throw new Error('data must have a .catag property set either to "desc" or "ance"')
@@ -617,16 +616,17 @@ export class FamilyTreeDrawer {
     drawDescParentChildLine() {
         // 1. DATA JOIN (Key by a combination of parent and child IDs)
         const paths = this.descendantsGroup.selectAll("path.child-link")
-            .data(this.jointNode.filter(d => d.data.type === "child"), d => {
+            .data(this.jointNode.filter(d => d.data.type === "child"), (d: unknown) => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
                 let key = "";
-                if (d.data.mother && d.data.father) {
-                    const motherId = Math.min(d.data.mother, d.data.father);
-                    const fatherId = Math.max(d.data.mother, d.data.father);
-                    key = `${motherId}-${fatherId}-${d.data.id}`; // Mother-Father-Child
-                } else if (d.data.mother) {
-                    key = `${d.data.mother}-${d.data.id}`; // Mother-Child
-                } else if (d.data.father) {
-                    key = `${d.data.father}-${d.data.id}`; // Father-Child
+                if (nodeData.data.mother && nodeData.data.father) {
+                    const motherId = stringMin(nodeData.data.mother, nodeData.data.father);
+                    const fatherId = stringMax(nodeData.data.mother, nodeData.data.father);
+                    key = `${motherId}-${fatherId}-${nodeData.data.id}`; // Mother-Father-Child
+                } else if (nodeData.data.mother) {
+                    key = `${nodeData.data.mother}-${nodeData.data.id}`; // Mother-Child
+                } else if (nodeData.data.father) {
+                    key = `${nodeData.data.father}-${nodeData.data.id}`; // Father-Child
                 }
                 return key;
             });
@@ -645,11 +645,11 @@ export class FamilyTreeDrawer {
                     if (d.data.mother && d.data.father) {
                         const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
                         const father = this.jointNode.find(n => n.data.uuid === d.data.father);
-                        let theSpouse = (mother.data.type === 'spouse') ? mother : father;
-                        if (mother && father && theSpouse.marriageMidpoint !== undefined) {
+                        let theSpouse = (mother?.data.type === 'spouse') ? mother : father;
+                        if (mother && father && theSpouse?.data.marriageMidpoint !== undefined) {
 
-                            // pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
-                            pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+                            // pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.data.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+                            pathD = `M${calculatePositionChildParentPosition(theSpouse.x as number, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${((theSpouse?.data?.marriageMidpoint.y as number) + (d?.y as number)) / 2} H${d.x} V${d.y}`;
                         }
                     } else if (d.data.mother || d.data.father) {
                         let pr;
@@ -671,7 +671,7 @@ export class FamilyTreeDrawer {
                     if (d.data.mother && d.data.father) {
                         const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
                         const father = this.jointNode.find(n => n.data.uuid === d.data.father);
-                        if (mother && father && mother.marriageMidpoint !== undefined) {
+                        if (mother && father && mother.data.marriageMidpoint !== undefined) {
                             parent = (mother.data.type === 'spouse') ? mother : father;
                         }
                     } else if (d.data.mother) {
@@ -680,8 +680,8 @@ export class FamilyTreeDrawer {
                         parent = this.jointNode.find(n => n.data.uuid === d.data.father);
                     }
                     if (parent && d) {
-                        const midY = (parent.y + d.y) / 2;
-                        pathD = `M${parent.marriageMidpoint ? parent.marriageMidpoint.x : parent.x},${parent.marriageMidpoint ? parent.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
+                        const midY = ((parent.y as number) + (d.y as number)) / 2;
+                        pathD = `M${parent.data.marriageMidpoint ? parent.data.marriageMidpoint.x : parent.x},${parent.data.marriageMidpoint ? parent.data.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
                     }
                     return pathD;
                 } else {
@@ -702,9 +702,9 @@ export class FamilyTreeDrawer {
                 if (d.data.mother && d.data.father) {
                     const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
                     const father = this.jointNode.find(n => n.data.uuid === d.data.father);
-                    let theSpouse = (mother.data.type === 'spouse') ? mother : father;
-                    if (mother && father && theSpouse.marriageMidpoint !== undefined) {
-                        pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+                    let theSpouse = (mother?.data.type === 'spouse') ? mother : father;
+                    if (mother && father && theSpouse?.data.marriageMidpoint !== undefined) {
+                        pathD = `M${calculatePositionChildParentPosition((theSpouse.x as number), this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${((theSpouse.data.marriageMidpoint.y as number) + (d.y as number)) / 2} H${d.x} V${d.y}`;
                     }
                 } else if (d.data.mother || d.data.father) {
                     let pr;
@@ -721,7 +721,7 @@ export class FamilyTreeDrawer {
                 if (d.data.mother && d.data.father) {
                     const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
                     const father = this.jointNode.find(n => n.data.uuid === d.data.father);
-                    if (mother && father && mother.marriageMidpoint !== undefined) {
+                    if (mother && father && mother.data.marriageMidpoint !== undefined) {
                         parent = (mother.data.type === 'spouse') ? mother : father;
                     }
                 } else if (d.data.mother) {
@@ -730,8 +730,8 @@ export class FamilyTreeDrawer {
                     parent = this.jointNode.find(n => n.data.uuid === d.data.father);
                 }
                 if (parent && d) {
-                    const midY = (parent.y + d.y) / 2;
-                    pathD = `M${parent.marriageMidpoint !== undefined ? parent.marriageMidpoint.x : parent.x},${parent.marriageMidpoint !== undefined ? parent.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
+                    const midY = ((parent.y as number) + (d.y as number)) / 2;
+                    pathD = `M${parent.data.marriageMidpoint !== undefined ? parent.data.marriageMidpoint.x : parent.x},${parent.data.marriageMidpoint !== undefined ? parent.data.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
                 }
                 return pathD;
             } else {
@@ -746,7 +746,7 @@ export class FamilyTreeDrawer {
 
     modeController(rootId: number) {
         if (!this.isPopUp) {
-            this.currentMode = this.formManager.displayNodeDetails()
+            this.currentMode = this.formManager?.displayNodeDetails() as string
         }
         // this.nodeDetailDisplayer()
         this.preProcessData(rootId);
@@ -764,15 +764,16 @@ export class FamilyTreeDrawer {
             } else {
                 this.currentMode === "view" ? this.currentMode = "edit" : this.currentMode = "view"
             }
-            if (!this.isPopUp) { this.formManager.setModeType(this.currentMode) }
+            if (!this.isPopUp) { this.formManager?.setModeType(this.currentMode) }
             if (this.currentMode === 'view') {
-                this.preProcessData(nodeId ? nodeId : this.rootNodeId);
+                this.preProcessData(nodeId ? nodeId : this.rootNodeId as number);
 
             } else if (this.currentMode === 'edit') {
-                this.preProcessDataEditMode(nodeId ? nodeId : this.rootNodeId);
+                this.preProcessDataEditMode(nodeId ? nodeId : this.rootNodeId as number);
             }
             return this.currentMode
         }
+        return
     }
     nodeDetailDisplayer() {
         let nodeData = this.nodeManager.data.familyNodes.find(item => {
@@ -780,7 +781,7 @@ export class FamilyTreeDrawer {
         })
         if (!this.isPopUp) {
 
-            this.formManager.infoDisplayer(nodeData, this.rootNodeId)
+            this.formManager?.infoDisplayer(nodeData as FamilyNode, this.rootNodeId as number)
         }
     }
 
@@ -795,7 +796,7 @@ export class FamilyTreeDrawer {
                 this.modeController(d.data.id);
             } else {
                 if (!this.isPopUp) {
-                    this.currentMode = this.formManager.displayNodeDetails()
+                    this.currentMode = this.formManager?.displayNodeDetails() as string
                 }
                 // this.nodeDetailDisplayer()
             }
@@ -806,7 +807,10 @@ export class FamilyTreeDrawer {
         };
 
         const node = this.descendantsGroup.selectAll("g.node")
-            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id);
+            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>;
+                return nodeData.data.id
+            });
         node.on('click', handleClick);
         node.selectAll(".node-circle")
             .attr("fill", d => {
@@ -819,23 +823,26 @@ export class FamilyTreeDrawer {
 
         const enter = node.enter().append("g")
             .attr("class", "node")
-            .attr("transform", d => `translate(${rootNode.x - this.offSetX},${rootNode.y}) scale(${this.scaleFactor})`)
+            .attr("transform", _d => `translate(${(rootNode?.x as number) - this.offSetX},${(rootNode?.y as number)}) scale(${this.scaleFactor})`)
             .attr('opacity', 0)
             .on('click', handleClick);
 
-        const circles = enter.append("circle")
+       enter.append("circle")
             .attr("r", this.NODE_RADIUS)
             .attr("stroke", this.colors.circlularStroke)
             .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth))
             .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>));
 
         // console.log("old root", this.oldRootNodeId, this.rootNodeId);
-
-        this.descendantsGroup.selectAll("circle")
+        this.descendantsGroup.selectAll<SVGCircleElement, unknown>("circle") // Select specific circles
             .transition()
             .duration(300)
             .ease(d3.easeLinear)
-            .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth));
+            .attr("stroke-width", (d: unknown) => { // Accept unknown datum
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+                return nodeData.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth;
+            });
+
 
         enter.append("text")
             .attr("dy", this.NODE_RADIUS + 20)
@@ -858,7 +865,9 @@ export class FamilyTreeDrawer {
 
                 .duration(this.fadeOutAnimationDuration)
                 .attr("transform", d => {
-                    return foundOldRoot ? `translate(${foundOldRoot.x},${foundOldRoot.y}) scale(${this.scaleFactor})` : `translate(${d.x},${d.y}) scale(${this.scaleFactor})`;
+                    const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+
+                    return foundOldRoot ? `translate(${foundOldRoot.x},${foundOldRoot.y}) scale(${this.scaleFactor})` : `translate(${nodeData.x},${nodeData.y}) scale(${this.scaleFactor})`;
                 })
                 .attr('opacity', 0)
                 .remove();
@@ -891,23 +900,25 @@ export class FamilyTreeDrawer {
                 else {
                     throw new Error('data must have a .catag property set either to "editDesc" or "editAnce"')
                 }
-            }), d => {
+            }), (d: unknown) => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+
                 // console.log("I am being excuted")
-                if (d.data.catag === 'editDesc') {
-                    const spouseId = Math.min(d.data.id, d.data.target);
-                    const otherSpouseId = Math.max(d.data.id, d.data.target);
+                if (nodeData.data.catag === 'editDesc') {
+                    const spouseId = Math.min(nodeData.data.id, nodeData.data.target as number);
+                    const otherSpouseId = Math.max(nodeData.data.id, nodeData.data.target as number);
                     return `${spouseId}-${otherSpouseId}`;
-                } else if (d.data.catag === 'editAnce') {
-                    const spouse = this.jointNode.find(n => n.data.id === d.data.target);
+                } else if (nodeData.data.catag === 'editAnce') {
+                    const spouse = this.jointNode.find(n => n.data.id === nodeData.data.target);
                     // console.log("sssssspouse", spouse)
                     if (spouse) {
-                        const spouseId = Math.min(d.data.id, spouse.data.id); // Use spouse ID directly
-                        const otherSpouseId = Math.max(d.data.id, spouse.data.id);
+                        const spouseId = Math.min(nodeData.data.id, spouse.data.id); // Use spouse ID directly
+                        const otherSpouseId = Math.max(nodeData.data.id, spouse.data.id);
                         return `${spouseId}-${otherSpouseId}`;
                     }
                     return ""; // Return empty string if no spouse found (will be filtered out)
                 } else {
-                    // throw new Error('data must have a .catag property set either to "editDesc" or "editAnce"' + `because it is ${d.data.catag}`)
+                    return ""
                 }
             });
         // 2. EXIT (Remove old lines - this is important!)
@@ -955,21 +966,21 @@ export class FamilyTreeDrawer {
                 if (d.data.type === "spouse" && d.data.target) {
                     const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                     if (spouse) {
-                        d.marriageMidpoint = {
+                        d.data.marriageMidpoint = {
                             x: ((d.x ?? 0) + (spouse.x ?? 0)) / 2,
                             y: d.y
                         };
-                        spouse.marriageMidpoint = d.marriageMidpoint;
+                        spouse.data.marriageMidpoint = d.data.marriageMidpoint;
                     }
                 }
             } else if (d.data.catag === 'editAnce') {
                 const spouse = this.jointNode.find(n => n.data.id === d.data.target);
                 if (spouse) {
-                    d.marriageMidpoint = {
+                    d.data.marriageMidpoint = {
                         x: ((d.x ?? 0) + (spouse.x ?? 0)) / 2,
                         y: d.y
                     };
-                    spouse.marriageMidpoint = d.marriageMidpoint;
+                    spouse.data.marriageMidpoint = d.data.marriageMidpoint;
                 }
             } else if (d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc') {
                 // Not Implemented
@@ -984,16 +995,18 @@ export class FamilyTreeDrawer {
         const paths = this.descendantsGroupEditMode.selectAll("path.child-link")
             .data(this.jointNode.filter(d => d.data.type === "child" || d.data.type === "suggest"), d => {
                 let key = "";
-                if (d.data.mother && d.data.father) {
-                    const motherId = Math.min(d.data.mother, d.data.father);
-                    const fatherId = Math.max(d.data.mother, d.data.father);
-                    key = `${motherId}-${fatherId}-${d.data.id}`; // Mother-Father-Child
-                } else if (d.data.mother) {
-                    key = `${d.data.mother}-${d.data.id}`; // Mother-Child
-                } else if (d.data.father) {
-                    key = `${d.data.father}-${d.data.id}`; // Father-Child
-                } else if (d.data.source) {
-                    key = `${d.data.source}-${d.data.id}`; // Father-Child
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+
+                if (nodeData.data.mother && nodeData.data.father) {
+                    const motherId = stringMin(nodeData.data.mother, nodeData.data.father);
+                    const fatherId = stringMax(nodeData.data.mother, nodeData.data.father);
+                    key = `${motherId}-${fatherId}-${nodeData.data.id}`; // Mother-Father-Child
+                } else if (nodeData.data.mother) {
+                    key = `${nodeData.data.mother}-${nodeData.data.id}`; // Mother-Child
+                } else if (nodeData.data.father) {
+                    key = `${nodeData.data.father}-${nodeData.data.id}`; // Father-Child
+                } else if (nodeData.data.source) {
+                    key = `${nodeData.data.source}-${nodeData.data.id}`; // Father-Child
                 }
                 return key;
             });
@@ -1011,9 +1024,9 @@ export class FamilyTreeDrawer {
                     if (d.data.mother && d.data.father) {
                         const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
                         const father = this.jointNode.find(n => n.data.uuid === d.data.father);
-                        let theSpouse = (mother.data.type === 'spouse') ? mother : father;
-                        if (mother && father && theSpouse.marriageMidpoint !== undefined) {
-                            pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+                        let theSpouse = (mother?.data.type === 'spouse') ? mother : father;
+                        if (mother && father && theSpouse?.data.marriageMidpoint !== undefined) {
+                            pathD = `M${calculatePositionChildParentPosition(theSpouse.x as number, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.data.marriageMidpoint.y as number + (d.y as number)) / 2} H${d.x} V${d.y}`;
                         }
                     } else if (d.data.mother || d.data.father) {
                         let pr;
@@ -1034,7 +1047,7 @@ export class FamilyTreeDrawer {
                     if (d.data.mother && d.data.father) {
                         const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
                         const father = this.jointNode.find(n => n.data.uuid === d.data.father);
-                        if (mother && father && mother.marriageMidpoint !== undefined) {
+                        if (mother && father && mother.data.marriageMidpoint !== undefined) {
                             parent = (mother.data.type === 'spouse') ? mother : father;
                         }
                     } else if (d.data.mother) {
@@ -1043,8 +1056,8 @@ export class FamilyTreeDrawer {
                         parent = this.jointNode.find(n => n.data.uuid === d.data.father);
                     }
                     if (parent && d) {
-                        const midY = (parent.y + d.y) / 2;
-                        pathD = `M${parent.marriageMidpoint ? parent.marriageMidpoint.x : parent.x},${parent.marriageMidpoint ? parent.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
+                        const midY = (parent.y as number + (d.y as number)) / 2;
+                        pathD = `M${parent.data.marriageMidpoint ? parent.data.marriageMidpoint.x : parent.x},${parent.data.marriageMidpoint ? parent.data.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
                     }
                     return pathD;
                 } else if (d.data.catag === 'suggestAnce') {
@@ -1052,7 +1065,7 @@ export class FamilyTreeDrawer {
                     let sourceNode = this.jointNode.find(n => n.data.uuid === d.data.source);
 
                     if (sourceNode) {
-                        const midY = (sourceNode.y + d.y) / 2; // Midpoint in Y direction
+                        const midY = (sourceNode.y as number + (d.y as number)) / 2; // Midpoint in Y direction
                         pathD = `M${sourceNode.x},${sourceNode.y}V${midY}H${d.x}V${d.y}`;
                     }
 
@@ -1062,7 +1075,7 @@ export class FamilyTreeDrawer {
                     let sourceNode = this.jointNode.find(n => n.data.uuid === d.data.source);
 
                     if (sourceNode) {
-                        const midY = (sourceNode.y + d.y) / 2; // Midpoint in Y direction
+                        const midY = (sourceNode.y as number + (d.y as number)) / 2; // Midpoint in Y direction
                         pathD = `M${sourceNode.x},${sourceNode.y}V${midY}H${d.x}V${d.y}`;
                     }
 
@@ -1086,8 +1099,8 @@ export class FamilyTreeDrawer {
                     const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
                     const father = this.jointNode.find(n => n.data.uuid === d.data.father);
                     let theSpouse = (mother?.data?.type === 'spouse') ? mother : father;
-                    if (mother && father && theSpouse.marriageMidpoint !== undefined) {
-                        pathD = `M${calculatePositionChildParentPosition(theSpouse.x, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.marriageMidpoint.y + d.y) / 2} H${d.x} V${d.y}`;
+                    if (mother && father && theSpouse?.data.marriageMidpoint !== undefined) {
+                        pathD = `M${calculatePositionChildParentPosition(theSpouse.x as number, this.NODE_RADIUS, this.scaleFactor, theSpouse.data.gender)}, ${theSpouse.y} V${(theSpouse.data.marriageMidpoint.y as number + (d.y as number)) / 2} H${d.x} V${d.y}`;
                     }
                 } else if (d.data.mother || d.data.father) {
                     let pr;
@@ -1110,7 +1123,7 @@ export class FamilyTreeDrawer {
 
                     const mother = this.jointNode.find(n => n.data.uuid === d.data.mother);
                     const father = this.jointNode.find(n => n.data.uuid === d.data.father);
-                    if (mother && father && mother.marriageMidpoint !== undefined) {
+                    if (mother && father && mother.data.marriageMidpoint !== undefined) {
                         parent = (mother.data.type === 'spouse') ? mother : father;
                     }
                     // console.log("parent-----", parent)
@@ -1120,8 +1133,8 @@ export class FamilyTreeDrawer {
                     parent = this.jointNode.find(n => n.data.uuid === d.data.father);
                 }
                 if (parent && d) {
-                    const midY = (parent.y + d.y) / 2;
-                    pathD = `M${parent.marriageMidpoint !== undefined ? parent.marriageMidpoint.x : parent.x},${parent.marriageMidpoint !== undefined ? parent.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
+                    const midY = (parent.y as number + (d.y as number)) / 2;
+                    pathD = `M${parent.data.marriageMidpoint !== undefined ? parent.data.marriageMidpoint.x : parent.x},${parent.data.marriageMidpoint !== undefined ? parent.data.marriageMidpoint.y : parent.y}V${midY}H${d.x}V${d.y}`;
                 }
                 return pathD;
             } else if (d.data.catag === 'suggestAnce') {
@@ -1129,7 +1142,7 @@ export class FamilyTreeDrawer {
                 let sourceNode = this.jointNode.find(n => n.data.uuid === d.data.source);
 
                 if (sourceNode) {
-                    const midY = (sourceNode.y + d.y) / 2; // Midpoint in Y direction
+                    const midY = (sourceNode.y as number + (d.y as number)) / 2; // Midpoint in Y direction
                     pathD = `M${sourceNode.x},${sourceNode.y}V${midY}H${d.x}V${d.y}`;
                 }
 
@@ -1139,7 +1152,7 @@ export class FamilyTreeDrawer {
                 let sourceNode = this.jointNode.find(n => n.data.uuid === d.data.source);
 
                 if (sourceNode) {
-                    const midY = (sourceNode.y + d.y) / 2; // Midpoint in Y direction
+                    const midY = (sourceNode.y as number + (d.y as number)) / 2; // Midpoint in Y direction
                     pathD = `M${sourceNode.x},${sourceNode.y}V${midY}H${d.x}V${d.y}`;
                 }
 
@@ -1156,15 +1169,37 @@ export class FamilyTreeDrawer {
 
 
     private getCustomColor(d: unknown) {
-        const foundNode = this.jointNode.find(item => item.data.id === d.data.id)
-        const color = this.getNodeColor(foundNode)
+        const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+        const foundNode = this.jointNode.find(item => item.data.id === nodeData.data.id)
+        const color = this.getNodeColor(foundNode as d3.HierarchyNode<DrawableNode>)
         return color
     }
 
     updateNodesNameText() {
         const node = this.descendantsGroupEditMode.selectAll("g.node")
-            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id);
-        node.selectAll("text[dy='60'][text-anchor='middle']").filter(d => d.data.id > 0 && !['suggestDesc', 'suggestAnce'].includes(d.data.catag)).text(d => this.nodeManager.getNode(d.data.id).name);
+            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+                return nodeData.data.id
+            });
+        node.selectAll("text[dy='60'][text-anchor='middle']")
+            .filter(d => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+                return nodeData.data.id > 0 && !['suggestDesc', 'suggestAnce'].includes(nodeData.data.catag as string)
+            })
+            .text(d => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+                return this.nodeManager.getNode(nodeData.data.id).name
+            });
+        node.selectAll("text[dy='60'][text-anchor='middle']").filter(d => {
+            const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+            return nodeData.data.id > 0 && !['suggestDesc', 'suggestAnce']
+                .includes(nodeData.data.catag as string)
+        })
+            .text(d => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>
+                return this.nodeManager.getNode(nodeData.data.id).name
+            });
+
         node.selectAll(".node-circle")
             .attr("fill", d => {
                 return this.getCustomColor(d)
@@ -1185,14 +1220,14 @@ export class FamilyTreeDrawer {
             if (d.data.mode !== 'edit' && d.data.id !== this.rootNodeId) {
                 this.modeController(d.data.id)
             } else if (d.data.type === 'suggest') {
-                const foundSuggestion = this.nodeManager.getSuggestion(d.data.suggestionId)
-                if (!this.isPopUp) { this.formManager.displaySuggestionInfo(foundSuggestion, this.rootNodeId) }
+                const foundSuggestion = this.nodeManager.getSuggestion(d.data.suggestionId as number)
+                if (!this.isPopUp) { this.formManager?.displaySuggestionInfo(foundSuggestion, this.rootNodeId as number) }
             }
             else {
 
                 // Simulate selecting the correct actionType and updating the h2 label
                 const actionType = d.data.actionType;
-                if (!this.isPopUp) { this.formManager.setActionTypeLabel(actionType, d, this.rootNodeId) }; // Function to handle label update and field updates
+                if (!this.isPopUp) { this.formManager?.setActionTypeLabel(actionType as genericActionTypes, d, this.rootNodeId as number) }; // Function to handle label update and field updates
             }
             // this.nodeDetailDisplayer()
 
@@ -1202,7 +1237,10 @@ export class FamilyTreeDrawer {
         }
 
         const node = this.descendantsGroupEditMode.selectAll("g.node")
-            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => d.data.id);
+            .data(this.jointNode.filter(d => d.data.type !== 'root'), d => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+                return nodeData.data.id
+            });
         node.selectAll(".node-circle")
             .attr("fill", d => {
                 return this.getCustomColor(d)
@@ -1223,12 +1261,20 @@ export class FamilyTreeDrawer {
                 return color;
             })
 
-        node.selectAll("text[dy='60'][text-anchor='middle']").filter(d => d.data.id > 0 && !['suggestDesc', 'suggestAnce'].includes(d.data.catag)).text(d => this.nodeManager.getNode(d.data.id).name);
+        node.selectAll("text[dy='60'][text-anchor='middle']")
+            .filter(d => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+                return nodeData.data.id > 0 && !['suggestDesc', 'suggestAnce'].includes(nodeData.data.catag as string)
+            })
+            .text(d => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+                return this.nodeManager.getNode(nodeData.data.id).name
+            });
         node.on('click', handleClick);
 
         const enter = node.enter().append("g")
             .attr("class", "node")
-            .attr("transform", d => `translate(${rootNode.x - this.offSetXEditMode},${rootNode.y}) scale(${this.scaleFactorEditMode})`)
+            .attr("transform", _d => `translate(${rootNode?.x as number - this.offSetXEditMode},${rootNode?.y}) scale(${this.scaleFactorEditMode})`)
             .attr('opacity', 0)
             .on('click', handleClick);
 
@@ -1242,7 +1288,10 @@ export class FamilyTreeDrawer {
             .transition()
             .duration(300)
             .ease(d3.easeLinear)
-            .attr("stroke-width", d => (d.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth));
+            .attr("stroke-width", d => {
+                const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+                return nodeData.data.id === this.rootNodeId ? strokeWidth * 5 : strokeWidth
+            });
 
         enter.append("text")
             .attr("dy", this.NODE_RADIUS + 20)
@@ -1262,7 +1311,9 @@ export class FamilyTreeDrawer {
             node.exit().transition()
                 .duration(this.fadeOutAnimationDurationEditMode)
                 .attr("transform", d => {
-                    return foundOldRoot ? `translate(${foundOldRoot.x},${foundOldRoot.y}) scale(${this.scaleFactorEditMode})` : `translate(${d.x},${d.y}) scale(${this.scaleFactorEditMode})`;
+                    const nodeData = d as d3.HierarchyNode<DrawableNode>; // Cast to the correct type
+
+                    return foundOldRoot ? `translate(${foundOldRoot.x},${foundOldRoot.y}) scale(${this.scaleFactorEditMode})` : `translate(${nodeData.x},${nodeData.y}) scale(${this.scaleFactorEditMode})`;
                 })
                 .attr('opacity', 0)
                 .remove();
@@ -1280,7 +1331,7 @@ export class FamilyTreeDrawer {
 
 
     private getNodeColor(dd: d3.HierarchyNode<DrawableNode>): string {
-        const d: d3.HierarchyNode<DrawableNode> = this.jointNode.find(item => item.data.id === dd.data.id)
+        const d: d3.HierarchyNode<DrawableNode> = this.jointNode.find(item => item.data.id === dd.data.id) as d3.HierarchyNode<DrawableNode>
 
         if (this.memberPriviledge === 'suggest' || this.memberPriviledge === 'update') {
             if (d.data.catag === 'suggestAnce' || d.data.catag === 'suggestDesc' || d.data.mode === 'edit') {
@@ -1341,7 +1392,7 @@ export class FamilyTreeDrawer {
 
     defaultNodePicture(
         svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>,
-        options = {}
+        options: { width?: number; height?: number; outerRadius?: number; innerRadius?: number; token?: string } = {}
     ) {
         const {
             width = 0,
@@ -1411,7 +1462,7 @@ export class FamilyTreeDrawer {
 
     defaultNodePictureEditMode(
         svg: d3.Selection<SVGGElement, d3.HierarchyNode<DrawableNode>, SVGGElement, unknown>,
-        options = {}
+        options: { width?: number; height?: number; outerRadius?: number; innerRadius?: number; token?: string } = {}
     ) {
         const {
             width = 0,
@@ -1427,6 +1478,7 @@ export class FamilyTreeDrawer {
 
 
         svg.each((d: d3.HierarchyNode<DrawableNode>, i: number, nodes) => {
+            if (!nodes[i]) return;
             const nodeGroup = d3.select(nodes[i])
                 .append("g")
                 .attr("transform", `translate(${centerX}, ${centerY})`);
@@ -1484,7 +1536,7 @@ export class FamilyTreeDrawer {
                 nodeGroup.append("circle")
                     .attr("r", outerRadius)
                     .attr("fill", this.colors.editNodeBackground)
-                    .attr("stroke", d => this.getNodeColor(d))
+                    .attr("stroke", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>))
                     .attr("stroke-width", 2);
 
                 // Plus icon
@@ -1499,13 +1551,13 @@ export class FamilyTreeDrawer {
 
                 iconGroup.append("path")
                     .attr("d", "M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z")
-                    .attr("fill", d => this.getNodeColor(d))
+                    .attr("fill", d => this.getNodeColor(d as d3.HierarchyNode<DrawableNode>))
                     .attr("transform", "translate(-12,-12)");
             }
         });
     }
 
-    actionCircleColor(d: string) {
+    actionCircleColor(d: d3.HierarchyNode<DrawableNode>) {
         const type = this.nodeManager.memberPriviledge(this.familyTreeId, d.data.id);
 
         if (type === 'update') return this.colors.actionUpdate; // Bright Yellow - Represents active change
@@ -1526,7 +1578,7 @@ export class FamilyTreeDrawer {
 
     //     return ''; // Default: No icon
     // }
-    actionIcon(d: string) {
+    actionIcon(d: d3.HierarchyNode<DrawableNode>) {
         const type = this.nodeManager.memberPriviledge(this.familyTreeId, d.data.id);
 
         if (type === 'update') return '✎'; // Edit - Pencil symbol
@@ -1550,7 +1602,7 @@ export class FamilyTreeDrawer {
         const spacing = 12; // Spacing between circles
 
         // Append the circle only if the node type is 'suggest'
-        const suggestGroup = actionGroup.filter(d => this.nodeManager.canContribute(this.familyTreeId) && d.data.mode === 'node');
+        const suggestGroup = actionGroup.filter(d => this.nodeManager.canContribute() && d.data.mode === 'node');
 
         // Circle (background)
         suggestGroup.append("circle")
@@ -1566,7 +1618,7 @@ export class FamilyTreeDrawer {
 
         // Exclamation Mark (!)
         suggestGroup.append("text")
-            .text(d => this.actionIcon(d))
+            .text(d => this.actionIcon(d as d3.HierarchyNode<DrawableNode>))
             .attr("x", iconOffset - this.NODE_RADIUS + 5 + 2 * spacing)
             .attr("y", -iconOffset + (iconSize / 5)) // Adjust to center text
             .attr("text-anchor", "middle") // Center align
@@ -1599,9 +1651,9 @@ export class FamilyTreeDrawer {
 
     }
     pushRootHistory() {
-        this.rootHistory.push(this.rootNodeId)
+        this.rootHistory.push(this.rootNodeId as number)
     }
-    popRootHistory(poppedNodeId: undefined) {
+    popRootHistory(poppedNodeId: number) {
         let nodeDatas = this.nodeManager.data.familyNodes;
 
         while (this.rootHistory.length > 0) {
@@ -1621,7 +1673,7 @@ export class FamilyTreeDrawer {
 
         }
         const founder = nodeDatas.find(item => item.isFounder === true)
-        return founder.id
+        return founder?.id
 
     }
     updateTreeDrawing(rootNodeId: number) {
@@ -1644,7 +1696,7 @@ export class FamilyTreeDrawer {
         this.drawNodesEditMode()
         this.nodeDetailDisplayer()
     }
-    createPopUp(familyNodeId) {
+    createPopUp(familyNodeId: number) {
         return new FamilyTreeDrawer(this.nodeManager, 1, '#treePopUp', 300, 300, true, familyNodeId)
     }
 }

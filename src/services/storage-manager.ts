@@ -7,12 +7,12 @@ class LocalStorageManager {
     }
 
     // Helper to add prefix to keys
-    _getKey(key) {
+    _getKey(key: string) {
         return `${this.prefix}${key}`;
     }
 
     // Set an item in storage
-    setItem(key, value) {
+    setItem(key: string, value: any) {
         try {
             const data = JSON.stringify(value);
             localStorage.setItem(this._getKey(key), data);
@@ -22,7 +22,7 @@ class LocalStorageManager {
     }
 
     // Get an item from storage
-    getItem(key) {
+    getItem(key: string) {
         try {
             const data = localStorage.getItem(this._getKey(key));
             return data ? JSON.parse(data) : null;
@@ -33,7 +33,7 @@ class LocalStorageManager {
     }
 
     // Remove an item from storage
-    removeItem(key) {
+    removeItem(key: string) {
         try {
             localStorage.removeItem(this._getKey(key));
         } catch (error) {
@@ -55,7 +55,7 @@ class LocalStorageManager {
     }
 
     // Check if a key exists
-    hasItem(key) {
+    hasItem(key: string) {
         return localStorage.getItem(this._getKey(key)) !== null;
     }
 
